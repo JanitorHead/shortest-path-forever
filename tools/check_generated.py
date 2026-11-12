@@ -23,6 +23,7 @@ DATA = (
     "Data/Walks.lua",
     "Data/RoadEdges.lua",
     "Data/Heights.lua",
+    "Data/IdleSpawns.lua",
     "Locales/phrases.txt",
 )
 

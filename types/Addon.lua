@@ -23,6 +23,7 @@
 ---@field RoadEdges table<number, table<number, string>>
 ---@field SpawnHeights table<number, table<number, string>> spawns over or under another surface (Data/Heights.lua)
 ---@field TownAreas table<number, SPFTownArea> the client's town ground per flight master (Data/TownAreas.lua)
+---@field IdleSpawns table<number, table<number, string>> spawns an NPC stands still at, by creature ID (Data/IdleSpawns.lua)
 ---@field db SPFDatabase
 ---@field charDB SPFCharacterDatabase
 ---@field Defaults SPFDefaults
@@ -103,6 +104,7 @@
 ---@field x number
 ---@field y number
 ---@field z? number
+---@field band? SPFBand -- the heights the player may be standing at, when a walk starts from where they stand (Band.lua)
 ---@field jump? number
 ---@field label? string
 ---@field details? string[] -- a stop's own detail lines, in the caller's order (API.lua)

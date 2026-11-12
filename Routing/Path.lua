@@ -517,13 +517,16 @@ end
 
 -- A point without a height (the player, whose UnitPosition height is a placeholder 0, or a map click) could stand on
 -- any surface at its spot, so it starts from each one within a cell of it at a distinct height and the search keeps
--- the cheapest: a street beside or over a canal is not walked from the canal bed. Returns each surface's connection,
--- the entrance costs merged by minimum and, per entrance, the surface it came from. inbound returns the costs into the
+-- the cheapest: a street beside or over a canal is not walked from the canal bed. The player's measured height band
+-- (Band.lua) narrows those surfaces to the ones they can be standing on; a band that fits none of them is no
+-- measurement and every surface stays, exactly as a point with no band. Returns each surface's connection, the
+-- entrance costs merged by minimum and, per entrance, the surface it came from. inbound returns the costs into the
 -- point instead, which is what a goal needs, in the fifth to seventh places, and leaves the outbound ones empty: each
 -- caller walks a point one way, and on format 2 the other way is a second grid search. The surfaces themselves are
 -- returned too: a walk drawn or searched to a point ends on them, never on wherever the outbound rescue moved it.
-local function connectPoint(st, swim, k, node, h, roadsOn, hz, inbound)
+local function connectPoint(st, swim, k, node, point, roadsOn, hz, inbound)
 	local nodes = { node }
+	local h = point.z
 	if not h then
 		local values = grid(st, k)
 		assert(values)
@@ -583,6 +586,18 @@ local function connectPoint(st, swim, k, node, h, roadsOn, hz, inbound)
 			end
 		end
 		nodes = taken
+		local band = point.band
+		if band and ns.Band then
+			local inside = {}
+			for _, n in ipairs(nodes) do
+				if ns.Band.Holds(band, z[n + 1]) then
+					inside[#inside + 1] = n
+				end
+			end
+			if #inside > 0 then
+				nodes = inside
+			end
+		end
 	end
 	local ends, merged, mergedReal, via = {}, {}, {}, {}
 	for _, start in ipairs(nodes) do
@@ -676,11 +691,22 @@ local function run(map, from, to, waterWalking, costOnly, hz)
 	local offroad = hz and hz.roadFactor or OFFROAD
 
 	local S, G = trees.S, trees.G
-	local starts, source, sourceReal, sourceVia = connectPoint(st, swim, sk, sc, from.z, roadsOn, hz)
+	local starts, source, sourceReal, sourceVia = connectPoint(st, swim, sk, sc, from, roadsOn, hz)
 	-- The goal's costs are the walks into it, so a ledge drop is not climbed to reach it. A local walk to it ends on
 	-- the surfaces it stands on, not on wherever the outbound rescue moved it.
-	local _, _, _, _, target, targetReal, targetVia, goalOwn = connectPoint(st, swim, gk, gc, to.z, roadsOn, hz, true)
-	local key = table.concat({ sk, sc, gk, gc, swim, from.z and 1 or 0, to.z and 1 or 0, hz and hz.key or "" }, ":")
+	local _, _, _, _, target, targetReal, targetVia, goalOwn = connectPoint(st, swim, gk, gc, to, roadsOn, hz, true)
+	local key = table.concat({
+		sk,
+		sc,
+		gk,
+		gc,
+		swim,
+		from.z and 1 or 0,
+		to.z and 1 or 0,
+		hz and hz.key or "",
+		from.band and string.format("%.1f:%.1f", from.band.lo, from.band.hi) or "",
+		to.band and string.format("%.1f:%.1f", to.band.lo, to.band.hi) or "",
+	}, ":")
 	st.paths = st.paths or {}
 	local cached = st.paths[key]
 	local hops, cost, directFrom, directTo
@@ -1022,7 +1048,7 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 	local roadsOn = hz and hz.roads and hz.roadFactor ~= 1
 	local offroad = hz and hz.roadFactor or OFFROAD
 	local starts, source, sourceReal, _, sourceIn, sourceInReal =
-		connectPoint(st, swim, sk, sc, from.z, roadsOn, hz, reverse)
+		connectPoint(st, swim, sk, sc, from, roadsOn, hz, reverse)
 	local clusters, links, dist, real, closed, left = {}, {}, {}, {}, {}, #targets
 	for i, point in ipairs(targets) do
 		local k = locate(st, point.x, point.y)
@@ -1060,7 +1086,7 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 				-- costs a walk out of it, and its meeting point is whatever reaches `from`.
 				local into, intoReal
 				goals, ends[i], realEnds[i], _, into, intoReal =
-					connectPoint(st, swim, k, node, targets[i].z, roadsOn, hz, not reverse)
+					connectPoint(st, swim, k, node, targets[i], roadsOn, hz, not reverse)
 				if not reverse then
 					ends[i], realEnds[i] = into, intoReal
 				end
@@ -1531,6 +1557,11 @@ function Path.ReuseMany(job, point)
 	end
 	local from = job.from
 	if (from.x - point.x) ^ 2 + (from.y - point.y) ^ 2 > 9 or (from.z and point.z and abs(from.z - point.z) > ZTOL) then
+		return false
+	end
+	-- A start inside a different height band may have been settled on another surface.
+	local one, other = from.band, point.band
+	if (one or other) and not (one and other and one.lo == other.lo and one.hi == other.hi) then
 		return false
 	end
 	local st = State(job.map)
