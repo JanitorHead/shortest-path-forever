@@ -128,6 +128,7 @@ ns.Credits = {
 		{ name = "MrOxiMoron", what = "The game's quest markers can stay on the map during a journey" },
 		{ name = "Zhiroc", what = "A choice of key for planning a journey from a map click" },
 		{ name = "Crypa7", what = "Walk to a new flight master before flying" },
+		{ name = "ghuff07", what = "Dugi Guides can lead the journey" },
 	},
 	inspired = {
 		{ name = "Polestar by Fitz", what = "Ideas for many features" },

@@ -30,7 +30,7 @@ with you.
 - **Plan a journey.** Click the world map or minimap with your journey key held, or choose *Plan journey* on a quest. *Key to plan a journey* in Guidance chooses Shift or Alt so a key another addon wants can be left to it. Routes combine walking, flights, boats, zeppelins, lifts, the tram, portals and teleports, and replan as you move. A spot inside a dungeon or raid leads to its entrance. Walks go round zones whose lowest level is 4 or more above yours and round the other faction's towns, and say so in the tracker when they can't. *Keep journeys after a reload* in Guidance restarts your own journey after a `/reload`.
   ![Journey steps from Auberdine to Silithus](docs/screenshots/tracker.png)
   The tracker shows each step, with time and distance remaining. Hover the destination's pin on the world map for the same steps, and, with the other faction's routes hidden, whether their boats would be at least two minutes faster.
-- **Follow your guide.** Journeys follow RestedXP's or Guidelime's current step by default, without TomTom or a bridge addon; *Resume guide* returns to it after another journey, unless Adventure Guide's RestedXP display leads instead. With TomTom absent, other guides' TomTom waypoints start journeys here.
+- **Follow your guide.** Journeys follow RestedXP's or Guidelime's current step by default, without TomTom or a bridge addon; *Resume guide* returns to it after another journey, unless Adventure Guide's RestedXP display leads instead. With Dugi Guides installed, *Follow Dugi guides* in Guidance follows its current step too, leaving Dugi's own arrow in place. With TomTom absent, other guides' TomTom waypoints start journeys here.
 - **Type a waypoint.** `/way [zone] x y [title]` plans a journey there, written as for TomTom, while TomTom and other addons leave `/way` free; `/path way` always works. With TomTom installed, *Follow TomTom's arrow* in Guidance follows its arrow.
   ![A guide route through Thelsamar](docs/screenshots/stops.png)
   The current stop lights up like a tracked quest.
@@ -126,7 +126,7 @@ For help, ideas and each day's release notes, join [cjber's Workshop on Discord]
 
 <!-- forever-family:end -->
 
-Installed together, the others send Shortest Path their destinations: an Adventure Guide journey or quest-menu suggestion, a RestedXP or Guidelime step, a trainer or vendor in a SkillUp route, a Legacy dungeon or raid pin, or a dungeon or raid entrance Tweaks adds to the map.
+Installed together, the others send Shortest Path their destinations: an Adventure Guide journey or quest-menu suggestion, a RestedXP, Guidelime or Dugi Guides step, a trainer or vendor in a SkillUp route, a Legacy dungeon or raid pin, or a dungeon or raid entrance Tweaks adds to the map.
 
 Journey steps share one tracker column with the Adventure Guide, SkillUp and Legacy sections, above your quests.
 
@@ -156,7 +156,7 @@ Travel data comes from [wago.tools](https://wago.tools), [CMaNGOS](https://githu
 
 <!-- forever-credits:start -->
 
-Thanks to Alex21xx, Maggew, MacieGx, Stiandresius, user_lsqt69ps7bgb5p7e, The___Fast, Joster91, GenericP, cotijelucie, vladsnz, user_sggieekz05hc7uxt, kindguydev, Enel3008, azure463, AsimRamay, nookie909, Zerhathos, jakerist, cobalt_44, Xeteskian, DaFrozenMage, user_zbqhuuoypkkr46x1, Fitz, TRDeadbeat, tallsmartman, Sol_Deus, Zavian, Osipanda, Nightwind416, wfournier, cidolfus27, o0saw0o, Merlinqt, team_Brigade, phear, Testvonfarkle, rydoc, deathmvp1, saikoso, Ragnarok11B, Brainc3ll, Mouchoir, z1ck, Oxds, sean16981, aryaxo, Exo_NA, legortiz, JohnChrin, wheelbarrel00, lkshrk, HeartOfD2, rml9ty, hwalflor, chris-chrysos, Quantity-4, Bolton_wow, Aldericdevir, joaocjesus, jakerist (Grayburn), borick7318, sampconrad, jixxor, Gaafah, _spada, macwire, scraak, overspark, TeeRKee, Speaker1264, SuubzTV, Fel7, Kragmars, spidersylar, Acem, tgkGate, user_efwsfml273dlvfm5, IronmanBG, vcatalin, sdtom, Bervath, Blast22, hervad, caghanpekin-prog, Zwaffelmagic, CptShooter, user_10oietw0rdrgk4le, ubrider, cwebbx, lone_viking1921, Nivlemoth_Nathrezim, Lůca [Luutsa], esc_return, MrOxiMoron, Zhiroc, Crypa7 and everyone who reported a bug or asked for a feature.
+Thanks to Alex21xx, Maggew, MacieGx, Stiandresius, user_lsqt69ps7bgb5p7e, The___Fast, Joster91, GenericP, cotijelucie, vladsnz, user_sggieekz05hc7uxt, kindguydev, Enel3008, azure463, AsimRamay, nookie909, Zerhathos, jakerist, cobalt_44, Xeteskian, DaFrozenMage, user_zbqhuuoypkkr46x1, Fitz, TRDeadbeat, tallsmartman, Sol_Deus, Zavian, Osipanda, Nightwind416, wfournier, cidolfus27, o0saw0o, Merlinqt, team_Brigade, phear, Testvonfarkle, rydoc, deathmvp1, saikoso, Ragnarok11B, Brainc3ll, Mouchoir, z1ck, Oxds, sean16981, aryaxo, Exo_NA, legortiz, JohnChrin, wheelbarrel00, lkshrk, HeartOfD2, rml9ty, hwalflor, chris-chrysos, Quantity-4, Bolton_wow, Aldericdevir, joaocjesus, jakerist (Grayburn), borick7318, sampconrad, jixxor, Gaafah, _spada, macwire, scraak, overspark, TeeRKee, Speaker1264, SuubzTV, Fel7, Kragmars, spidersylar, Acem, tgkGate, user_efwsfml273dlvfm5, IronmanBG, vcatalin, sdtom, Bervath, Blast22, hervad, caghanpekin-prog, Zwaffelmagic, CptShooter, user_10oietw0rdrgk4le, ubrider, cwebbx, lone_viking1921, Nivlemoth_Nathrezim, Lůca [Luutsa], esc_return, MrOxiMoron, Zhiroc, Crypa7, ghuff07 and everyone who reported a bug or asked for a feature.
 
 <!-- forever-credits:end -->
 
