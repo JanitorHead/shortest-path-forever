@@ -12,6 +12,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Companion addons can read guidance.** API version 2, minor 1 adds copied next points, active-leg waypoints and guidance subscription notices. Thanks to nimri82 of RestedXP-Navigator for the request (#777).
+
 - **Dugi Guides can lead the journey.** Turn on *Follow Dugi guides* in Guidance to travel to the guide's current step without TomTom or a bridge addon. Dugi's own arrow stays visible. Thanks to ghuff07 for the request (#689).
 
 - **Walks start on the floor you are standing on.** Where floors stack, such as the ground under Stormwind or the hall above the Undercity's city, a journey started from whichever surface at your spot walked cheapest, so it could set off on a floor you were not on and run beneath the city. It now reads how far you are from the NPCs standing around you with the game's own range checks, and starts only on the surfaces within that height. Where nothing around you can be measured it starts exactly as it did before. The idea comes from BV Addon Suite - Routing, which works out the player's height the same way. Thanks to jixxor for the Stormwind report (#737, #602).

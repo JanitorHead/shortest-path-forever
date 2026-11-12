@@ -180,6 +180,7 @@ Credit for the reports and requests behind the addon.
 | Zhiroc | A choice of key for planning a journey from a map click | CurseForge; #882; thread 8712334 |
 | Crypa7 | Walk to a new flight master before flying | CurseForge; #868; thread 8706618 |
 | ghuff07 | Dugi Guides can lead the journey | CurseForge; #689 |
+| nimri82 | The public guidance point for RestedXP-Navigator | CurseForge; #777 |
 
 ## Inspired by
 

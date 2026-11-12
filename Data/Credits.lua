@@ -129,6 +129,7 @@ ns.Credits = {
 		{ name = "Zhiroc", what = "A choice of key for planning a journey from a map click" },
 		{ name = "Crypa7", what = "Walk to a new flight master before flying" },
 		{ name = "ghuff07", what = "Dugi Guides can lead the journey" },
+		{ name = "nimri82", what = "The public guidance point for RestedXP-Navigator" },
 	},
 	inspired = {
 		{ name = "Polestar by Fitz", what = "Ideas for many features" },
