@@ -21,6 +21,10 @@ optional `### For addon authors` subsection after a version's player bullets.
 - **The destination pin can be made smaller.** *Destination pin size* in Guidance, directly under *Show a pin over the destination*, scales the world map's journey goal pin from 50% to 100%. The pin keeps its shape and its point stays on the destination at every size, and 100% is how it always drew (#778).
 - **The Hearthstone can be kept out of a journey without opening settings.** Right-click the Journey header in the tracker and untick *Use Hearthstone*, or click the innkeeper button at your bind point on the world map. Both flip the same saved switch, replan the journey, and leave your class teleports on offer. The button greys out while the Hearthstone is saved and its tooltip says how much time the Hearthstone saves (cjber/adventure-guide-forever#707).
 
+### For addon authors
+
+- **Journey API 2.2 includes leg endpoints.** `Journey()` returns copied `from` and `to` map points when the client can place them. `Subscribe` reports replans, and `ResumeRestedXP()` resumes a paused guide outside combat (#782, #786).
+
 ## [1.38.0] - 2026-11-15
 
 <!-- discord-image: docs/screenshots/stops.png -->
