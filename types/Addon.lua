@@ -24,6 +24,9 @@
 ---@field SpawnHeights table<number, table<number, string>> spawns over or under another surface (Data/Heights.lua)
 ---@field TownAreas table<number, SPFTownArea> the client's town ground per flight master (Data/TownAreas.lua)
 ---@field IdleSpawns table<number, table<number, string>> spawns an NPC stands still at, by creature ID (Data/IdleSpawns.lua)
+---@field SpellTargets table<number, boolean> friendly spells whose effects target another unit (Data/SpellTargets.lua)
+---@field HostileSpells table<number, boolean> hostile spells whose effects target another unit (Data/SpellTargets.lua)
+---@field BandItems table<number, SPFBandItem> usable items whose on-use spell targets another unit (Data/SpellTargets.lua)
 ---@field db SPFDatabase
 ---@field charDB SPFCharacterDatabase
 ---@field Defaults SPFDefaults
@@ -412,6 +415,11 @@ ShortestPathForeverCharDB = nil
 ---@field packed? table<string, table<number, string[]>> compressed blocks indexed by field and cluster
 ---@type table<number, SPFNavData>
 ShortestPathForeverPathData = nil
+
+---@class SPFBandItem
+---@field range number the on-use spell's max range in yards, from the client's own spell data
+---@field friendly boolean? the spell targets an ally or any unit
+---@field hostile boolean? the spell targets an enemy or any unit
 
 ---@class SPFWalkPoints
 ---@field [integer] SPFPoint
