@@ -65,9 +65,8 @@ local function SamePlace(a, b)
 end
 Search.SamePlace = SamePlace
 
--- Where you stand, with the height of your floor when Floor.lua knows it: the walks then start on that floor rather
--- than the cheapest surface near you. Where the floor is not known, the range checks to the NPCs around you bound the
--- height instead, and the walks start on the surfaces inside that band (Band.lua, #737).
+-- Where you stand, with the height of your floor when Floor.lua knows it, the walks start on that floor rather than
+-- the cheapest surface near you; where it is not known, the NPC range checks bound the height (Band.lua, #737).
 local function Here()
 	local x, y, _, map = ns.JourneyPosition()
 	if not (x and y and map) then
@@ -244,6 +243,27 @@ local function EstimateKept(now)
 		}
 	end
 	return estimate
+end
+
+-- The drawn route's own timings from where you stand: what a timed tick owes the player, without a search, a plan or
+-- new geometry. False when a sailing the route waits for has moved to its next visit, or nothing can be estimated.
+---@return boolean
+local function RetimeKept()
+	local estimate = followed and EstimateKept(ns.NowMs())
+	if not estimate then
+		return false
+	end
+	for index, leg in ipairs(estimate.legs) do
+		local kept = followed.legs[index + progress.index - 1]
+		-- An untimed route has no sailing to count; it waits out a guess of half its round trip.
+		local sighted = kept.route and kept.boarding and not kept.aboard and ns.Timetable.Anchor(kept.route) ~= nil
+		if sighted and math.abs(leg.depart - kept.depart) > 0.5 then
+			return false
+		end
+	end
+	Retime(estimate)
+	publish(followed, "times")
+	return true
 end
 
 ---@param planned SPFPlan?
@@ -912,12 +932,14 @@ function Search.Poll(changed)
 	end
 end
 
--- The timed replan, also due when the ride or run speed changes: searches again where the old costs no longer
--- apply, and otherwise plans in the frame with the costs it has.
+-- The timed replan, also due when the ride or run speed changes: searches again where the old costs no longer apply,
+-- and otherwise plans in the frame with the costs it has. A tick with nothing new retimes the drawn route instead:
+-- only a departure it waits for moving to its next visit gives a plan a different answer.
 ---@param riding number? the route you are aboard
 ---@param flying boolean? on a taxi
 ---@param changedRide boolean either changed since the last frame
-function Search.Replan(riding, flying, changedRide)
+---@param changedSpeed boolean the run speed changed since the last plan
+function Search.Replan(riding, flying, changedRide, changedSpeed)
 	local mode = ns.JourneyWaterWalking()
 	local partyPortals = ns.PartyPortalPlaces and ns.PartyPortalPlaces(Here() or goal) or nil
 	if mode ~= waterMode then
@@ -946,7 +968,7 @@ function Search.Replan(riding, flying, changedRide)
 		local walkedOn = moved and leg and leg.mode == "teleport"
 		if not flying and not riding and (off or retry or walkedOn or GetTime() - refreshedAt >= REFRESH_EVERY) then
 			RefreshCosts(false, off or retry)
-		else
+		elseif changedRide or changedSpeed or not RetimeKept() then
 			local planned = Plan()
 			if
 				planned

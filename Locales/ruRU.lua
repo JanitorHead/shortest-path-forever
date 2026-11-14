@@ -18,7 +18,7 @@ L["%s landing"] = "площадка (%s)"
 L["%s pier"] = "причал (%s)"
 L["%s station"] = "станция (%s)"
 L["%s tower"] = "башня (%s)"
-L["%s · %s"] = "%s · %s"
+L["%s · %s"] = "%s • %s"
 L["%s — unavailable here"] = "%s – здесь недоступно"
 L["%s, %s"] = "%s, %s"
 L["%s, then %s"] = "%s, затем %s"
@@ -46,6 +46,9 @@ L["Avoid zones far above my level"] = "Избегать зон намного в
 L["Avoids %s (level %s)"] = "Обходит %s (уровень %s)"
 L["Bags"] = "Сумки"
 L["Bank"] = "Банк"
+L["Battlemaster"] = "Военачальник"
+L["Hovering a quest stop shows the quest's area."] =
+	"При наведении на остановку задания показывается область задания." -- mt
 L["Boat and Zeppelin Routes"] = "Маршруты кораблей и дирижаблей"
 L["Boat and zeppelin routes, drawn while you point at a dock."] =
 	"Маршруты кораблей и дирижаблей, когда вы наводите курсор на причал."
@@ -94,8 +97,8 @@ L["Friendly nameplates must be on to see them."] =
 	"Чтобы их увидеть, включите таблички с именами дружественных существ."
 L["Go through to %s"] = "Пройти: %s"
 L["Guidance"] = "Навигация"
-L["Guide marks the next boat, lift, flight master or your destination, not each turn of the walk on the way."] =
-	"Навигация отмечает следующий корабль, подъемник, распорядителя полетов или цель, а не каждый поворот пешего пути."
+L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
+	"Навигация отмечает на карте, где заканчивается каждый шаг, а не каждый поворот пешего пути. Стрелка по-прежнему ведет по пешему пути."
 L["Guide me"] = "Вести меня"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "Орда"
@@ -105,10 +108,8 @@ L["In the objective tracker while you are near a dock, lift or tram."] =
 L["Innkeeper"] = "Хозяин таверны"
 L["Interface"] = "Интерфейс"
 L["Journey"] = "Маршрут"
-L["Journey  %s · %s"] = "Маршрут  %s · %s"
+L["Journey  %s · %s"] = "Маршрут  %s • %s"
 L["Journey to %s"] = "Маршрут: %s"
-L["Journeys are off. Turn on Shift-click to plan journeys in settings."] =
-	"Маршруты отключены. Включите «Shift+щелчок для маршрута» в настройках."
 L["Journeys, and other addons' estimates from here, can start with your hearthstone or a teleport, cooldown counted."] =
 	"Маршруты, а также оценки других модификаций отсюда, могут начинаться с камня возвращения или телепорта с учетом восстановления."
 L["Keep journeys after a reload"] = "Сохранять маршрут после перезагрузки"
@@ -171,6 +172,7 @@ L["Play a sound when you reach the goal"] = "Звук по прибытии к �
 L["Play a sound with alerts"] = "Звук при оповещениях"
 L["Plays even with the game in the background."] = "Звучит, даже когда игра в фоне."
 L["Portal to %s"] = "Портал: %s"
+L["Portal trainer"] = "Учитель порталов"
 L["Portals"] = "Порталы"
 L["Reagents"] = "Реагенты"
 L["Repair"] = "Ремонт"
@@ -180,6 +182,7 @@ L["Resume RestedXP guide"] = "Продолжить руководство Rested
 L["Resume guide"] = "Продолжить руководство"
 L["Return to your corpse"] = "Вернуться к телу"
 L["Right-click to clear"] = "Правый щелчок – сбросить"
+L["Route to the focused quest"] = "Отправиться к выбранному заданию"
 L["S"] = "Ю"
 L["Scales the arrow and the cast prompt."] =
 	"Меняет размер стрелки и подсказки применения."
@@ -189,9 +192,6 @@ L["Scales the shared Forever tracker. 100% matches the game's own tracker."] =
 	"Меняет размер общей панели отслеживания Forever. 100% – как панель отслеживания игры."
 L["Search services and goods"] = "Поиск услуг и товаров"
 L["Services"] = "Услуги"
-L["Shift-click the world map or the minimap to plan a journey there."] =
-	"Shift+щелчок по карте мира или мини-карте прокладывает туда маршрут."
-L["Shift-click to plan journeys"] = "Shift+щелчок для маршрута"
 L["Shortest Path report"] = "Отчет Shortest Path"
 L["Show boats and zeppelins"] = "Показывать корабли и дирижабли"
 L["Show direction arrow"] = "Показывать стрелку направления"
@@ -224,6 +224,8 @@ L["Sizes flight master icons on the world map."] =
 L["Sizes transport icons on the minimap."] =
 	"Размер значков транспорта на мини-карте."
 L["Stable master"] = "Хозяин стойл"
+L["Starts a journey when you super-track a quest or place the game's map pin, so a controller needs no map click. A guide addon's own journey is left alone."] =
+	"Начинает маршрут, когда вы выбираете задание или ставите метку на карте игры, так что геймпаду не нужен щелчок по карте. Маршрут аддона-гида не затрагивается."
 L["Stop %d of %d"] = "Остановка %d из %d" -- mt
 L["Stop %d of %d: %s"] = "Остановка %d из %d: %s"
 L["Suggest quests for my level: Adventure Guide Forever"] =
@@ -438,8 +440,6 @@ L["Stops before the last on a multi-stop route keep 15 yards."] =
 L["Dungeons and raids"] = "Подземелья и рейды" -- mt
 L["Town services"] = "Городские услуги" -- mt
 L["Town services on the world map"] = "Городские услуги на карте мира" -- mt
-L["The arrow and the tracker no longer flash while a guide moves between objectives."] =
-	"Стрелка и трекер больше не мигают, когда гайд переходит между целями." -- mt
 L["Capitals only"] = "Только столицы" -- mt
 L["Capitals and important services"] = "Столицы и важные услуги" -- mt
 L["All towns"] = "Все города" -- mt
@@ -450,3 +450,22 @@ L["Ammunition"] = "Боеприпасы" -- mt
 L["Bags and trade supplies"] = "Сумки и хозяйственные товары" -- mt
 L["Food and drink"] = "Еда и напитки" -- mt
 L["Profession trainers"] = "Учителя профессий" -- mt
+L["Hide game quest markers"] = "Скрывать игровые метки заданий" -- mt
+L["Off, the game's own quest markers stay beside your journey's pins, showing the other places a quest can be done."] =
+	"Если выключено, игровые метки заданий остаются рядом с метками вашего маршрута, чтобы вы видели другие места, где можно выполнить задание." -- mt
+L["Shift"] = "Shift" -- mt
+L["Alt"] = "Alt" -- mt
+L["Click the map to plan journeys"] =
+	"Щелкните по карте, чтобы планировать маршруты" -- mt
+L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
+	"Удерживайте клавишу маршрута и щелкните по карте мира или мини-карте, чтобы проложить туда маршрут." -- mt
+L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
+	"Маршруты отключены. Включите «Щелкните по карте, чтобы планировать маршруты» в настройках." -- mt
+L["Key to plan a journey"] = "Клавиша для планирования маршрута" -- mt
+L["The key you hold to plan a journey from the world map or the minimap."] =
+	"Клавиша, которую вы удерживаете, чтобы проложить маршрут с карты мира или мини-карты." -- mt
+L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey there with either key."] =
+	"На значке Questie Shift+щелчок остается за Questie; Alt+щелчок прокладывает туда маршрут при любой из двух клавиш." -- mt
+L["Show the Nearby services tab"] = "Показывать вкладку услуг поблизости"
+L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."] =
+	"Вкладка в журнале заданий на карте мира. Если выключить, /spfnear и меню отслеживания всё равно её откроют."

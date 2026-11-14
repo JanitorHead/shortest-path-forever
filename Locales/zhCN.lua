@@ -42,6 +42,8 @@ L["Avoid zones far above my level"] = "避开远高于我等级的区域"
 L["Avoids %s (level %s)"] = "绕开%s（等级 %s）"
 L["Bags"] = "背包"
 L["Bank"] = "银行"
+L["Battlemaster"] = "战场指挥官"
+L["Hovering a quest stop shows the quest's area."] = "鼠标悬停在任务站点上会显示该任务的区域。" -- mt
 L["Boat and Zeppelin Routes"] = "船只和飞艇航线"
 L["Boat and zeppelin routes, drawn while you point at a dock."] =
 	"船只和飞艇航线，在你指向码头时绘制。"
@@ -88,8 +90,8 @@ L["Forever addons"] = "Forever插件"
 L["Friendly nameplates must be on to see them."] = "需要开启友方姓名板才能看到。"
 L["Go through to %s"] = "穿过前往%s"
 L["Guidance"] = "引导"
-L["Guide marks the next boat, lift, flight master or your destination, not each turn of the walk on the way."] =
-	"引导会标记下一艘船、升降梯、飞行管理员或你的目的地，而不是步行途中的每个转弯。"
+L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
+	"引导会在地图上标记每一步的终点，而不是步行途中的每个转弯。箭头仍会沿着步行路线指引。"
 L["Guide me"] = "为我引路"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "部落"
@@ -101,8 +103,6 @@ L["Interface"] = "界面"
 L["Journey"] = "旅程"
 L["Journey  %s · %s"] = "旅程  %s · %s"
 L["Journey to %s"] = "前往%s的旅程"
-L["Journeys are off. Turn on Shift-click to plan journeys in settings."] =
-	"旅程已关闭。请在设置中开启“Shift点击规划旅程”。"
 L["Journeys, and other addons' estimates from here, can start with your hearthstone or a teleport, cooldown counted."] =
 	"旅程以及其他插件从这里算起的估计，可以从炉石或传送开始，并计入冷却时间。"
 L["Keep journeys after a reload"] = "重载后保留旅程"
@@ -160,6 +160,7 @@ L["Play a sound when you reach the goal"] = "到达目标时播放声音"
 L["Play a sound with alerts"] = "提醒时播放声音"
 L["Plays even with the game in the background."] = "游戏在后台时也会播放。"
 L["Portal to %s"] = "前往%s的传送门"
+L["Portal trainer"] = "传送门训练师"
 L["Portals"] = "传送门"
 L["Reagents"] = "材料"
 L["Repair"] = "修理"
@@ -169,6 +170,7 @@ L["Resume RestedXP guide"] = "继续RestedXP指南"
 L["Resume guide"] = "继续指南"
 L["Return to your corpse"] = "返回你的尸体"
 L["Right-click to clear"] = "右键点击清除"
+L["Route to the focused quest"] = "前往当前聚焦的任务"
 L["S"] = "南"
 L["Scales the arrow and the cast prompt."] = "调整箭头和施法提示的大小。"
 L["Scales the compass. 100% matches the game's own art."] = "调整指南针大小。100%与游戏自身美术一致。"
@@ -176,9 +178,6 @@ L["Scales the shared Forever tracker. 100% matches the game's own tracker."] =
 	"调整共享Forever追踪栏的大小。100%与游戏自身的追踪栏一致。"
 L["Search services and goods"] = "搜索服务和物品"
 L["Services"] = "服务"
-L["Shift-click the world map or the minimap to plan a journey there."] =
-	"Shift点击世界地图或微缩地图以规划前往该处的旅程。"
-L["Shift-click to plan journeys"] = "Shift点击规划旅程"
 L["Shortest Path report"] = "Shortest Path报告"
 L["Show boats and zeppelins"] = "显示船只和飞艇"
 L["Show direction arrow"] = "显示方向箭头"
@@ -207,6 +206,8 @@ L["Sizes boat, lift, tram and portal icons on the world map."] =
 L["Sizes flight master icons on the world map."] = "调整世界地图上飞行管理员图标的大小。"
 L["Sizes transport icons on the minimap."] = "调整微缩地图上交通图标的大小。"
 L["Stable master"] = "兽栏管理员"
+L["Starts a journey when you super-track a quest or place the game's map pin, so a controller needs no map click. A guide addon's own journey is left alone."] =
+	"当您聚焦任务或放置游戏地图标记时开始旅程，因此控制器无需 地图点击。指南插件的自有旅程不受影响。"
 L["Stop %d of %d"] = "第%d站，共%d站" -- mt
 L["Stop %d of %d: %s"] = "第%d站，共%d站：%s"
 L["Suggest quests for my level: Adventure Guide Forever"] = "推荐适合我等级的任务：Adventure Guide Forever"
@@ -409,8 +410,6 @@ L["Stops before the last on a multi-stop route keep 15 yards."] =
 L["Dungeons and raids"] = "地下城与团队副本" -- mt
 L["Town services"] = "城镇服务" -- mt
 L["Town services on the world map"] = "世界地图上的城镇服务" -- mt
-L["The arrow and the tracker no longer flash while a guide moves between objectives."] =
-	"指南切换目标时，箭头和追踪器不再闪烁。" -- mt
 L["Capitals only"] = "仅主城" -- mt
 L["Capitals and important services"] = "主城和重要服务" -- mt
 L["All towns"] = "所有城镇" -- mt
@@ -421,3 +420,21 @@ L["Ammunition"] = "弹药" -- mt
 L["Bags and trade supplies"] = "背包和贸易品" -- mt
 L["Food and drink"] = "食物和饮水" -- mt
 L["Profession trainers"] = "专业训练师" -- mt
+L["Hide game quest markers"] = "隐藏游戏的任务标记" -- mt
+L["Off, the game's own quest markers stay beside your journey's pins, showing the other places a quest can be done."] =
+	"关闭后，游戏自带的任务标记会留在旅程标记旁边，让你看到任务还能在哪些地方完成。" -- mt
+L["Shift"] = "Shift" -- mt
+L["Alt"] = "Alt" -- mt
+L["Click the map to plan journeys"] = "点击地图规划旅程" -- mt
+L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
+	"按住旅程按键并点击世界地图或微缩地图，即可规划前往该处的旅程。" -- mt
+L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
+	"旅程已关闭。请在设置中开启“点击地图规划旅程”。" -- mt
+L["Key to plan a journey"] = "规划旅程的按键" -- mt
+L["The key you hold to plan a journey from the world map or the minimap."] =
+	"在世界地图或微缩地图上规划旅程时按住的按键。" -- mt
+L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey there with either key."] =
+	"在 Questie 图标上，Shift 点击仍归 Questie 所有；Alt 点击则可用任一按键规划前往该处的旅程。" -- mt
+L["Show the Nearby services tab"] = "显示附近服务标签"
+L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."] =
+	"世界地图任务日志中的标签。关闭后，/spfnear 和追踪菜单仍可打开它。"

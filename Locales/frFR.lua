@@ -44,6 +44,8 @@ L["Avoid zones far above my level"] = "Éviter les zones bien au-dessus de mon n
 L["Avoids %s (level %s)"] = "Contourne %s (niveau %s)" -- mt
 L["Bags"] = "Sacs"
 L["Bank"] = "Banque" -- mt
+L["Battlemaster"] = "Maître de bataille" -- mt
+L["Hovering a quest stop shows the quest's area."] = "Survoler une étape de quête affiche la zone de la quête." -- mt
 L["Boat and Zeppelin Routes"] = "Routes des bateaux et zeppelins" -- mt
 L["Boat and zeppelin routes, drawn while you point at a dock."] =
 	"Routes des bateaux et zeppelins, tracées quand vous survolez un quai." -- mt
@@ -92,8 +94,8 @@ L["Friendly nameplates must be on to see them."] =
 	"Les plaques de nom des unités amies doivent être activées pour les voir."
 L["Go through to %s"] = "Passer vers %s" -- mt
 L["Guidance"] = "Guidage" -- mt
-L["Guide marks the next boat, lift, flight master or your destination, not each turn of the walk on the way."] =
-	"Le guidage marque le prochain bateau, ascenseur, maître de vol ou votre destination, pas chaque virage du trajet à pied." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
+	"Le guidage marque sur la carte la fin de chaque étape, pas chaque virage du trajet à pied. La flèche suit toujours le trajet à pied." -- mt
 L["Guide me"] = "Me guider" -- mt
 L["Guidelime"] = "Guidelime" -- mt
 L["Horde"] = "Horde" -- mt
@@ -105,8 +107,6 @@ L["Interface"] = "Interface" -- mt
 L["Journey"] = "Trajet" -- mt
 L["Journey  %s · %s"] = "Trajet  %s · %s" -- mt
 L["Journey to %s"] = "Trajet vers %s" -- mt
-L["Journeys are off. Turn on Shift-click to plan journeys in settings."] =
-	"Les trajets sont désactivés. Activez « Maj-clic pour planifier » dans les réglages." -- mt
 L["Journeys, and other addons' estimates from here, can start with your hearthstone or a teleport, cooldown counted."] =
 	"Les trajets, et les estimations d'autres addons depuis ici, peuvent commencer par votre pierre de foyer ou une téléportation, temps de recharge compris." -- mt
 L["Keep journeys after a reload"] = "Garder les trajets après un rechargement" -- mt
@@ -165,6 +165,7 @@ L["Play a sound when you reach the goal"] = "Jouer un son à l'arrivée" -- mt
 L["Play a sound with alerts"] = "Jouer un son avec les alertes" -- mt
 L["Plays even with the game in the background."] = "Même avec le jeu en arrière-plan." -- mt
 L["Portal to %s"] = "Portail vers %s" -- mt
+L["Portal trainer"] = "Maître des portails" -- mt
 L["Portals"] = "Portails" -- mt
 L["Reagents"] = "Composants" -- mt
 L["Repair"] = "Réparations" -- mt
@@ -174,6 +175,7 @@ L["Resume RestedXP guide"] = "Reprendre le guide RestedXP" -- mt
 L["Resume guide"] = "Reprendre le guide" -- mt
 L["Return to your corpse"] = "Retourner à votre cadavre" -- mt
 L["Right-click to clear"] = "Clic droit pour effacer" -- mt
+L["Route to the focused quest"] = "Voyager vers la quête ciblée" -- mt
 L["S"] = "S" -- mt
 L["Scales the arrow and the cast prompt."] = "Ajuste la taille de la flèche et de l'invite de sort." -- mt
 L["Scales the compass. 100% matches the game's own art."] =
@@ -182,9 +184,6 @@ L["Scales the shared Forever tracker. 100% matches the game's own tracker."] =
 	"Ajuste la taille du suivi Forever partagé. 100 % correspond au suivi du jeu." -- mt
 L["Search services and goods"] = "Rechercher des services et des biens"
 L["Services"] = "Services"
-L["Shift-click the world map or the minimap to plan a journey there."] =
-	"Maj-clic sur la carte du monde ou la minicarte pour y planifier un trajet." -- mt
-L["Shift-click to plan journeys"] = "Maj-clic pour planifier" -- mt
 L["Shortest Path report"] = "Rapport Shortest Path" -- mt
 L["Show boats and zeppelins"] = "Afficher bateaux et zeppelins" -- mt
 L["Show direction arrow"] = "Afficher la flèche de direction" -- mt
@@ -214,6 +213,8 @@ L["Sizes boat, lift, tram and portal icons on the world map."] =
 L["Sizes flight master icons on the world map."] = "Taille des icônes des maîtres de vol sur la carte du monde." -- mt
 L["Sizes transport icons on the minimap."] = "Taille des icônes de transport sur la minicarte." -- mt
 L["Stable master"] = "Maître des écuries" -- mt
+L["Starts a journey when you super-track a quest or place the game's map pin, so a controller needs no map click. A guide addon's own journey is left alone."] =
+	"Lance un trajet quand vous suivez une quête ou placez le repère de carte du jeu, ainsi une manette n'a pas besoin de clic sur la carte. Le trajet propre à un addon de guide n'est pas touché." -- mt
 L["Stop %d of %d"] = "Arrêt %d sur %d" -- mt
 L["Stop %d of %d: %s"] = "Arrêt %d sur %d : %s" -- mt
 L["Suggest quests for my level: Adventure Guide Forever"] =
@@ -419,8 +420,6 @@ L["Stops before the last on a multi-stop route keep 15 yards."] =
 L["Dungeons and raids"] = "Donjons et raids" -- mt
 L["Town services"] = "Services de la ville" -- mt
 L["Town services on the world map"] = "Services de la ville sur la carte du monde" -- mt
-L["The arrow and the tracker no longer flash while a guide moves between objectives."] =
-	"La flèche et le suivi ne clignotent plus quand un guide passe d'un objectif à l'autre." -- mt
 L["Capitals only"] = "Capitales uniquement" -- mt
 L["Capitals and important services"] = "Capitales et services importants" -- mt
 L["All towns"] = "Toutes les villes" -- mt
@@ -430,3 +429,21 @@ L["Ammunition"] = "Munitions" -- mt
 L["Bags and trade supplies"] = "Sacs et artisanat" -- mt
 L["Food and drink"] = "Nourriture et boissons" -- mt
 L["Profession trainers"] = "Maîtres de métier" -- mt
+L["Hide game quest markers"] = "Masquer les marqueurs de quête" -- mt
+L["Off, the game's own quest markers stay beside your journey's pins, showing the other places a quest can be done."] =
+	"Désactivé, les marqueurs de quête du jeu restent à côté de ceux de votre trajet, pour que vous voyiez les autres endroits où une quête peut être accomplie." -- mt
+L["Shift"] = "Maj" -- mt
+L["Alt"] = "Alt" -- mt
+L["Click the map to plan journeys"] = "Cliquez sur la carte pour planifier des trajets" -- mt
+L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
+	"Maintenez votre touche de trajet et cliquez sur la carte du monde ou la minicarte pour y planifier un trajet." -- mt
+L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
+	"Les trajets sont désactivés. Activez « Cliquez sur la carte pour planifier des trajets » dans les options." -- mt
+L["Key to plan a journey"] = "Touche pour planifier un trajet" -- mt
+L["The key you hold to plan a journey from the world map or the minimap."] =
+	"La touche à maintenir pour planifier un trajet depuis la carte du monde ou la minicarte." -- mt
+L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey there with either key."] =
+	"Sur une icône Questie, le clic avec Maj reste à Questie ; Alt-clic y planifie le trajet avec l'une ou l'autre touche." -- mt
+L["Show the Nearby services tab"] = "Afficher l’onglet des services à proximité" -- mt
+L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."] =
+	"L’onglet dans le journal des quêtes de la carte du monde. Désactivé, /spfnear et le menu de suivi l’ouvrent encore." -- mt

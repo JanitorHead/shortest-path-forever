@@ -4,6 +4,11 @@ local _, ns = ...
 
 ns.Credits = {
 	players = {
+		{ name = "jakerist", what = "Destination pin step line follows the journey" },
+		{ name = "cobalt_44", what = "Nearby services tab can be hidden" },
+		{ name = "Xeteskian", what = "Nearby services tab can be hidden" },
+		{ name = "DaFrozenMage", what = "Nearby services tab can be hidden" },
+		{ name = "user_zbqhuuoypkkr46x1", what = "Nearby services tab can be hidden" },
 		{ name = "Fitz", what = "Walks checked at both ends" },
 		{ name = "TRDeadbeat", what = "Gamepad interface no longer freezes or blocks" },
 		{ name = "tallsmartman", what = "Gamepad interface no longer freezes or blocks" },
@@ -94,6 +99,24 @@ ns.Credits = {
 		{ name = "Blast22", what = "Guidance no longer flickers between two objectives" },
 		{ name = "user_sggieekz05hc7uxt", what = "Guidance no longer flickers between two objectives" },
 		{ name = "kindguydev", what = "Guidance no longer flickers while a guide re-points" },
+		{ name = "kindguydev", what = "Guidance no longer restarts when another addon points at the same destination" },
+		{
+			name = "user_sggieekz05hc7uxt",
+			what = "Guidance no longer restarts when another addon points at the same destination",
+		},
+		{ name = "hervad", what = "No more short hitches during play" },
+		{ name = "caghanpekin-prog", what = "No more brief stutters during play" },
+		{ name = "Zwaffelmagic", what = "Clear the destination on arrival" },
+		{ name = "CptShooter", what = "Hide the objective lines under the arrow" },
+		{ name = "user_10oietw0rdrgk4le", what = "Hovering the minimap map pin no longer errors" },
+		{ name = "ubrider", what = "Hovering the minimap map pin no longer errors" },
+		{ name = "cwebbx", what = "Journeys start from a focused quest or map pin" },
+		{ name = "lone_viking1921", what = "Journeys start from a focused quest or map pin" },
+		{ name = "Nivlemoth_Nathrezim", what = "Horde walks stay out of Southshore" },
+		{ name = "Lůca [Luutsa]", what = "Town services of the same kind share one icon" },
+		{ name = "esc_return", what = "Arrow follows the walk with only step ends marked" },
+		{ name = "MrOxiMoron", what = "The game's quest markers can stay on the map during a journey" },
+		{ name = "Zhiroc", what = "A choice of key for planning a journey from a map click" },
 	},
 	inspired = {
 		{ name = "Polestar by Fitz", what = "Ideas for many features" },

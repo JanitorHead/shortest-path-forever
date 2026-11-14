@@ -151,10 +151,22 @@ ns.Init(function()
 	Checkbox("portals", L["Show portals"], L["On the world map."], ns.RefreshMap)
 	Checkbox("mapFlightMasters", L["Show flight masters"], L["On the world map."], ns.RefreshMap)
 	Checkbox(
+		"nearbyTab",
+		L["Show the Nearby services tab"],
+		L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."],
+		ns.RefreshNearbyTab
+	)
+	Checkbox(
 		"minimapPins",
 		L["Show marks on the minimap"],
 		L["Docks, lifts, the tram and portals. Also under Transport in the minimap's tracking menu."],
 		ns.RefreshMinimapPins
+	)
+	Checkbox(
+		"hideQuestPins",
+		L["Hide game quest markers"],
+		L["Off, the game's own quest markers stay beside your journey's pins, showing the other places a quest can be done."],
+		ns.RefreshQuestPins
 	)
 
 	Scale(
@@ -322,8 +334,8 @@ ns.Init(function()
 	)
 	Checkbox(
 		"journey",
-		L["Shift-click to plan journeys"],
-		L["Shift-click the world map or the minimap to plan a journey there."],
+		L["Click the map to plan journeys"],
+		L["Hold your journey key and click the world map or the minimap to plan a journey there."],
 		function()
 			if not ns.db.journey then
 				ns.ClearJourney()
@@ -331,6 +343,39 @@ ns.Init(function()
 			-- The guide follower only ticks while journeys are on; turning them back on starts it again.
 			ns.RefreshGuidelime()
 		end
+	)
+	local journeyKey = Settings.RegisterAddOnSetting(
+		page,
+		"ShortestPathForever_journeyKey",
+		"journeyKey",
+		ns.db,
+		Settings.VarType.String,
+		L["Key to plan a journey"],
+		ns.Defaults.journeyKey
+	)
+	settings.journeyKey = journeyKey
+	local journeyKeyOptions = Settings.CreateControlTextContainer()
+	for _, key in ipairs(ns.JourneyKeys) do
+		journeyKeyOptions:Add(key, ns.JourneyKeyName(key))
+	end
+	Settings.RegisterInitializer(
+		page,
+		Settings.CreateDropdownInitializer(
+			journeyKey,
+			function()
+				return journeyKeyOptions:GetData()
+			end,
+			L["The key you hold to plan a journey from the world map or the minimap."]
+				.. " "
+				.. L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey there with either key."]
+		)
+	)
+	Checkbox(
+		"focusedQuest",
+		L["Route to the focused quest"],
+		-- luacheck: push ignore 631
+		L["Starts a journey when you super-track a quest or place the game's map pin, so a controller needs no map click. A guide addon's own journey is left alone."]
+		-- luacheck: pop
 	)
 	Checkbox(
 		"journeyTracker",
@@ -485,8 +530,8 @@ ns.Init(function()
 	Checkbox(
 		"guideStops",
 		L["Mark only where steps end"],
-		L["Guide marks the next boat, lift, flight master or your destination, not each turn of the walk on the way."],
-		ns.RefreshGuideStops
+		L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."],
+		ns.GuideStopsChanged
 	)
 	Checkbox(
 		"taxiRoute",
