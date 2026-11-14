@@ -209,3 +209,42 @@ function ns.AdvanceJourneyProgress(legs, progress, goal, riding, flying, near, g
 	end
 	return goal.hold
 end
+
+local function Whole(ms)
+	return math.max(0, math.ceil(ms / 1000))
+end
+
+-- Where a leg starts and ends, as the planner's own leg points name them: the first and last point of the line it
+-- draws, copied to uiMapID and 0-1 fractions. A leg with no such line, or an end this client cannot place, keeps that
+-- field nil. Nothing is estimated here.
+---@param leg SPFLeg
+---@param place fun(point: SPFPoint): SPFAPIPlace?
+---@return SPFAPIPlace?, SPFAPIPlace?
+local function LegEnds(leg, place)
+	local points = ns.PlanContext.LegPoints(leg)
+	local first, last = points[1], points[#points]
+	return first and place(first), last and place(last)
+end
+
+-- The planner's legs from the one under way on, as fresh copies: the tracker's plain action words, the mode's own
+-- name and the leg's whole seconds including its wait, which is how JourneyTime adds the header up, and the leg's own
+-- ends as the planner drew them. Every table is new, so a caller never reaches the plan.
+---@param plan SPFPlan
+---@param index integer
+---@param place fun(point: SPFPoint): SPFAPIPlace?
+---@return SPFAPIJourneyLeg[]
+function ns.JourneyLegDetails(plan, index, place)
+	local legs = {}
+	for legIndex = index, #plan.legs do
+		local leg = plan.legs[legIndex]
+		local from, to = LegEnds(leg, place)
+		legs[#legs + 1] = {
+			mode = leg.mode,
+			text = ns.StepText(leg),
+			seconds = Whole(ns.LegSpan(leg)) + Whole(leg.wait or 0),
+			from = from,
+			to = to,
+		}
+	end
+	return legs
+end

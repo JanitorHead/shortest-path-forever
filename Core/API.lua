@@ -662,43 +662,6 @@ local function JourneyPlace(point)
 	return { map = place.map, x = place.x, y = place.y, title = point.label or ns.JourneyTitle(point) }
 end
 
-local function Whole(ms)
-	return math.max(0, math.ceil(ms / 1000))
-end
-
--- Where a leg starts and ends, as the planner's own leg points name them: the first and last point of the line it
--- draws, copied to uiMapID and 0-1 fractions. A leg with no such line, or an end this client cannot place, keeps that
--- field nil. Nothing is estimated here.
----@param leg SPFLeg
----@return SPFAPIPlace?, SPFAPIPlace?
-local function LegEnds(leg)
-	local points = ns.PlanContext.LegPoints(leg)
-	local first, last = points[1], points[#points]
-	return first and Place(first), last and Place(last)
-end
-
--- The planner's legs from the one under way on, as fresh copies: the tracker's plain action words, the mode's own
--- name and the leg's whole seconds including its wait, which is how JourneyTime adds the header up, and the leg's own
--- ends as the planner drew them. Every table is new, so a caller never reaches the plan.
----@param plan SPFPlan
----@param index integer
----@return SPFAPIJourneyLeg[]
-local function JourneyLegs(plan, index)
-	local legs = {}
-	for legIndex = index, #plan.legs do
-		local leg = plan.legs[legIndex]
-		local from, to = LegEnds(leg)
-		legs[#legs + 1] = {
-			mode = leg.mode,
-			text = ns.StepText(leg),
-			seconds = Whole(ns.LegSpan(leg)) + Whole(leg.wait or 0),
-			from = from,
-			to = to,
-		}
-	end
-	return legs
-end
-
 -- A corpse run is the journey under way while you are a ghost. Corpse.Info already names it, its one plan and the
 -- step under way, so the run is read as the tracker draws it; the journey waiting behind it keeps its goal.
 ---@return SPFAPIJourney?
@@ -713,7 +676,7 @@ local function CorpseJourney()
 	return {
 		owner = nil,
 		goal = goal,
-		legs = JourneyLegs(plan, index),
+		legs = ns.JourneyLegDetails(plan, index, Place),
 		index = index,
 		guided = ns.IsJourneyGuided() == true,
 		secondsLeft = ns.JourneyTime(plan.legs, index) / 1000,
@@ -751,7 +714,7 @@ function API.Journey()
 	return {
 		owner = ns.JourneyOwner(),
 		goal = place,
-		legs = plan and JourneyLegs(plan, index) or {},
+		legs = plan and ns.JourneyLegDetails(plan, index, Place) or {},
 		index = index,
 		guided = ns.IsJourneyGuided() == true,
 		secondsLeft = plan and ns.JourneyTime(plan.legs, index) / 1000 or 0,

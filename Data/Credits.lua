@@ -93,7 +93,7 @@ ns.Credits = {
 		{ name = "user_efwsfml273dlvfm5", what = "Fixed the remaining path job yield error" },
 		{ name = "IronmanBG", what = "Plan journey back in Kaliel's Tracker" },
 		{ name = "vladsnz", what = "Quest list More options works with a controller" },
-		{ name = "vcatalin", what = "Forever Core bundled in the download again" },
+		{ name = "vcatalin", what = "ForeverCore bundled in the download again" },
 		{ name = "sdtom", what = "Town service pins wear their own icons" },
 		{ name = "Bervath", what = "Town service pins wear their own icons" },
 		{ name = "Blast22", what = "Guidance no longer flickers between two objectives" },
