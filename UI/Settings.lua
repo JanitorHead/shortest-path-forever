@@ -152,8 +152,8 @@ ns.Init(function()
 	Checkbox("mapFlightMasters", L["Show flight masters"], L["On the world map."], ns.RefreshMap)
 	Checkbox(
 		"nearbyTab",
-		L["Show Nearby services tab"],
-		L["The Nearby services tab in the world map and quest log."],
+		L["Show the Nearby services tab"],
+		L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."],
 		ns.RefreshNearbyTab
 	)
 	Checkbox(
