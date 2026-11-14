@@ -69,38 +69,6 @@ function ns.JourneyPlan()
 	return result, progress.index
 end
 
----@param plan SPFPlan
----@param current integer
----@return SPFRow?
-function ns.NewFlightPathReminderRow(plan, current)
-	for index = current, #plan.legs do
-		local leg = plan.legs[index]
-		if leg.mode == "walk" and leg.to.undiscovered then
-			return {
-				key = "new-flight-path",
-				text = string.format(L["Step %d: discover flight master %s before flying."], index, ns.LegLabel(leg)),
-				grey = true,
-			}
-		end
-	end
-	if plan.unknownFlight then
-		local walk, flight = false, false
-		for index = current, #plan.legs do
-			local mode = plan.legs[index].mode
-			walk = walk or mode == "walk"
-			flight = flight or mode == "flight"
-		end
-		if walk and not flight then
-			return {
-				key = "unknown-flight-path",
-				text = L["A flight point you have not discovered yet would shorten this route: visit a flight master to learn it."],
-				grey = true,
-			}
-		end
-	end
-	return nil
-end
-
 local CONTINENTS = {
 	{ map = 0, uiMap = 1415, name = L["Eastern Kingdoms"] },
 	{ map = 1, uiMap = 1414, name = L["Kalimdor"] },
