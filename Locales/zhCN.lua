@@ -421,8 +421,6 @@ L["All towns"] = "所有城镇" -- mt
 L["Books and recipes"] = "书籍和配方" -- mt
 L["One icon per town, or one per service as you zoom in."] =
 	"缩小显示每个城镇一个图标，放大后每个服务一个图标。" -- mt
-L["Show Nearby services tab"] = "显示附近服务标签"
-L["The Nearby services tab in the world map and quest log."] = "世界地图和任务日志中的附近服务标签。"
 L["Ammunition"] = "弹药" -- mt
 L["Bags and trade supplies"] = "背包和贸易品" -- mt
 L["Food and drink"] = "食物和饮水" -- mt
