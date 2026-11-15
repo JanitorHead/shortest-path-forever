@@ -707,12 +707,14 @@ local function run(map, from, to, waterWalking, costOnly, hz)
 		for id in pairs(source) do
 			nodesOf(st, floor(id / 4096))
 			local _, _, component = metadata(st, id)
-			comps[component] = true
+			if component then
+				comps[component] = true
+			end
 		end
 		for id in pairs(target) do
 			nodesOf(st, floor(id / 4096))
 			local _, _, component = metadata(st, id)
-			shared = shared or comps[component]
+			shared = shared or (component ~= nil and comps[component])
 		end
 		if not direct and not shared then
 			return nil, "unreachable"
