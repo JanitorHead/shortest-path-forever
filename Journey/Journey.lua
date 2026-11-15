@@ -69,38 +69,6 @@ function ns.JourneyPlan()
 	return result, progress.index
 end
 
----@param plan SPFPlan
----@param current integer
----@return SPFRow?
-function ns.NewFlightPathReminderRow(plan, current)
-	for index = current, #plan.legs do
-		local leg = plan.legs[index]
-		if leg.mode == "walk" and leg.to.undiscovered then
-			return {
-				key = "new-flight-path",
-				text = string.format(L["Step %d: discover flight master %s before flying."], index, ns.LegLabel(leg)),
-				grey = true,
-			}
-		end
-	end
-	if plan.unknownFlight then
-		local walk, flight = false, false
-		for index = current, #plan.legs do
-			local mode = plan.legs[index].mode
-			walk = walk or mode == "walk"
-			flight = flight or mode == "flight"
-		end
-		if walk and not flight then
-			return {
-				key = "unknown-flight-path",
-				text = L["A flight point you have not discovered yet would shorten this route: visit a flight master to learn it."],
-				grey = true,
-			}
-		end
-	end
-	return nil
-end
-
 local CONTINENTS = {
 	{ map = 0, uiMap = 1415, name = L["Eastern Kingdoms"] },
 	{ map = 1, uiMap = 1414, name = L["Kalimdor"] },
@@ -195,6 +163,34 @@ function ns.TravelPolicyChanged()
 		ns.ItineraryChanged(true)
 	end
 	ns.WakeTravel()
+end
+
+-- Whether journeys may use the Hearthstone. The saved switch, flipped from the tracker's journey menu and the map's
+-- innkeeper button (UI/HearthPin.lua); off, class teleports and bind items still apply (Transport/Teleports.lua).
+---@return boolean
+function ns.HearthstoneEnabled()
+	return ns.db == nil or ns.db.useHearthstone ~= false
+end
+
+---@param enabled boolean
+function ns.SetHearthstoneEnabled(enabled)
+	if not ns.db then
+		return
+	end
+	ns.db.useHearthstone = enabled == true
+	-- Turning it back on forgives a Hearthstone step skipped by hand earlier in this journey.
+	if ns.db.useHearthstone then
+		withoutHearth = false
+	end
+	ns.TravelPolicyChanged()
+	RefreshTracker()
+	if ns.RefreshHearthPin then
+		ns.RefreshHearthPin()
+	end
+end
+
+function ns.ToggleHearthstone()
+	ns.SetHearthstoneEnabled(not ns.HearthstoneEnabled())
 end
 
 -- Whether walks may cross water, and the spell to cast first when none is up.

@@ -123,3 +123,4 @@ Core\Guidelime.lua
 Core\KalielsTracker.lua
 UI\DestinationPin.lua
 UI\NpcArrows.lua
+UI\HearthPin.lua
