@@ -5,7 +5,7 @@
 ---@type string, SPFNamespace
 local _, ns = ...
 
--- InFlight: https://github.com/LudiusMaximus/InFlight/tree/2efdd7ba6d0e094edf84a04eeb40c038f004ea52
+-- InFlight: https://github.com/LudiusMaximus/InFlight/tree/4b2b3baed78b13c129405330e5abbdc0c0d6b8fd
 -- Measured durations: 266/286 (93.0%); remaining paths estimated at 32 yd/s.
 -- Speed: cmangos/mangos-classic src/game/MotionGenerators/PathMovementGenerator.cpp, TAXI_FLIGHT_SPEED.
 -- Only ordinary, unrestricted flight-map nodes; quest/test/transport/PvP/druid-only paths excluded.
