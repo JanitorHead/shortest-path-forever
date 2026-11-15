@@ -12,6 +12,15 @@ local Line = ForeverCore.TrackerLine --[[@as ForeverTrackerLineAPI]]
 
 ---@type SPFTracker
 local module
+local TRACKER_MIN_HEIGHT, TRACKER_MAX_HEIGHT = 100, 400
+
+local function TrackerHeight(value)
+	value = tonumber(value)
+	if not value or value ~= value or value == math.huge or value == -math.huge then
+		return 200
+	end
+	return math.max(TRACKER_MIN_HEIGHT, math.min(TRACKER_MAX_HEIGHT, value))
+end
 ---@class SPFTracker : SPFTrackerModule
 ---@field journeyTracker? boolean
 ---@field metres? boolean
@@ -520,6 +529,8 @@ function ns.RefreshTracker()
 end
 
 function ns.SetTrackerHeight(value)
+	value = TrackerHeight(value)
+	ns.db.trackerHeight = value
 	local host = ForeverCore.TrackerHost
 	if module and type(host) == "table" and type(host.SetSectionMaxHeight) == "function" then
 		return host.SetSectionMaxHeight(module, value)
@@ -533,7 +544,7 @@ ns.Init(function()
 	local tracker = Section.Create("ShortestPathForeverObjectiveTracker", ModuleMixin, {
 		-- Above quests, SkillUp Forever (-2) and Legacy Forever (0, -1): each needs its own slot.
 		order = -3,
-		maxHeight = ns.db.trackerHeight,
+		maxHeight = TrackerHeight(ns.db.trackerHeight),
 		lineTemplate = LINE_TEMPLATE,
 		header = ModuleMixin.headerText,
 		legacy = function()
