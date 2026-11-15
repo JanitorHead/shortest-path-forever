@@ -711,8 +711,8 @@ function ns.GuideTargets()
 end
 
 -- What the public guidance read copies: the target, the canonical source walk, its index in that walk, and the stop
--- and goal it leads to. guideStops only collapses what the arrow draws, so the index names the target in the full
--- source even then. The returned points are Guide's own; Core/API.lua makes the public copies.
+-- and goal it leads to. Map marks may show only step ends; guidance keeps the full source walk.
+-- The returned points are Guide's own; Core/API.lua makes the public copies.
 ---@return SPFPoint? target, SPFWalkPoints? source, integer? index, SPFPlace? stop, SPFPoint? goal
 function ns.GuideState()
 	ns.AdvanceGuide()

@@ -175,8 +175,7 @@ ns.PointCastPrompt = prompt
 driver.update(0.1)
 assert(API.Guidance(), "guidance returns after the cast")
 
--- guideStops only collapses what the arrow draws. The API keeps the canonical source walk and names the target
--- inside it, and the switch is a guidance change.
+-- Map marks may show only step ends while the arrow and companion guidance retain every bend.
 driver.move({ map = 1, x = 0, y = 0, z = 0 })
 driver.update(0.1)
 frameEnd()
@@ -186,9 +185,9 @@ ns.RefreshGuideStops()
 frameEnd()
 local collapsed = API.Guidance()
 equal(#collapsed.waypoints, 4, "the full source walk survives guideStops")
-equal(collapsed.index, 4, "the target is the source walk's endpoint")
-near(collapsed.point.x, uiX(1000, 0), "the endpoint is the next point")
-assert(#heard > before and heard[#heard].guidance, "the guideStops switch is a guidance change")
+equal(collapsed.index, 2, "the target remains the next walk bend")
+near(collapsed.point.x, uiX(20, 0), "the next bend stays on the walking route")
+assert(#heard > before and heard[#heard].guidance, "resuming at the nearest bend reports its guidance")
 ns.db.guideStops = false
 ns.RefreshGuideStops()
 frameEnd()

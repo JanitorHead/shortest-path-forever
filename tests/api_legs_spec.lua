@@ -151,9 +151,20 @@ near(afterTo.y, 0.52, "the replanned leg's end")
 frameEnd()
 local before = #heard
 equal(API.NavigateRoute("AGF", { { map = 1, x = 0.5, y = 0.54, title = "Elsewhere" } }), true, "the goal changes")
-settle()
-frameEnd()
-assert(#heard > before, "the replacement journey is heard")
+local replaced = false
+for _ = 1, 100 do
+	driver.update(0.1)
+	frameEnd()
+	for index = before + 1, #heard do
+		if heard[index].replan then
+			replaced = true
+		end
+	end
+	if replaced then
+		break
+	end
+end
+assert(replaced, "the replacement plan is ready when its replan notice arrives")
 local changedFrom, changedTo = ends(API.Journey().legs[1], "the replacement plan")
 near(changedFrom.x, 0.5, "the replacement starts where the player stands")
 near(changedTo.y, 0.54, "and ends at the new goal")

@@ -809,7 +809,7 @@ function API.Journey()
 end
 
 -- The guidance another addon steers by: the point the arrow is leading to, every bend of the leg under way as fresh
--- uiMapID/0-1 copies, and where that point stands in them. guideStops only collapses what the arrow draws, so the
+-- uiMapID/0-1 copies, and where that point stands in them. Map marks may show only step ends, while the
 -- waypoints stay the leg's original walk and index names the same point in it. A point this client cannot place makes
 -- the whole answer unavailable rather than leaving a hole in the walk a caller steers along.
 ---@return SPFAPIGuidance?, SPFAPIGuidanceReason?
