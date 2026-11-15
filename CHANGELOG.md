@@ -12,6 +12,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Later stops keep their corrected floor.** When a guide updates a stop's height without moving its map marker, the journeys into and out of that stop are planned again for the new floor (#903).
+
 - **Companion addons can read guidance.** API version 2, minor 1 adds copied next points, active-leg waypoints and guidance subscription notices. Thanks to nimri82 of RestedXP-Navigator for the request (#777).
 
 - **Dugi Guides can lead the journey.** Turn on *Follow Dugi guides* in Guidance to travel to the guide's current step without TomTom or a bridge addon. Dugi's own arrow stays visible. Thanks to ghuff07 for the request (#689).

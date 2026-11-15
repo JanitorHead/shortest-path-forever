@@ -17,8 +17,8 @@ end
 ---@field paths? SPFDrawPath[]|false false when the planner found no way
 ---@field walks {path: SPFDrawPath, leg: SPFLeg}[] walking legs still to search, nearest first
 
--- Hops are keyed by both stops' coordinates, so an unchanged hop survives a replan of the current leg and a caller
--- sending the same stops again. Only the current route's hops are kept, at most one per stop (64).
+-- Hops are keyed by both stops' coordinates and heights, so an unchanged hop survives a current-leg replan or a
+-- caller sending the same stops again. Only the current route's hops are kept, at most one per stop (64).
 ---@type table<string, SPFHop>
 local hops = {}
 ---@type SPFRoutePolicy
@@ -32,7 +32,18 @@ local job, searching
 local Step
 
 local function Key(from, to)
-	return string.format("%d:%.17g:%.17g:%d:%.17g:%.17g", from.map, from.x, from.y, to.map, to.x, to.y)
+	-- An unknown height differs from zero: a guide may learn which stacked floor its stop stands on later.
+	return string.format(
+		"%d:%.17g:%.17g:%s:%d:%.17g:%.17g:%s",
+		from.map,
+		from.x,
+		from.y,
+		from.z ~= nil and string.format("%.17g", from.z) or "?",
+		to.map,
+		to.x,
+		to.y,
+		to.z ~= nil and string.format("%.17g", to.z) or "?"
+	)
 end
 
 local function Schedule()
