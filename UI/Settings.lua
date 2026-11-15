@@ -843,7 +843,7 @@ ns.Init(function()
 	end)
 	local trackerHeightOptions = Settings.CreateSliderOptions(100, 400, 20)
 	trackerHeightOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
-		return value .. " px"
+		return value .. " UI units"
 	end)
 	Settings.RegisterInitializer(
 		page,
