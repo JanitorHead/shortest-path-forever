@@ -530,10 +530,12 @@ end
 
 function ns.SetTrackerHeight(value)
 	value = TrackerHeight(value)
-	ns.db.trackerHeight = value
-	local host = ForeverCore.TrackerHost --[[@as any]]
-	if module and type(host) == "table" and type(host.SetSectionMaxHeight) == "function" then
-		return host.SetSectionMaxHeight(module, value)
+	local db = ns.db --[[@as any]]
+	db.trackerHeight = value
+	local host = ForeverCore.TrackerHost
+	local setSectionMaxHeight = (host --[[@as any]]).SetSectionMaxHeight
+	if module and type(setSectionMaxHeight) == "function" then
+		return setSectionMaxHeight(module, value)
 	end
 	return false
 end
@@ -544,7 +546,7 @@ ns.Init(function()
 	local tracker = Section.Create("ShortestPathForeverObjectiveTracker", ModuleMixin, {
 		-- Above quests, SkillUp Forever (-2) and Legacy Forever (0, -1): each needs its own slot.
 		order = -3,
-		maxHeight = TrackerHeight(ns.db.trackerHeight),
+		maxHeight = TrackerHeight((ns.db --[[@as any]]).trackerHeight),
 		lineTemplate = LINE_TEMPLATE,
 		header = ModuleMixin.headerText,
 		legacy = function()

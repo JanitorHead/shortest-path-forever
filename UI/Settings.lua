@@ -825,10 +825,11 @@ ns.Init(function()
 		ns.db,
 		Settings.VarType.Number,
 		L["Journey tracker height"],
-		ns.Defaults.trackerHeight
+		(ns.Defaults --[[@as any]]).trackerHeight
 	)
 	trackerHeight:SetValueChangedCallback(function(_, value)
-		ns.db.trackerHeight = value
+		local db = ns.db --[[@as any]]
+		db.trackerHeight = value
 		ns.SetTrackerHeight(value)
 	end)
 	local trackerHeightOptions = Settings.CreateSliderOptions(100, 400, 20)
