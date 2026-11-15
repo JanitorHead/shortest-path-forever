@@ -256,6 +256,7 @@ local ns = {
 		arrowScale = 100,
 		arrowLabel = "distance",
 		compassBackground = 0,
+		trackerHeight = 200,
 		tomtomFollow = false,
 		-- Dugi is opt-in: its viewer has no published API.
 		dugi = false,
@@ -432,6 +433,7 @@ local groups = {
 		"compassTime",
 		"compassMove",
 		"trackerScale",
+		"trackerHeight",
 		"compassScale",
 		"compassBackground",
 		"whatsNew",
@@ -448,7 +450,7 @@ local order = {
 }
 
 assert(#buttons == #order + 1, "one index button per group, then the Forever addons page")
-assert(#rows == 72, #rows)
+assert(#rows == 73, #rows)
 local cursor = 0
 for index, name in ipairs(order) do
 	local button = buttons[index].initializer
@@ -485,6 +487,11 @@ local function Row(key)
 	error("no row for " .. key)
 end
 assert(Row("pins").setting.variable == "ShortestPathForever_pins" and Row("pins").setting.default)
+local trackerHeight = Row("trackerHeight")
+assert(trackerHeight.kind == "slider", "the Journey tracker height is a slider")
+assert(trackerHeight.setting.variable == "ShortestPathForever_trackerHeight", "the tracker height is saved")
+assert(trackerHeight.setting.default == 200, "the tracker height defaults to Core's viewport cap")
+assert(trackerHeight.tooltip:find("longer journeys scroll", 1, true), "the tracker height explains its scroll behavior")
 assert(
 	Row("minimapPins").tooltip
 		== "Docks, lifts, the tram and portals. Also under Transport in the minimap's tracking menu."

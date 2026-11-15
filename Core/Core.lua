@@ -116,6 +116,8 @@ local DEFAULTS = {
 	stats = true,
 	guideStops = true,
 	journeyTracker = true,
+	-- The Journey section's scroll viewport, applied by ForeverCore when its setter is available.
+	trackerHeight = 200,
 	arrow = true,
 	-- Under the arrow: "distance", the journey's "time" left, or "both".
 	arrowLabel = "distance",

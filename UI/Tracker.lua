@@ -519,12 +519,21 @@ function ns.RefreshTracker()
 	RefreshTracker(ns.NearestDock())
 end
 
+function ns.SetTrackerHeight(value)
+	local host = ForeverCore.TrackerHost
+	if module and type(host) == "table" and type(host.SetSectionMaxHeight) == "function" then
+		return host.SetSectionMaxHeight(module, value)
+	end
+	return false
+end
+
 ns.Init(function()
 	-- The shared column builds the section, mixes this addon in, sets its order and header, and attaches it once the
 	-- world loads. The old tracker table is offered once so the player keeps the scale, lock and position they chose.
 	local tracker = Section.Create("ShortestPathForeverObjectiveTracker", ModuleMixin, {
 		-- Above quests, SkillUp Forever (-2) and Legacy Forever (0, -1): each needs its own slot.
 		order = -3,
+		maxHeight = ns.db.trackerHeight,
 		lineTemplate = LINE_TEMPLATE,
 		header = ModuleMixin.headerText,
 		legacy = function()

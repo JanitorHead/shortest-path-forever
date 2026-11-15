@@ -828,6 +828,31 @@ ns.Init(function()
 			)
 		)
 	end
+	local trackerHeight = Settings.RegisterAddOnSetting(
+		page,
+		"ShortestPathForever_trackerHeight",
+		"trackerHeight",
+		ns.db,
+		Settings.VarType.Number,
+		L["Journey tracker height"],
+		ns.Defaults.trackerHeight
+	)
+	trackerHeight:SetValueChangedCallback(function(_, value)
+		ns.db.trackerHeight = value
+		ns.SetTrackerHeight(value)
+	end)
+	local trackerHeightOptions = Settings.CreateSliderOptions(100, 400, 20)
+	trackerHeightOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
+		return value .. " px"
+	end)
+	Settings.RegisterInitializer(
+		page,
+		Settings.CreateSliderInitializer(
+			trackerHeight,
+			trackerHeightOptions,
+			L["Limits the Journey section to this height; longer journeys scroll inside it."]
+		)
+	)
 	local compassScale = Settings.RegisterAddOnSetting(
 		page,
 		"ShortestPathForever_compassScale",
