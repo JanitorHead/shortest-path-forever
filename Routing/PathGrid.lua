@@ -1858,7 +1858,7 @@ end
 ---@param b number
 ---@return boolean
 local function climbNodes(st, a, b)
-	if not st.steep or a < 0 or b < 0 then
+	if st.D.climbChecked or not st.steep or a < 0 or b < 0 then
 		return true
 	end
 	local ak, bk = floor(a / 4096), floor(b / 4096)

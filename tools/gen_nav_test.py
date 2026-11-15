@@ -252,6 +252,7 @@ class ClusterCrossingTest(unittest.TestCase):
             patch.object(gen_nav, "GW", 2 * c),
             patch.object(gen_nav, "GH", c),
             patch.object(gen_nav, "LINKS", links),
+            patch.object(gen_nav, "BASE_Z", array("f", [0.0]) * len(grid)),
             patch.object(gen_nav, "LINKED_OF", defaultdict(list, {0: [u]})),
             patch.object(gen_nav, "FLOOR_CELL", array("i")),
         ):
@@ -331,6 +332,16 @@ class GraphLegalityTest(unittest.TestCase):
         self.assertIn(b, self.steps({a: (3, 20.4), b: (1, 18.0)}, a))  # 18 <= 20: downhill
         self.assertNotIn(a, self.steps({a: (3, 20.4), b: (1, 18.0)}, b))  # 20 > 18: not uphill
 
+    def test_an_unflagged_cliff_is_refused_by_grid_and_cluster_graph(self):
+        c = gen_nav.CELLS
+        a, b = 10 * c + 10, 11 * c + 10
+        self.assertNotIn(b, self.steps({a: (1, 10.0), b: (1, 30.0)}, a))
+        self.assertIn(a, self.steps({a: (1, 10.0), b: (1, 30.0)}, b))
+        u, v = (c - 1) * c + 10, c * c + 10
+        edges, _, _ = self.crossings({u: (1, 10.0), v: (1, 30.0)})
+        self.assertNotIn((u, v), edges)
+        self.assertIn((v, u), edges)
+
     def test_a_two_way_record_with_a_steep_end_is_one_way(self):
         # The bake writes a steep pair both ways as a record so the decoder can decide its direction by stored height;
         # the graph must apply that rule to the record, or it climbs a face the grid refuses.
@@ -376,7 +387,7 @@ class GraphLegalityTest(unittest.TestCase):
         heights = {(c - 1) * c + t: (3, 20.0) for t in shelf}
         heights.update({(c - 2) * c + t: (3, 20.0) for t in (8, 9, 10)})
         heights[low] = (1, 18.0)
-        heights.update({c * c + i * c + j: (1, 0.0) for i in range(c) for j in range(c)})
+        heights.update({c * c + i * c + j: (1, 18.0) for i in range(c) for j in range(c)})
         edges, _, _ = self.crossings(heights)
         self.assertIn((low, c * c + 9), edges, "the low side keeps a crossing of its own")
         self.assertIn((c * c + 9, low), edges, "and the grid walks it back")
@@ -475,6 +486,7 @@ class RoadEntranceTest(unittest.TestCase):
             patch.object(gen_nav, "LINKED_OF", defaultdict(list)),
             patch.object(gen_nav, "FLOOR_CELL", array("i")),
             patch.object(gen_nav, "ROAD_CELLS", {u, w}),
+            patch.object(gen_nav, "BASE_Z", array("f", [0.0]) * len(grid)),
         ):
             nodes, edges = gen_nav.grid_hpa(grid, set())
         self.assertIn((u, w), edges, "the road crossing is an entrance")

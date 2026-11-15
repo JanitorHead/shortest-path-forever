@@ -379,6 +379,7 @@ ShortestPathForeverCharDB = nil
 ---@field zstep number
 ---@field format? number 2 for a step mask plus one-way link records; 1 (absent) for symmetric links
 ---@field steep? boolean graph cells spend flag 8 on steep ground; a step with a steep end goes downhill only
+---@field climbChecked? boolean the baker validated every cluster crossing against the stored-height climb limit
 ---@field grid string[]
 ---@field graph string[]
 ---@field height string[]
