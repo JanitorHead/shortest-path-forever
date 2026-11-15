@@ -245,7 +245,8 @@ L["Through %s transport: about %d min faster"] =
 	"Через транспорт фракции «%s»: примерно на %d мин. быстрее"
 L["Tracker scale"] = "Размер панели отслеживания"
 L["Journey tracker height"] = "Высота панели пути"
-L["Limits the Journey section to this height; longer journeys scroll inside it."] = "Ограничивает высоту раздела пути; длинные пути прокручиваются внутри."
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"Ограничивает высоту раздела пути; длинные пути прокручиваются внутри."
 L["Trade supplies"] = "Хозяйственные товары"
 L["Trainers"] = "Учителя"
 L["Tram to %s"] = "Поезд: %s"

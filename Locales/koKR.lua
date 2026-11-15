@@ -236,7 +236,8 @@ L["Through %s transport, there is a way"] = "%s 교통수단을 이용하면 길
 L["Through %s transport: about %d min faster"] = "%s 교통수단 이용 시: 약 %d분 더 빠름"
 L["Tracker scale"] = "추적기 크기"
 L["Journey tracker height"] = "여정 추적기 높이"
-L["Limits the Journey section to this height; longer journeys scroll inside it."] = "여정 섹션의 높이를 제한하며 긴 여정은 내부에서 스크롤됩니다."
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"여정 섹션의 높이를 제한하며 긴 여정은 내부에서 스크롤됩니다."
 L["Trade supplies"] = "전문 기술"
 L["Trainers"] = "상급자"
 L["Tram to %s"] = "%s행 지하철"

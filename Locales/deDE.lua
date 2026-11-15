@@ -229,7 +229,8 @@ L["Through %s transport, there is a way"] = "Mit Transportmitteln der %s gibt es
 L["Through %s transport: about %d min faster"] = "Mit Transportmitteln der %s: etwa %d Min. schneller"
 L["Tracker scale"] = "Größe der Verfolgung"
 L["Journey tracker height"] = "Höhe des Reise-Trackers"
-L["Limits the Journey section to this height; longer journeys scroll inside it."] = "Begrenzt den Reiseabschnitt auf diese Höhe; längere Reisen scrollen darin."
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"Begrenzt den Reiseabschnitt auf diese Höhe; längere Reisen scrollen darin."
 L["Trade supplies"] = "Handwerkswaren"
 L["Trainers"] = "Lehrer"
 L["Tram to %s"] = "Bahn nach %s"

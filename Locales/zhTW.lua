@@ -225,7 +225,8 @@ L["Through %s transport, there is a way"] = "藉助%s的交通工具可以抵達
 L["Through %s transport: about %d min faster"] = "藉助%s的交通工具：約快%d分鐘"
 L["Tracker scale"] = "追蹤器大小"
 L["Journey tracker height"] = "旅程追蹤器高度"
-L["Limits the Journey section to this height; longer journeys scroll inside it."] = "將旅程區域限制為此高度，較長的旅程可在其中捲動。"
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"將旅程區域限制為此高度，較長的旅程可在其中捲動。"
 L["Trade supplies"] = "貿易品"
 L["Trainers"] = "訓練師"
 L["Tram to %s"] = "前往%s的地鐵"
