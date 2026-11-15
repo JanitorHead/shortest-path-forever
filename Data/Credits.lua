@@ -120,6 +120,8 @@ ns.Credits = {
 		{ name = "CptShooter", what = "Hide the objective lines under the arrow" },
 		{ name = "user_10oietw0rdrgk4le", what = "Hovering the minimap map pin no longer errors" },
 		{ name = "ubrider", what = "Hovering the minimap map pin no longer errors" },
+		{ name = "ubrider", what = "Manual destinations keep priority over RestedXP updates" },
+		{ name = "Drusangus", what = "An arrow pointing straight to the destination" },
 		{ name = "cwebbx", what = "Journeys start from a focused quest or map pin" },
 		{ name = "lone_viking1921", what = "Journeys start from a focused quest or map pin" },
 		{ name = "Nivlemoth_Nathrezim", what = "Horde walks stay out of Southshore" },

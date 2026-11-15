@@ -91,8 +91,6 @@ L["Forever addons"] = "Forever插件"
 L["Friendly nameplates must be on to see them."] = "需要开启友方姓名板才能看到。"
 L["Go through to %s"] = "穿过前往%s"
 L["Guidance"] = "引导"
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"引导会在地图上标记每一步的终点，而不是步行途中的每个转弯。箭头仍会沿着步行路线指引。"
 L["Guide me"] = "为我引路"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "部落"
@@ -246,8 +244,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "武器和护甲"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"接下来做什么？Adventure Guide Forever会推荐适合你等级的任务。"
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"方向箭头下方显示的内容：要走的距离、旅程剩余时间，或两者。" -- mt
 L["What's new after an update"] = "更新后的新内容"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"引导开启时：在屏幕顶部显示你接下来的转弯、下一站和目的地。"
@@ -538,3 +534,10 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "道路绕行余量" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"启用沿道路行走时，为避开等长的非道路路段，愿意多走的距离。50%保持通常的道路偏好；0%不优先选择道路。这不是整段步行距离的上限。" -- mt
+L["Point straight to the destination"] = "直接指向目的地" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"箭头直接指向目的地并显示直线距离。目的地在其他地图上时，箭头指向当前行程步骤。地图标记和行程时间仍按路线显示。" -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"地图标记显示每个步骤的终点，而不是步行路线的每个转弯。箭头方向单独设置。" -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"方向箭头下方显示的内容：所选箭头模式的距离、行程剩余时间或两者。" -- mt

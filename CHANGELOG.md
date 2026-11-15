@@ -12,6 +12,10 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **The arrow can point straight to your destination.** Turn on *Point straight to the destination* to use a direct bearing and straight-line distance, independently of map marks. Destinations on another map lead to the current travel step. Journey time still follows the route. Thanks to Drusangus for the idea (#904).
+
+- **Manual destinations stay selected when RestedXP advances.** A guide update during a flight or after landing keeps your active manual destination. *Resume guide* hands control back. Thanks to ubrider for the report (#905).
+
 - **Later stops keep their corrected floor.** When a guide updates a stop's height without moving its map marker, the journeys into and out of that stop are planned again for the new floor (#903).
 
 - **Companion addons can read guidance.** API version 2, minor 1 adds copied next points, active-leg waypoints and guidance subscription notices. Thanks to nimri82 of RestedXP-Navigator for the request (#777).

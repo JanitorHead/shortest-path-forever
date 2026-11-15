@@ -283,6 +283,31 @@ assert(math.abs(frame.angle) < 1e-9, "the arrow points at the next bend, not the
 assert(frame.Distance.text == "400 yd", "the distance counts the walk to the step's end, bend by bend")
 assert(marks[#marks] == bends[2], "the guide marks the bend the arrow is walking to, not the step's end")
 assert(select(1, ns.GuideTargets()) == bends[#bends], "the compass marks only the step's end too")
+-- #904: direct bearing is independent of route progress and map marker density.
+local goal = { map = 1, x = 300, y = 400 }
+ns.PointGuideArrow(bends, function(point)
+	marks[#marks + 1] = point
+	return false
+end, { number = 3 }, goal)
+ns.db.arrowDirect = true
+frame.angle = nil
+ns.ArrowBearingChanged()
+assert(frame.Distance.text == "500 yd", "direct distance goes to the final destination, not along the walk")
+assert(marks[#marks] == goal, "native guidance uses the same direct destination")
+assert(math.abs(frame.angle - math.atan2(400, 300)) < 1e-9, "direct bearing goes to the final destination")
+local guideTarget, source, canonical = ns.GuideState()
+assert(guideTarget == bends[2] and source == bends and canonical == 2, "direct arrow preserves route guidance")
+ns.db.guideStops = false
+ns.GuideStopsChanged()
+assert(frame.Distance.text == "500 yd", "map mark density does not change direct distance")
+assert(select(1, ns.GuideTargets()) == bends[2], "map marks still follow their own setting")
+ns.PointGuideArrow(bends, nil, { kind = "dock" }, { map = 2, x = 300, y = 400 })
+assert(frame.Distance.text == "282 yd", "a destination across maps points to the active travel step")
+ns.db.arrowDirect = false
+ns.ArrowBearingChanged()
+assert(frame.Distance.text == "400 yd", "route mode restores remaining walking distance")
+ns.db.guideStops = true
+
 -- The arrow turns around the next step's numbered marker, the compass's own art; a target with no number wears
 -- ForeverCore's ring and diamond (#817).
 ns.db.guideStops = false
@@ -316,4 +341,42 @@ ns.JourneyGuide.Retarget()
 ns.JourneyGuide.To(nativeGoal, { nativeGoal }, nativeGoal)
 assert(driver.waypoint() and select(2, driver.waypoint()), "enabling restores native guidance")
 ns.JourneyGuide.Stop()
+-- Direct mode through the real JourneyGuide callback, including ownership and map projection.
+local saved = env.UiMapPoint.CreateFromCoordinates(1, 0.2, 0.3)
+env.C_Map.SetUserWaypoint(saved)
+env.C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+ns.db.arrowDirect = true
+ns.JourneyGuide.Start()
+local directGoal = { map = 1, x = 300, y = 400 }
+ns.JourneyGuide.To(bends[#bends], bends, directGoal)
+local directWaypoint = assert(driver.waypoint())
+local directMap, directWorld = env.C_Map.GetWorldPosFromMapPos(directWaypoint.uiMapID, directWaypoint.position)
+assert(
+	directMap == 1 and math.abs(directWorld.x - 300) < 1e-8 and math.abs(directWorld.y - 400) < 1e-8,
+	"real native placement projects the final direct destination"
+)
+ns.JourneyGuide.Stop()
+local restored = assert(driver.waypoint())
+assert(
+	restored.uiMapID == saved.uiMapID
+		and restored.position.x == saved.position.x
+		and restored.position.y == saved.position.y
+		and select(2, driver.waypoint()),
+	"direct guidance restores the saved player waypoint"
+)
+ns.JourneyGuide.Start()
+ns.JourneyGuide.To(bends[#bends], bends, { map = 2, x = 300, y = 400 })
+local dockWaypoint = assert(driver.waypoint())
+local _, dockWorld = env.C_Map.GetWorldPosFromMapPos(dockWaypoint.uiMapID, dockWaypoint.position)
+assert(
+	math.abs(dockWorld.x - 200) < 1e-8 and math.abs(dockWorld.y - 200) < 1e-8,
+	"real native placement falls back to the active travel endpoint across maps"
+)
+local playerReplacement = env.UiMapPoint.CreateFromCoordinates(1, 0.7, 0.8)
+env.C_Map.SetUserWaypoint(playerReplacement)
+env.C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+ns.ArrowBearingChanged()
+assert(driver.waypoint() == playerReplacement, "direct guidance yields immediately to the player's playerReplacement")
+ns.JourneyGuide.Stop()
+assert(driver.waypoint() == playerReplacement, "stopping direct guidance preserves the player's playerReplacement")
 print("arrow_spec: ok")

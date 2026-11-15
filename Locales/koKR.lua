@@ -96,8 +96,6 @@ L["Friendly nameplates must be on to see them."] =
 	"우호적인 유닛의 이름표가 켜져 있어야 볼 수 있습니다."
 L["Go through to %s"] = "%s(으)로 통과"
 L["Guidance"] = "안내"
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"안내는 지도에서 각 단계가 끝나는 곳을 표시하며, 걷는 길의 모든 갈림길을 표시하지는 않습니다. 화살표는 계속 걷는 길을 따라갑니다."
 L["Guide me"] = "안내 받기"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "호드"
@@ -258,8 +256,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "무기 및 방어구"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"다음은? Adventure Guide Forever가 레벨에 맞는 퀘스트를 추천합니다."
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"방향 화살표 아래에 표시할 내용: 걸어갈 거리, 여정의 남은 시간 또는 둘 다." -- mt
 L["What's new after an update"] = "업데이트 후 새로운 소식"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"안내가 켜져 있는 동안: 다음 갈림길, 다음 정거장, 목적지를 화면 위쪽에 표시합니다."
@@ -559,3 +555,10 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "도로 우회 허용량" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"도로 따라가기가 켜져 있을 때 도로 밖의 같은 거리를 피하기 위해 허용할 추가 거리입니다. 50%는 기존 우선도를 유지하며, 0%는 도로를 우선하지 않습니다. 전체 도보 거리의 제한은 아닙니다." -- mt
+L["Point straight to the destination"] = "목적지를 바로 가리키기" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"화살표가 목적지를 바로 가리키고 직선 거리를 표시합니다. 다른 지도에 있으면 현재 이동 단계의 끝을 가리킵니다. 지도 표시와 여정 시간은 계속 경로를 따릅니다." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"지도에는 걸어가는 길의 각 모퉁이 대신 각 단계가 끝나는 곳을 표시합니다. 화살표 방향은 별도로 설정합니다." -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"방향 화살표 아래에 표시할 정보: 선택한 화살표 모드의 거리, 남은 여정 시간 또는 둘 다." -- mt

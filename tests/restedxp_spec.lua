@@ -134,8 +134,30 @@ API.Navigate("Other", 1, 0.6, 0.5, "Player destination")
 rxp.UpdateGotoSteps()
 assert(API.CurrentStop("Other") == 1, "same target does not take over another journey")
 assert(frame.texture.shown and frame.text.shown, "another owner restores the arrow")
+-- #905: a manual map destination survives the guide advancing its flight step.
+local manual = { map = 1, x = 300, y = 200, title = "Manual destination" }
+ns.StartJourney(manual)
+driver.path.settle()
+env.UnitOnTaxi = function()
+	return true
+end
 frame.element.x = 80
 rxp.UpdateGotoSteps()
+rxp.UpdateMap()
+assert(ns.JourneyGoal() == manual, "RXP flight step update must preserve the manual destination")
+env.UnitOnTaxi = function()
+	return false
+end
+rxp.UpdateGotoSteps()
+assert(ns.JourneyGoal() == manual, "landing keeps the manual destination")
+assert(API.Navigate("Shortest Path Forever", 1, 0.3, 0.2, "Nearby destination"))
+local nearby = ns.JourneyGoal()
+frame.element.x = 81
+rxp.UpdateGotoSteps()
+assert(ns.JourneyGoal() == nearby, "Nearby manual destinations keep the same priority")
+assert(ns.ResumeRestedXP(), "explicit resume returns control to the guide")
+driver.path.settle()
+assert(API.CurrentStop("RestedXP") == 1, "resumed guide owns the journey")
 ns.db.restedxp = false
 ns.RefreshRestedXP()
 assert(

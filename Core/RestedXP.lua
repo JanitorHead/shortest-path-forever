@@ -18,6 +18,7 @@ local targetTitle
 local targetQuests
 -- Set while this file restarts guidance: RestedXP calls back into the hooks from inside that restart.
 local navigating = false
+local resuming = false
 ---@type boolean?
 local textureShown
 ---@type boolean?
@@ -149,6 +150,13 @@ local function Sync()
 	if navigating then
 		return
 	end
+	-- Manual destinations have no API owner; Nearby uses this addon's owner. Native guide updates must
+	-- not replace either while it is active. Resume guide is the explicit hand-back action.
+	local owner = ns.JourneyOwner()
+	if not resuming and ns.HasJourney() and (owner == nil or owner == "Shortest Path Forever") then
+		Restore()
+		return
+	end
 	local frame = hooked.arrowFrame
 	local element = frame.element
 	local profile = hooked.settings and hooked.settings.profile
@@ -244,7 +252,9 @@ function ns.ResumeRestedXP()
 		return frontend.ResumeRestedXP() == true
 	end
 	target, targetTitle, targetQuests = nil, nil, nil
+	resuming = true
 	Sync()
+	resuming = false
 	return API.CurrentStop(OWNER) ~= nil
 end
 

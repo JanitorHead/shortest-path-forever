@@ -592,7 +592,7 @@ ns.Init(function()
 	Checkbox(
 		"guideStops",
 		L["Mark only where steps end"],
-		L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."],
+		L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."],
 		ns.GuideStopsChanged
 	)
 	Checkbox(
@@ -607,7 +607,6 @@ ns.Init(function()
 		L["While you are a ghost, a red dotted path leads to your body. Your journey waits until you are alive again."],
 		ns.RefreshCorpseRun
 	)
-
 	Settings.RegisterInitializer(
 		page,
 		CreateSettingsButtonInitializer(L["RestedXP guide"], L["Resume guide"], function()
@@ -701,9 +700,7 @@ ns.Init(function()
 		ns.Defaults.arrowScale
 	)
 	arrowScale:SetValueChangedCallback(function(_, value)
-		if type(value) == "number" then
-			ns.SetArrowScale(value)
-		end
+		ns.SetArrowScale(value)
 	end)
 	settings.arrowScale = arrowScale
 	local arrowOptions = Settings.CreateSliderOptions(50, 200, 10)
@@ -713,6 +710,13 @@ ns.Init(function()
 	Settings.RegisterInitializer(
 		page,
 		Settings.CreateSliderInitializer(arrowScale, arrowOptions, L["Scales the arrow and the cast prompt."])
+	)
+	-- stylua: ignore
+	Checkbox(
+		"arrowDirect",
+		L["Point straight to the destination"],
+		L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."], -- luacheck: ignore 631
+		ns.ArrowBearingChanged
 	)
 	local arrowLabel = Settings.RegisterAddOnSetting(
 		page,
@@ -724,20 +728,19 @@ ns.Init(function()
 		ns.Defaults.arrowLabel
 	)
 	arrowLabel:SetValueChangedCallback(function(_, value)
-		if type(value) == "string" then
-			ns.SetArrowLabel(value)
-		end
+		ns.SetArrowLabel(value)
 	end)
 	settings.arrowLabel = arrowLabel
 	local arrowLabelOptions = Settings.CreateControlTextContainer()
 	arrowLabelOptions:Add("distance", L["Distance"])
 	arrowLabelOptions:Add("time", L["Time left"])
 	arrowLabelOptions:Add("both", L["Both"])
+	-- stylua: ignore
 	Settings.RegisterInitializer(
 		page,
 		Settings.CreateDropdownInitializer(arrowLabel, function()
 			return arrowLabelOptions:GetData()
-		end, L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."])
+		end, L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."]) -- luacheck: ignore 631
 	)
 	Checkbox(
 		"arrowObjectives",
@@ -854,9 +857,7 @@ ns.Init(function()
 		ns.Defaults.compassScale
 	)
 	compassScale:SetValueChangedCallback(function(_, value)
-		if type(value) == "number" then
-			ns.SetCompassScale(value)
-		end
+		ns.SetCompassScale(value)
 	end)
 	settings.compassScale = compassScale
 	local compassOptions = Settings.CreateSliderOptions(50, 200, 10)

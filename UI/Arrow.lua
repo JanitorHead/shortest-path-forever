@@ -82,8 +82,8 @@ local function NotifyGuidance()
 end
 
 -- Counter-clockwise from north, like GetPlayerFacing: UnitPosition's first value grows north, its second west.
-local function Bearing(x, y)
-	return math.atan2(target.y - y, target.x - x)
+local function Bearing(x, y, point)
+	return math.atan2(point.y - y, point.x - x)
 end
 
 -- The shorter way round from a to b, between -pi and pi.
@@ -186,13 +186,17 @@ local function Update(elapsed)
 	local moved = x ~= frame.x or y ~= frame.y or map ~= frame.map or facing ~= frame.facing
 	frame.x, frame.y, frame.map, frame.facing = x, y, map, facing
 	ns.AdvanceGuide()
-	local placed = placeTarget and placeTarget(target, false)
+	-- Direct bearing uses the final destination on this map. Across maps, keep leading to the active
+	-- leg's endpoint so boats, flights and portals still have a reachable boarding point.
+	local direct = ns.db.arrowDirect == true
+	local pointing = direct and ((destination and destination.map == map and destination) or path[#path]) or target
+	local placed = placeTarget and placeTarget(pointing, false)
 	-- Waypoint callbacks can stop or replace guidance synchronously.
 	if revision ~= updating then
 		return
 	end
 	native = placed
-	if not (facing and map == target.map) or (native and NativeMarkerShown()) then
+	if not (facing and map == pointing.map) or (native and NativeMarkerShown()) then
 		-- The native marker leads; nothing to draw, so only the slow poll runs, moving or not.
 		frame.behind = false
 		frame:SetAlpha(moving and 1 or 0)
@@ -200,7 +204,7 @@ local function Update(elapsed)
 		SetUpdating(false)
 		return
 	end
-	local angle = Difference(Bearing(x, y), facing)
+	local angle = Difference(Bearing(x, y, pointing), facing)
 	-- The arrow still points the way, and dims with the compass when that way is behind you.
 	frame.behind = ns.TurnAround.Behind(angle, frame.behind)
 	frame:SetAlpha(frame.behind and ns.BEHIND_ALPHA or 1)
@@ -209,9 +213,9 @@ local function Update(elapsed)
 	local easing = math.abs(delta) > SETTLED
 	frame.angle = easing and (frame.angle + delta * (1 - math.exp(-EASE * elapsed))) % TURN or angle
 	Draw(frame.angle)
-	-- The distance still to walk: to this bend, then along the rest of the path.
-	local distance = math.sqrt((target.x - x) ^ 2 + (target.y - y) ^ 2)
-	for i = index + 1, #path do
+	-- Direct mode measures the displayed bearing; route mode adds the remaining walking bends.
+	local distance = math.sqrt((pointing.x - x) ^ 2 + (pointing.y - y) ^ 2)
+	for i = index + 1, direct and 0 or #path do
 		distance = distance + math.sqrt((path[i].x - path[i - 1].x) ^ 2 + (path[i].y - path[i - 1].y) ^ 2)
 	end
 	local yards = math.floor(distance)
@@ -591,10 +595,8 @@ function ns.RefreshGuideStops()
 	end
 end
 
--- Settings: "Mark only where steps end" swaps which pointer leads, so the arrow and the guide's own marker change
--- over at once rather than at the next poll.
-function ns.GuideStopsChanged()
-	ns.RefreshGuideStops()
+-- Refresh arrow rendering without changing the canonical walk or its progress.
+function ns.ArrowBearingChanged()
 	if frame then
 		Wake()
 		Update(0)
@@ -602,6 +604,11 @@ function ns.GuideStopsChanged()
 	if ns.RefreshCompass then
 		ns.RefreshCompass()
 	end
+end
+
+function ns.GuideStopsChanged()
+	ns.RefreshGuideStops()
+	ns.ArrowBearingChanged()
 end
 
 -- placeBend owns waypoint placement and returns whether native tracking is ours. Progress lives only here.

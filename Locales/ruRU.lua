@@ -98,8 +98,6 @@ L["Friendly nameplates must be on to see them."] =
 	"Чтобы их увидеть, включите таблички с именами дружественных существ."
 L["Go through to %s"] = "Пройти: %s"
 L["Guidance"] = "Навигация"
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"Навигация отмечает на карте, где заканчивается каждый шаг, а не каждый поворот пешего пути. Стрелка по-прежнему ведет по пешему пути."
 L["Guide me"] = "Вести меня"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "Орда"
@@ -267,8 +265,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "Оружие и доспехи"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"Что дальше? Adventure Guide Forever предлагает задания по вашему уровню."
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"Что показывает стрелка направления под собой: оставшееся расстояние, оставшееся время пути или и то и другое." -- mt
 L["What's new after an update"] = "Новое после обновления"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"Пока включена навигация: ближайшие повороты, следующая остановка и цель вверху экрана."
@@ -582,3 +578,10 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "Допустимый обход по дорогам" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Когда включено следование дорогам, определяет, сколько дополнительного пути стоит пройти, чтобы избежать такого же расстояния вне дороги. 50% сохраняет обычное предпочтение; 0% не отдаёт предпочтения дорогам. Это не ограничение длины всего пути." -- mt
+L["Point straight to the destination"] = "Указывать прямо на цель" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"Стрелка указывает прямо на цель и показывает расстояние по прямой. На другой карте она указывает на текущий этап пути. Отметки на карте и время путешествия по-прежнему следуют маршруту." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"Отметки на карте показывают конец каждого этапа, а не каждый поворот пути. Направление стрелки настраивается отдельно." -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"Что показано под стрелкой: расстояние в выбранном режиме, оставшееся время путешествия или оба значения." -- mt

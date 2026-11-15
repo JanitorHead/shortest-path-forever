@@ -91,8 +91,6 @@ L["Forever addons"] = "AddOns Forever"
 L["Friendly nameplates must be on to see them."] = "As placas de nome de aliados precisam estar ativadas para vê-las."
 L["Go through to %s"] = "Atravessar para %s"
 L["Guidance"] = "Orientação"
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"A orientação marca no mapa onde cada etapa termina, não cada curva do caminho a pé. A seta continua seguindo o caminho a pé."
 L["Guide me"] = "Me guiar"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "Horda"
@@ -249,8 +247,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "Armas e armaduras"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"E agora? O Adventure Guide Forever sugere missões para o seu nível."
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"O que a seta de direção mostra embaixo: a distância a percorrer, o tempo restante da jornada ou ambos." -- mt
 L["What's new after an update"] = "Novidades após uma atualização"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"Com a orientação ativa: suas próximas curvas, a próxima parada e seu destino no topo da tela."
@@ -547,3 +543,10 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "Desvio permitido por estradas" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Com Seguir estradas ativado, quanta distância extra vale a pena para evitar a mesma distância fora da estrada. 50% mantém a preferência habitual; 0% não dá preferência às estradas. Não é um limite para o trajeto inteiro." -- mt
+L["Point straight to the destination"] = "Apontar diretamente para o destino" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"A seta aponta diretamente para o destino e mostra a distância em linha reta. Em outro mapa, aponta para a etapa de viagem atual. As marcas do mapa e o tempo de viagem continuam seguindo a rota." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"As marcas no mapa indicam onde cada etapa termina, não cada curva do caminho. A direção da seta é configurada separadamente." -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"O que a seta mostra abaixo dela: a distância no modo selecionado, o tempo restante da viagem ou ambos." -- mt

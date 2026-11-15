@@ -75,6 +75,7 @@
 ---@field roadDetour number
 ---@field destinationPinSize number
 ---@field arrowScale number
+---@field arrowDirect boolean
 ---@field arrowLabel string
 ---@field compassScale number
 ---@field compassBackground number
@@ -343,6 +344,7 @@
 ---@field minimapButton? boolean
 ---@field compassScale? number percent, 100 is the stock size
 ---@field arrowScale? number percent, 100 is the stock size (Arrow.lua)
+---@field arrowDirect? boolean point straight to the destination instead of following walking bends
 ---@field arrowLabel? string what the arrow's label shows: "distance", "time" or "both" (Arrow.lua)
 ---@field arrowObjectives? boolean the stop's live objectives under the arrow, the pin's own lines either way (Arrow.lua)
 ---@field arrowX? number the arrow's centre from the screen's bottom left in screen pixels, once dragged

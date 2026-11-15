@@ -95,8 +95,6 @@ L["Friendly nameplates must be on to see them."] =
 	"Les plaques de nom des unités amies doivent être activées pour les voir."
 L["Go through to %s"] = "Passer vers %s" -- mt
 L["Guidance"] = "Guidage" -- mt
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"Le guidage marque sur la carte la fin de chaque étape, pas chaque virage du trajet à pied. La flèche suit toujours le trajet à pied." -- mt
 L["Guide me"] = "Me guider" -- mt
 L["Guidelime"] = "Guidelime" -- mt
 L["Horde"] = "Horde" -- mt
@@ -255,8 +253,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "Armes et armures"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"Et maintenant ? Adventure Guide Forever suggère des quêtes de votre niveau." -- mt
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"Ce que la flèche de direction affiche en dessous : la distance à parcourir, le temps restant du trajet, ou les deux." -- mt
 L["What's new after an update"] = "Nouveautés après une mise à jour"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"Quand le guidage est actif : vos prochains virages, le prochain arrêt et votre destination en haut de l'écran." -- mt
@@ -554,3 +550,10 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "Détour autorisé pour les routes" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Avec Suivre les routes activé, distance supplémentaire acceptable pour éviter la même distance hors route. 50% conserve la préférence habituelle ; 0% ne privilégie pas les routes. Ce n'est pas une limite pour le trajet complet." -- mt
+L["Point straight to the destination"] = "Pointer directement vers la destination" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"La flèche pointe directement vers la destination et affiche la distance à vol d'oiseau. Sur une autre carte, elle pointe vers l'étape de voyage actuelle. Les repères de carte et la durée du voyage suivent toujours l'itinéraire." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"Les repères de carte indiquent la fin de chaque étape, pas chaque virage du chemin. La direction de la flèche se règle séparément." -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"L'affichage sous la flèche : la distance selon le mode choisi, le temps de voyage restant ou les deux." -- mt
