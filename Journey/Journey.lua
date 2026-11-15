@@ -15,7 +15,6 @@ local REPLAN_DUE = REPLAN_EVERY - 0.5 -- from here Itinerary.lua leaves the fram
 local DRAW_EVERY = 0.5
 -- A teleport step, by the item's or spell's own name in the game's language, after its own icon at the font's
 -- height: the one step you act on from your bags or spellbook stands out from the travel around it.
-local USE_ITEM, CAST_SPELL = L["Use %s"], L["Cast %s"]
 -- art-ok: a square item or spell icon, square at the font's height (size 0)
 local ICON = "|T%d:0|t "
 
@@ -440,27 +439,6 @@ function ns.ShowJourneyMap()
 	local place = CorpseRun() and ns.Corpse.Point() or goal
 	local location = place and ns.Locate(place)
 	ns.OpenWorldMap(location and location.uiMap)
-end
-
--- The tracker and screen prompt name the same item or spell in the client's language. `formatPlace`, when the
--- tracker asks for it, wraps the capital a party mage opens inside the same locale sentence.
----@param teleport SPFTeleportPlace
----@param formatPlace? fun(place: string): string
----@return string action, number? icon
-function ns.TeleportAction(teleport, formatPlace)
-	if teleport.partyMage then
-		local icon = C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(teleport.spell)
-		local place = teleport.destination or UNKNOWN
-		if formatPlace then
-			place = formatPlace(place)
-		end
-		return L["Ask %s for a portal to %s"]:format(teleport.partyMage, place), icon
-	end
-	local name = teleport.item and C_Item.GetItemNameByID(teleport.item)
-		or C_Spell.GetSpellName(teleport.spell)
-		or UNKNOWN
-	local icon = teleport.item and C_Item.GetItemIconByID(teleport.item) or (C_Spell.GetSpellTexture(teleport.spell))
-	return (teleport.item and USE_ITEM or CAST_SPELL):format(name), icon
 end
 
 -- The journey's name. `formatPlace` wraps the place this addon named inside the same locale sentence; a caller's

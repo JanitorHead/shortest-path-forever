@@ -168,12 +168,6 @@ local function None()
 	return nil, answer --[[@as "none"]]
 end
 
----@return nil, "disabled"
-local function Disabled()
-	local _, answer = APIKit.NotReady("disabled")
-	return nil, answer --[[@as "disabled"]]
-end
-
 local function Owner(owner)
 	return canaccessvalue(owner) and type(owner) == "string" and owner:find("%S") ~= nil
 end
@@ -737,25 +731,13 @@ function API.Cancel(owner)
 	return true
 end
 
--- A place with the goal's name: the title its caller gave the stop, else the name the tracker's header gives it. The
--- header's own line also counts the stops ("Stop 1 of 2: ..."), which a caller reads from index instead.
----@param point SPFPoint
----@return SPFAPIJourneyGoal?
-local function JourneyPlace(point)
-	local place = Place(point)
-	if not place then
-		return nil
-	end
-	return { map = place.map, x = place.x, y = place.y, title = point.label or ns.JourneyTitle(point) }
-end
-
 -- A corpse run is the journey under way while you are a ghost. Corpse.Info already names it, its one plan and the
 -- step under way, so the run is read as the tracker draws it; the journey waiting behind it keeps its goal.
 ---@return SPFAPIJourney?
 local function CorpseJourney()
 	local title, _, plan, index = ns.Corpse.Info()
 	local point = ns.Corpse.Point()
-	local goal = point and JourneyPlace(point)
+	local goal = point and ns.JourneyGoalDetails(Place, point)
 	if not (title and plan and goal and index) then
 		return nil
 	end
@@ -770,8 +752,7 @@ local function CorpseJourney()
 	}
 end
 
--- The journey under way, whoever owns it. Every table is new, and a search still working on its first plan has
--- nothing to read yet, exactly as the tracker shows a spinner.
+-- Copy the journey under way; its first plan has nothing to read until ready.
 ---@return SPFAPIJourney?, SPFAPINotReady?
 function API.Journey()
 	if not Loaded() then
@@ -794,7 +775,7 @@ function API.Journey()
 	if not plan and select(4, ns.JourneyStatus()) then
 		return Loading()
 	end
-	local place = JourneyPlace(goal)
+	local place = ns.JourneyGoalDetails(Place, goal)
 	if not place then
 		return None()
 	end
@@ -808,70 +789,12 @@ function API.Journey()
 	}
 end
 
--- The guidance another addon steers by: the point the arrow is leading to, every bend of the leg under way as fresh
--- uiMapID/0-1 copies, and where that point stands in them. Map marks may show only step ends, while the
--- waypoints stay the leg's original walk and index names the same point in it. A point this client cannot place makes
--- the whole answer unavailable rather than leaving a hole in the walk a caller steers along.
 ---@return SPFAPIGuidance?, SPFAPIGuidanceReason?
 function API.Guidance()
 	if not Loaded() then
 		return Loading()
 	end
-	-- A corpse run borrows guidance while the journey setting waits, so it still has a point to give.
-	local corpse = ns.Corpse ~= nil and ns.Corpse.Active()
-	if ns.db.journey == false and not corpse then
-		return Disabled()
-	end
-	local Guide = ns.JourneyGuide
-	if Guide and Guide.Paused() then
-		return nil, "paused"
-	end
-	if Guide and Guide.Casting() then
-		return nil, "cast"
-	end
-	local target, source, index
-	if ns.GuideState then
-		target, source, index = ns.GuideState()
-	end
-	if not (target and source and index) then
-		-- A first plan still being searched has no point to give yet, exactly as the tracker shows a spinner.
-		local _, _, _, loading = ns.JourneyStatus()
-		if loading then
-			return Loading()
-		end
-		if ns.HasJourney and ns.HasJourney() then
-			return nil, "paused"
-		end
-		return None()
-	end
-	local waypoints = {}
-	for at = 1, #source do
-		local place = Place(source[at])
-		if not place then
-			return nil, "unavailable"
-		end
-		waypoints[at] = place
-	end
-	local point = Place(target)
-	if not (point and index >= 1 and index <= #waypoints) then
-		return nil, "unavailable"
-	end
-	-- A corpse run is the guidance under way while it lasts, and reports itself as the player's own, as Journey does.
-	local owner = ns.JourneyOwner()
-	local leg
-	if ns.Corpse and ns.Corpse.Active() then
-		leg, owner = select(4, ns.Corpse.Info()) or 1, nil
-	else
-		local _, current = ns.JourneyPlan()
-		leg = current or 1
-	end
-	return {
-		owner = owner,
-		leg = leg,
-		point = point,
-		waypoints = waypoints,
-		index = index,
-	}
+	return ns.JourneyGuidance(Place)
 end
 
 -- Only the owner may steer its journey, and only while the player is alive to be guided: a corpse run is the
@@ -886,8 +809,7 @@ local function Steerable(owner)
 		and not (ns.Corpse and ns.Corpse.Active())
 end
 
--- Stop guidance and keep the goal and route, the state the tracker's guidance switch leaves when turned off. The
--- goal's pin turns bronze and the route waits for Resume.
+-- Pause guidance while preserving the goal and route for Resume.
 ---@param owner string
 ---@return boolean
 function API.Pause(owner)
@@ -898,7 +820,6 @@ function API.Pause(owner)
 	return true
 end
 
--- Start guidance again on the same goal, as the tracker's Journeys switch does.
 ---@param owner string
 ---@return boolean
 function API.Resume(owner)
@@ -909,8 +830,7 @@ function API.Resume(owner)
 	return true
 end
 
--- Advance the leg under way, through the same step the tracker's leg menu takes. index is optional and, when given,
--- must name the current leg.
+-- Advance the current leg through the tracker menu action.
 ---@param owner string
 ---@param index? integer
 ---@return boolean
@@ -921,9 +841,7 @@ function API.SkipLeg(owner, index)
 	return ns.SkipJourneyStep(index) == true
 end
 
--- Resume the RestedXP guide the player follows, as the tracker menu's and Settings' own *Resume guide* do, so a macro
--- can bring it back without opening either. There is nothing to act on before the saved variables load (unavailable)
--- and guidance cannot start in combat (invalid); a guide RestedXP is not showing now leaves nothing to resume.
+-- Resume the displayed RestedXP guide through the same action as its tracker menu.
 ---@return true?, ("invalid"|"unavailable")?
 function API.ResumeRestedXP()
 	if not Loaded() then

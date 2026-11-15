@@ -6,6 +6,29 @@ if ns.broken then
 end
 local L = ns.L
 
+local USE_ITEM, CAST_SPELL = L["Use %s"], L["Cast %s"]
+
+-- The tracker and screen prompt name the same item or spell in the client's language. `formatPlace`, when the
+-- tracker asks for it, wraps the capital a party mage opens inside the same locale sentence.
+---@param teleport SPFTeleportPlace
+---@param formatPlace? fun(place: string): string
+---@return string action, number? icon
+function ns.TeleportAction(teleport, formatPlace)
+	if teleport.partyMage then
+		local icon = C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(teleport.spell)
+		local place = teleport.destination or UNKNOWN
+		if formatPlace then
+			place = formatPlace(place)
+		end
+		return L["Ask %s for a portal to %s"]:format(teleport.partyMage, place), icon
+	end
+	local name = teleport.item and C_Item.GetItemNameByID(teleport.item)
+		or C_Spell.GetSpellName(teleport.spell)
+		or UNKNOWN
+	local icon = teleport.item and C_Item.GetItemIconByID(teleport.item) or (C_Spell.GetSpellTexture(teleport.spell))
+	return (teleport.item and USE_ITEM or CAST_SPELL):format(name), icon
+end
+
 -- How a journey step reads. The tracker and the public API's EstimateDetail share these words, so a step names
 -- the same place in SPF's list and in another addon's travel line.
 local SCHEDULED = { boat = true, zeppelin = true, lift = true, tram = true }
@@ -279,4 +302,17 @@ function ns.JourneyLegDetails(plan, index, place)
 		}
 	end
 	return legs
+end
+
+-- A place with the goal's name: the title its caller gave the stop, else the name the tracker's header gives it. The
+-- header's own line also counts the stops ("Stop 1 of 2: ..."), which a caller reads from index instead.
+---@param project fun(point: SPFPoint): SPFAPIPlace?
+---@param point SPFPoint
+---@return SPFAPIJourneyGoal?
+function ns.JourneyGoalDetails(project, point)
+	local place = project(point)
+	if not place then
+		return nil
+	end
+	return { map = place.map, x = place.x, y = place.y, title = point.label or ns.JourneyTitle(point) }
 end
