@@ -7,7 +7,7 @@
 -- HostileSpells: spells whose effects target an enemy (TARGET_UNIT_TARGET_ENEMY, 6) or any explicit unit
 -- (25), the rows a hostile NPC answers. BandItems: [item] = its on-use spell's max range and the units
 -- that spell targets; only items the player carries are asked about.
--- DB2: https://wago.tools/db2 (CSV build 1.60.1.70862).
+-- DB2: https://wago.tools/db2 (CSV build 1.60.1.70938).
 ---@type string, SPFNamespace
 local _, ns = ...
 
@@ -1612,8 +1612,6 @@ ns.SpellTargets = {
 	[448627] = true,
 	[449007] = true,
 	[449008] = true,
-	[449012] = true,
-	[449013] = true,
 	[449014] = true,
 	[449879] = true,
 	[450603] = true,
@@ -6245,8 +6243,6 @@ ns.HostileSpells = {
 	[448809] = true,
 	[449007] = true,
 	[449008] = true,
-	[449012] = true,
-	[449013] = true,
 	[449014] = true,
 	[449288] = true,
 	[449432] = true,
