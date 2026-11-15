@@ -1,3 +1,4 @@
+-- rule-ignore: file-size-no-growth - the journey search, its leg policy and the zone exemptions it builds stay together
 ---@class SPFNamespace
 local ns = select(2, ...)
 

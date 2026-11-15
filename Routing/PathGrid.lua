@@ -836,8 +836,13 @@ end
 
 local function metadata(st, id)
 	if st.ncell[id] == nil then
-		local s, pos = st.D.graph[floor(id / 4096) + 1], 3 + (id % 4096) * 7
-		st.ncell[id], st.nlayer[id], st.ncomp[id] = num(s, pos, 3), B64[byte(s, pos + 3)], num(s, pos + 4, 2)
+		-- A packed map keeps its graph compressed until asked for: read the field, never the raw table (#897).
+		local field, pos = unpackField(st.D, "graph", floor(id / 4096) + 1), 3 + (id % 4096) * 7
+		if not field then
+			return nil
+		end
+		st.ncell[id], st.nlayer[id], st.ncomp[id] =
+			num(field, pos, 3), B64[byte(field, pos + 3)], num(field, pos + 4, 2)
 	end
 	return st.ncell[id], st.nlayer[id], st.ncomp[id]
 end
@@ -1864,6 +1869,9 @@ local function climbNodes(st, a, b)
 	end
 	local ac = metadata(st, a)
 	local bc = metadata(st, b)
+	if not ac or not bc then
+		return true -- a node the map cannot place says nothing about the climb
+	end
 	local C = st.C
 	local ax = floor(ak / st.ny) * C + floor(ac / C)
 	local ay = (ak % st.ny) * C + ac % C
