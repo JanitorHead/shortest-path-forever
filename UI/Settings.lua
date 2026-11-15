@@ -9,8 +9,7 @@ local L = ns.L
 
 local settings = {}
 
--- Change an option from anywhere (the map's filter menu) with the settings panel kept in step. A menu-only setting
--- has no row to move, so its saved value is written directly.
+-- Change an option from anywhere and keep the settings panel in step.
 ---@param key string
 ---@param value boolean|number|string
 function ns.SetOption(key, value)
@@ -21,16 +20,12 @@ function ns.SetOption(key, value)
 		ns.db[key] = value
 	end
 end
-
 local category
 
--- The settings category is the addon's one options surface: the slash command and the compartment entry open it.
--- Through ForeverCore's secure opener: the client's Settings.OpenToCategory and its C_SettingsUtil.OpenSettingsPanel
--- refuse a direct call from addon code (cjber/forever-core#333).
+-- The settings category is opened through ForeverCore's secure opener.
 function ns.OpenSettings()
 	ForeverCore.OpenSettingsPanel(category:GetID())
 end
-
 local optionsButton
 function ns.RefreshOptionsButton()
 	if ns.db.minimapButton and not optionsButton then
@@ -55,7 +50,6 @@ function ns.RefreshOptionsButton()
 		optionsButton:SetShown(ns.db.minimapButton)
 	end
 end
-
 local function Perf()
 	local profiler, metrics = C_AddOnProfiler, Enum.AddOnProfilerMetric
 	if profiler and profiler.GetAddOnMetric and metrics and (not profiler.IsEnabled or profiler.IsEnabled()) then
@@ -86,7 +80,6 @@ local function Perf()
 		ns.Print("Memory accounting is unavailable on this client.")
 	end
 end
-
 -- Rows go in through Settings.RegisterInitializer, which inserts them from Blizzard's secure delegate.
 -- Settings.CreateCheckbox inserts from our code instead, and the settings search reads every layout, so that
 -- tainted it: a restricted button in the results (Social's Discord Sign In) was then blocked and blamed on us.
@@ -107,7 +100,6 @@ ns.Init(function()
 			end, nil, false)
 		)
 	end
-
 	local function Checkbox(key, name, tooltip, onChanged)
 		local setting = Settings.RegisterAddOnSetting(
 			page,
@@ -124,7 +116,6 @@ ns.Init(function()
 		Settings.RegisterInitializer(page, Settings.CreateCheckboxInitializer(setting, nil, tooltip))
 		settings[key] = setting
 	end
-
 	local function Scale(key, name, tooltip, refresh)
 		local setting = Settings.RegisterAddOnSetting(
 			page,
@@ -143,7 +134,6 @@ ns.Init(function()
 		end)
 		Settings.RegisterInitializer(page, Settings.CreateSliderInitializer(setting, options, tooltip))
 	end
-
 	-- Map marks: what the world map and the minimap draw.
 	Page(L["Map marks"])
 	Checkbox("pins", L["Show boats and zeppelins"], L["On the world map."], ns.RefreshMap)
