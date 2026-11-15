@@ -296,15 +296,22 @@ assert(not flying.estimated, "a measured flight is no longer estimated")
 flight.taxiTimes = nil
 flight.taxiKnown = { [1] = true }
 only(Plan(flight), "walk")
--- A flight needs both endpoints known (#537): knowing the arrival cannot take a flight from an unknown departure.
+-- A flight lands only at a known point (#537), but a departure the route walks to is learned there (#868): standing
+-- on the unknown master is enough, and from a little way off the route walks to it first.
 flight.taxiKnown = { [2] = true }
-only(Plan(flight), "walk")
+flying = only(Plan(flight), "flight")
+assert(flying.from.id == 1 and flying.from.undiscovered, "the departure was learned by walking to it")
 flight.taxiKnown = { [1] = true, [2] = true }
 only(Plan(flight), "flight")
 flight.from = point(1, -70)
 flight.taxiKnown = { [2] = true }
 result = Plan(flight)
-assert(#result.legs == 1 and result.legs[1].mode == "walk", "an unknown departure means walking all the way")
+assert(
+	#result.legs == 2 and result.legs[1].mode == "walk" and result.legs[1].to.id == 1 and result.legs[1].to.undiscovered,
+	"the route walks to the unknown departure and learns it"
+)
+assert(result.legs[2].mode == "flight" and result.legs[2].to.id == 2, "then flies to the known arrival")
+near(result.arrive, 24000)
 flight.taxiKnown = { [1] = true, [2] = true }
 result = Plan(flight)
 assert(#result.legs == 2 and result.legs[1].mode == "walk" and not result.legs[1].to.undiscovered)
@@ -438,11 +445,8 @@ for _, portalRow in ipairs(ns.Portals) do
 		stormwindPortal = portalRow
 	end
 end
-assert(dalaranPortal and stormwindPortal, "both directions of the Alliance Skyborne portal are routable")
-assert(
-	dalaranPortal.faction == "Alliance" and stormwindPortal.faction == "Alliance",
-	"the Dalaran portal pair is not offered to Horde characters"
-)
+assert(dalaranPortal and not stormwindPortal, "Dalaran to Stormwind is one-way; the return portal was removed (#684)")
+assert(dalaranPortal.faction == "Alliance", "the Dalaran portal is not offered to Horde characters")
 local skyborneOptions = {
 	from = dalaranPortal.from,
 	to = dalaranPortal.to,
@@ -453,10 +457,12 @@ local skyborneOptions = {
 	landmasses = ns.Landmasses,
 }
 only(Plan(skyborneOptions), "portal")
-skyborneOptions.from, skyborneOptions.to = stormwindPortal.from, stormwindPortal.to
-only(Plan(skyborneOptions), "portal")
 skyborneOptions.faction = "Horde"
 assert(not Plan(skyborneOptions), "Horde routes do not use the Alliance portal")
+skyborneOptions.faction = "Alliance"
+skyborneOptions.from = { map = 0, x = -9017, y = 889, z = 132 }
+skyborneOptions.to = dalaranPortal.from
+assert(not Plan(skyborneOptions), "Stormwind cannot route through the removed Dalaran portal")
 only(Plan(real), "tram")
 points = LegPoints(only(Plan(real), "tram"), real.routes)
 assert(#points > 2 and points[1].map == 369 and points[#points].map == 369)

@@ -60,6 +60,13 @@ Credit for the reports and requests behind the addon.
 
 | Who | What | Notes |
 |---|---|---|
+| user\_lsqt69ps7bgb5p7e | Journeys with several chosen stops | CurseForge thread 8705002, #846 |
+| Enel3008 | Choose how strongly journeys prefer roads | CurseForge thread 8705155, #848 |
+| user\_lsqt69ps7bgb5p7e | Farming tours through GatherMate2 recorded locations | CurseForge; thread 8705002; #847 |
+| [azure463](https://github.com/azure463) | Choose whether journeys use water walking | GitHub; #878 |
+| AsimRamay | Journeys recover after walking away without boarding a boat | GitHub; #764 |
+| nookie909 | Reported the removed Stormwind to Dalaran portal | CurseForge; thread 8682913; #684 |
+| Zerhathos | Reported a navigation marker remaining with the arrow off | CurseForge; thread 8706138; #881 |
 | jakerist | Destination pin step line follows the journey | GitHub; #875 |
 | cobalt\_44 | Nearby services tab can be hidden | CurseForge; #767 |
 | Xeteskian | Nearby services tab can be hidden | CurseForge; #767 |
@@ -129,7 +136,7 @@ Credit for the reports and requests behind the addon.
 | MacieGx | Your own profession trainers come first (code) | GitHub; PR #704 |
 | borick7318 | Metres match the game's distances | Discord; #668 |
 | cotijelucie | Hide travel marks on the world map | Discord; #635 |
-| cotijelucie | Town services drawn on the world map | Discord; #739 |
+| cotijelucie | Town services drawn on the world map and a map checkbox for each Nearby service | Discord; #739, #866 |
 | sampconrad | Arrow becomes a pin on arrival | CurseForge; #627 |
 | jixxor | Stormwind walks follow the streets | Discord; #602 |
 | Gaafah | Option to hide the walking line | CurseForge; #576 |
@@ -170,6 +177,7 @@ Credit for the reports and requests behind the addon.
 | esc\_return | Arrow follows the walk with only step ends marked | Discord; #817 |
 | MrOxiMoron | The game's quest markers can stay on the map during a journey | CurseForge; #871; thread 8698185 |
 | Zhiroc | A choice of key for planning a journey from a map click | CurseForge; #882; thread 8712334 |
+| Crypa7 | Walk to a new flight master before flying | CurseForge; #868; thread 8706618 |
 
 ## Inspired by
 

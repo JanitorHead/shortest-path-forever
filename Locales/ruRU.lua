@@ -409,8 +409,6 @@ L["Hide departures"] = "Скрыть отправления"
 -- Travel stats.
 
 L["Follow roads"] = "Следовать дорогам" -- mt
-L["Walks keep to roads and paved streets where that adds less than half again to the walk. Roads painted with a zone's plain dirt are not known."] =
-	"Пешие маршруты держатся дорог и мощёных улиц, если это удлиняет путь менее чем наполовину. Дороги, нарисованные обычной землёй зоны, не распознаются." -- mt
 L["A flight would be quicker. Open a flight master's map in %s once to sync your flight points."] =
 	"Полёт был бы быстрее. Один раз откройте карту распорядителя полётов в зоне «%s», чтобы синхронизировать точки полёта." -- mt
 L["Eastern Kingdoms"] = "Восточные королевства" -- mt
@@ -469,3 +467,99 @@ L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey
 L["Show the Nearby services tab"] = "Показывать вкладку услуг поблизости"
 L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."] =
 	"Вкладка в журнале заданий на карте мира. Если выключить, /spfnear и меню отслеживания всё равно её откроют."
+L["Use Water Walking and Levitate"] = "Использовать Хождение по воде и Левитацию" -- mt
+L["Use Water Walking or Levitate when available. When off, routes use swimming times and may still cross water."] =
+	"Планировать с Хождением по воде или Левитацией, если они доступны. Отключите для расчёта обычного времени плавания; маршруты всё ещё могут пересекать воду." -- mt
+L["Farming tour"] = "Маршрут сбора" -- mt
+L["Herbs"] = "Травы" -- mt
+L["Mining"] = "Горное дело" -- mt
+L["All"] = "Все" -- mt
+L["None"] = "Ничего" -- mt
+L["Start"] = "Начать" -- mt
+L["Pause"] = "Пауза" -- mt
+L["Resume"] = "Продолжить" -- mt
+L["Stop"] = "Остановить" -- mt
+L["Ready to start."] = "Можно начинать." -- mt
+L["Farming tour running."] = "Маршрут сбора выполняется." -- mt
+L["Farming tour paused."] = "Маршрут сбора приостановлен." -- mt
+L["Farming tour stopped."] = "Маршрут сбора остановлен." -- mt
+L["Farming tour waiting."] = "Маршрут сбора ожидает." -- mt
+L["Ordering recorded locations..."] = "Упорядочивание записанных мест..." -- mt
+L["Farming needs the GatherMate2 addon."] = "Для сбора требуется аддон GatherMate2." -- mt
+L["Your current zone is unavailable."] = "Текущая зона недоступна." -- mt
+L["No recorded locations for these choices in your current zone."] =
+	"В текущей зоне нет записанных мест для выбранных типов." -- mt
+L["Choose at least two different recorded locations."] =
+	"Выберите как минимум два разных записанных места." -- mt
+L["Stop your current journey before starting a farming tour."] =
+	"Остановите текущее путешествие перед началом маршрута сбора." -- mt
+L["Next location: %d. Completed circuits: %d."] =
+	"Следующее место: %d. Завершено кругов: %d." -- mt
+L["Visit GatherMate2 recorded locations in your current zone. Nodes may be absent or unreachable."] =
+	"Посещайте записанные GatherMate2 места в текущей зоне. Ресурсы могут отсутствовать, а места могут быть недоступны." -- mt
+L["Waiting for combat to end."] = "Ожидание окончания боя." -- mt
+L["Waiting until you are alive."] = "Ожидание воскрешения." -- mt
+L["GatherMate2 recorded locations could not be read."] =
+	"Не удалось прочитать записанные GatherMate2 места." -- mt
+L["These recorded locations could not be ordered."] =
+	"Не удалось упорядочить эти записанные места." -- mt
+L["Farming could not continue. Start a new tour when you are ready."] =
+	"Не удалось продолжить сбор. Начните новый маршрут, когда будете готовы." -- mt
+L["Arrival could not be confirmed. The farming tour has stopped."] =
+	"Не удалось подтвердить прибытие. Маршрут сбора остановлен." -- mt
+L["Your journey changed. The farming tour has stopped."] =
+	"Ваше путешествие изменилось. Маршрут сбора остановлен." -- mt
+L["No walking route was found. The farming tour has stopped."] =
+	"Пеший путь не найден. Маршрут сбора остановлен." -- mt
+L["Walking map data is unavailable. The farming tour has stopped."] =
+	"Данные карты пеших путей недоступны. Маршрут сбора остановлен." -- mt
+L["A recorded location is outside the walking map. The farming tour has stopped."] =
+	"Записанное место находится за пределами карты пеших путей. Маршрут сбора остановлен." -- mt
+L["A recorded location could not be reached. The farming tour has stopped."] =
+	"Не удалось добраться до записанного места. Маршрут сбора остановлен." -- mt
+L["/path farm - choose recorded gathering locations"] =
+	"/path farm - выбрать записанные места сбора" -- mt
+L["%d. %s (%.1f, %.1f)"] = "%d. %s (%.1f, %.1f)" -- mt
+L["A journey can have up to 64 stops."] =
+	"В путешествии может быть не более 64 остановок." -- mt
+L["A stop could not be reached. Remove it or choose your own order."] =
+	"Не удалось добраться до остановки. Удалите её или задайте свой порядок." -- mt
+L["Add at least one stop."] = "Добавьте хотя бы одну остановку." -- mt
+L["Add map waypoint"] = "Добавить точку с карты" -- mt
+L["Already in this journey."] = "Уже есть в этом путешествии." -- mt
+L["Clear"] = "Очистить" -- mt
+L["Close"] = "Закрыть" -- mt
+L["Down"] = "Вниз" -- mt
+L["Estimated travel-time order"] = "Порядок по расчётному времени пути" -- mt
+L["Journey complete."] = "Путешествие завершено." -- mt
+L["Journey paused."] = "Путешествие приостановлено." -- mt
+L["Journey stopped."] = "Путешествие остановлено." -- mt
+L["Journey stops"] = "Остановки путешествия" -- mt
+L["Ordering stops by estimated travel time..."] =
+	"Упорядочивание остановок по расчётному времени пути..." -- mt
+L["Orders the next stop by estimated travel time. You can change the order."] =
+	"Выбирает следующую остановку по расчётному времени пути. Вы можете изменить порядок." -- mt
+L["Place a map waypoint, then add it to this journey."] =
+	"Поставьте точку на карте, затем добавьте её в это путешествие." -- mt
+L["Remove"] = "Удалить" -- mt
+L["Stop %d of %d."] = "Остановка %d из %d." -- mt
+L["Stop your current journey before starting this journey."] =
+	"Остановите текущее путешествие, прежде чем начать это." -- mt
+L["That destination is unavailable."] = "Этот пункт назначения недоступен." -- mt
+L["The journey could not start."] = "Не удалось начать путешествие." -- mt
+L["Up"] = "Вверх" -- mt
+L["Your journey changed."] = "Ваше путешествие изменилось." -- mt
+L["Your order"] = "Ваш порядок" -- mt
+L["Your position changed. Start again to order these stops."] =
+	"Ваша позиция изменилась. Начните заново, чтобы упорядочить эти остановки." -- mt
+L["Combat interrupted ordering. Start again when combat ends."] =
+	"Бой прервал упорядочивание. Начните заново после боя." -- mt
+L["Ordering stopped while you are dead. Start again when you are alive."] =
+	"Упорядочивание остановлено, потому что вы мертвы. Начните заново после воскрешения." -- mt
+L["Travel options changed. Start again to order these stops."] =
+	"Параметры путешествия изменились. Начните заново, чтобы упорядочить эти остановки." -- mt
+L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are not known."] =
+	"Предпочитать дороги и мощёные улицы. Дороги с обычной текстурой земли этой зоны не распознаются." -- mt
+L["Road detour allowance"] = "Допустимый обход по дорогам" -- mt
+L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
+	"Когда включено следование дорогам, определяет, сколько дополнительного пути стоит пройти, чтобы избежать такого же расстояния вне дороги. 50% сохраняет обычное предпочтение; 0% не отдаёт предпочтения дорогам. Это не ограничение длины всего пути." -- mt

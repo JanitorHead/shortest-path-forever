@@ -394,8 +394,6 @@ L["Hide departures"] = "출발 숨기기"
 -- Travel stats.
 
 L["Follow roads"] = "도로 따라가기" -- mt
-L["Walks keep to roads and paved streets where that adds less than half again to the walk. Roads painted with a zone's plain dirt are not known."] =
-	"이동 경로는 추가 거리가 절반 미만이면 도로와 포장된 거리를 따라갑니다. 지역의 일반 흙으로 칠해진 도로는 알 수 없습니다." -- mt
 L["A flight would be quicker. Open a flight master's map in %s once to sync your flight points."] =
 	"비행이 더 빠릅니다. %s에서 비행 조련사의 지도를 한 번 열어 비행 지점을 동기화하세요." -- mt
 L["Eastern Kingdoms"] = "동부 왕국" -- mt
@@ -453,3 +451,93 @@ L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey
 L["Show the Nearby services tab"] = "주변 편의시설 탭 표시"
 L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."] =
 	"세계 지도 퀘스트 로그의 탭입니다. 꺼도 /spfnear와 추적 메뉴로 계속 열 수 있습니다."
+L["Use Water Walking and Levitate"] = "수면 걷기와 공중 부양 사용" -- mt
+L["Use Water Walking or Levitate when available. When off, routes use swimming times and may still cross water."] =
+	"사용 가능한 수면 걷기 또는 공중 부양으로 경로를 계획합니다. 끄면 일반 수영 시간을 사용하며, 경로가 여전히 물을 건널 수 있습니다." -- mt
+L["Farming tour"] = "채집 순회" -- mt
+L["Herbs"] = "약초" -- mt
+L["Mining"] = "채광" -- mt
+L["All"] = "모두" -- mt
+L["None"] = "없음" -- mt
+L["Start"] = "시작" -- mt
+L["Pause"] = "일시 정지" -- mt
+L["Resume"] = "재개" -- mt
+L["Stop"] = "중지" -- mt
+L["Ready to start."] = "시작할 준비가 되었습니다." -- mt
+L["Farming tour running."] = "채집 순회 진행 중입니다." -- mt
+L["Farming tour paused."] = "채집 순회가 일시 정지되었습니다." -- mt
+L["Farming tour stopped."] = "채집 순회가 중지되었습니다." -- mt
+L["Farming tour waiting."] = "채집 순회 대기 중입니다." -- mt
+L["Ordering recorded locations..."] = "기록된 위치의 순서를 정하는 중..." -- mt
+L["Farming needs the GatherMate2 addon."] = "채집하려면 GatherMate2 애드온이 필요합니다." -- mt
+L["Your current zone is unavailable."] = "현재 지역을 확인할 수 없습니다." -- mt
+L["No recorded locations for these choices in your current zone."] =
+	"현재 지역에 선택한 종류의 기록된 위치가 없습니다." -- mt
+L["Choose at least two different recorded locations."] =
+	"서로 다른 기록된 위치를 두 곳 이상 선택하세요." -- mt
+L["Stop your current journey before starting a farming tour."] =
+	"채집 순회를 시작하기 전에 현재 여정을 중지하세요." -- mt
+L["Next location: %d. Completed circuits: %d."] = "다음 위치: %d. 완료한 순회: %d회." -- mt
+L["Visit GatherMate2 recorded locations in your current zone. Nodes may be absent or unreachable."] =
+	"현재 지역에서 GatherMate2에 기록된 위치를 방문합니다. 자원이 없거나 도달할 수 없는 곳일 수 있습니다." -- mt
+L["Waiting for combat to end."] = "전투가 끝나기를 기다리는 중입니다." -- mt
+L["Waiting until you are alive."] = "부활하기를 기다리는 중입니다." -- mt
+L["GatherMate2 recorded locations could not be read."] = "GatherMate2에 기록된 위치를 읽을 수 없습니다." -- mt
+L["These recorded locations could not be ordered."] = "기록된 위치의 순서를 정할 수 없습니다." -- mt
+L["Farming could not continue. Start a new tour when you are ready."] =
+	"채집을 계속할 수 없습니다. 준비되면 새 순회를 시작하세요." -- mt
+L["Arrival could not be confirmed. The farming tour has stopped."] =
+	"도착을 확인할 수 없어 채집 순회가 중지되었습니다." -- mt
+L["Your journey changed. The farming tour has stopped."] =
+	"여정이 변경되어 채집 순회가 중지되었습니다." -- mt
+L["No walking route was found. The farming tour has stopped."] =
+	"도보 경로를 찾지 못해 채집 순회가 중지되었습니다." -- mt
+L["Walking map data is unavailable. The farming tour has stopped."] =
+	"도보 지도 데이터가 없어 채집 순회가 중지되었습니다." -- mt
+L["A recorded location is outside the walking map. The farming tour has stopped."] =
+	"기록된 위치가 도보 지도 밖에 있어 채집 순회가 중지되었습니다." -- mt
+L["A recorded location could not be reached. The farming tour has stopped."] =
+	"기록된 위치에 도달할 수 없어 채집 순회가 중지되었습니다." -- mt
+L["/path farm - choose recorded gathering locations"] = "/path farm - 기록된 채집 위치 선택" -- mt
+L["%d. %s (%.1f, %.1f)"] = "%d. %s (%.1f, %.1f)" -- mt
+L["A journey can have up to 64 stops."] = "여정에는 최대 64개의 경유지를 추가할 수 있습니다." -- mt
+L["A stop could not be reached. Remove it or choose your own order."] =
+	"경유지에 도달하지 못했습니다. 해당 경유지를 제거하거나 직접 순서를 정하세요." -- mt
+L["Add at least one stop."] = "경유지를 하나 이상 추가하세요." -- mt
+L["Add map waypoint"] = "지도 경유지 추가" -- mt
+L["Already in this journey."] = "이미 이 여정에 있습니다." -- mt
+L["Clear"] = "비우기" -- mt
+L["Close"] = "닫기" -- mt
+L["Down"] = "아래로" -- mt
+L["Estimated travel-time order"] = "예상 이동 시간순" -- mt
+L["Journey complete."] = "여정을 완료했습니다." -- mt
+L["Journey paused."] = "여정을 일시 정지했습니다." -- mt
+L["Journey stopped."] = "여정을 중지했습니다." -- mt
+L["Journey stops"] = "여정 경유지" -- mt
+L["Ordering stops by estimated travel time..."] = "예상 이동 시간순으로 경유지 정렬 중..." -- mt
+L["Orders the next stop by estimated travel time. You can change the order."] =
+	"예상 이동 시간에 따라 다음 경유지를 선택합니다. 순서를 변경할 수 있습니다." -- mt
+L["Place a map waypoint, then add it to this journey."] =
+	"지도에 경유지를 지정한 후 이 여정에 추가하세요." -- mt
+L["Remove"] = "제거" -- mt
+L["Stop %d of %d."] = "경유지 %d / %d." -- mt
+L["Stop your current journey before starting this journey."] =
+	"이 여정을 시작하기 전에 현재 여정을 중지하세요." -- mt
+L["That destination is unavailable."] = "해당 목적지를 이용할 수 없습니다." -- mt
+L["The journey could not start."] = "여정을 시작하지 못했습니다." -- mt
+L["Up"] = "위로" -- mt
+L["Your journey changed."] = "여정이 변경되었습니다." -- mt
+L["Your order"] = "직접 정한 순서" -- mt
+L["Your position changed. Start again to order these stops."] =
+	"위치가 변경되었습니다. 경유지를 정렬하려면 다시 시작하세요." -- mt
+L["Combat interrupted ordering. Start again when combat ends."] =
+	"전투로 인해 정렬이 중단되었습니다. 전투가 끝나면 다시 시작하세요." -- mt
+L["Ordering stopped while you are dead. Start again when you are alive."] =
+	"죽어서 정렬이 중단되었습니다. 부활하면 다시 시작하세요." -- mt
+L["Travel options changed. Start again to order these stops."] =
+	"이동 설정이 변경되었습니다. 경유지를 정렬하려면 다시 시작하세요." -- mt
+L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are not known."] =
+	"도로와 포장된 길을 우선합니다. 지역의 일반 흙 지형으로 표시된 길은 인식하지 못합니다." -- mt
+L["Road detour allowance"] = "도로 우회 허용량" -- mt
+L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
+	"도로 따라가기가 켜져 있을 때 도로 밖의 같은 거리를 피하기 위해 허용할 추가 거리입니다. 50%는 기존 우선도를 유지하며, 0%는 도로를 우선하지 않습니다. 전체 도보 거리의 제한은 아닙니다." -- mt

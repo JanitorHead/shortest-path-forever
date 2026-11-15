@@ -25,7 +25,7 @@
 ---@field TownAreas table<number, SPFTownArea> the client's town ground per flight master (Data/TownAreas.lua)
 ---@field db SPFDatabase
 ---@field charDB SPFCharacterDatabase
----@field Defaults table<string, boolean|number|string>
+---@field Defaults SPFDefaults
 ---@field NearbyRoles SPFNearbyRolesAPI the class, portal and battlemaster groups (UI/NearbyRoles.lua)
 ---@field NearbyServices SPFNearbyServices
 ---@field NearbyGroups SPFNearbyGroups the vendor and service groups the list and the map share (UI/NearbyGroups.lua)
@@ -44,6 +44,27 @@
 ---@field JourneyKeyDown fun(): boolean whether the chosen journey key is held (JourneyInput.lua)
 ---@field JourneyKeyName fun(key?: string): string what the chosen key, or the one named, is called (JourneyInput.lua)
 ---@field TravelStats fun(): SPFProgressData?
+---@field StopOrder SPFStopOrder
+---@field JourneyStopsEditor SPFJourneyStopsModule
+---@field ShowJourneyStops fun()
+---@field EstimateContextRevision fun(): integer
+---@field WorldPoint fun(uiMapID: integer, x: number, y: number): SPFPoint?
+---@field FarmingCursor SPFFarmingCursorFactory
+---@field NavigateFarmingRoute fun(owner: string, stops: SPFAPIStop[]): boolean
+---@field JourneyRoutePolicy fun(): SPFRoutePolicy
+
+---@class SPFDefaults: table<string, boolean|number|string>
+---@field townServices string
+---@field routeColor string
+---@field journeyKey string
+---@field arrivalDistance number
+---@field hearthMinimumSavings number
+---@field roadDetour number
+---@field arrowScale number
+---@field arrowLabel string
+---@field compassScale number
+---@field compassBackground number
+---@field townServiceKinds table<string, boolean>
 
 ---@class SPFVendorGroup
 ---@field key string
@@ -266,6 +287,8 @@
 ---@field tomtom? boolean -- answer third-party guides' TomTom waypoints with a journey while TomTom is absent
 ---@field tomtomFollow? boolean -- with TomTom installed, a journey follows the waypoint its arrow points to
 ---@field taxiRoute? boolean
+---@field useWaterWalking? boolean
+---@field townServiceKinds? table<string, boolean>
 ---@field teleports? boolean
 ---@field partyMagePortals? boolean -- offer a party mage's capital portals
 ---@field partyMageStormwind? boolean
@@ -301,7 +324,8 @@
 ---@field compassY? number
 ---@field corpse? boolean
 ---@field avoidHighZones? boolean -- walks go round zones whose lowest level is 4 or more above yours (Hazards.lua)
----@field followRoads? boolean -- walks keep to roads where the detour is short (Data/RoadCells.lua)
+---@field followRoads? boolean -- walks prefer roads (Data/RoadCells.lua)
+---@field roadDetour? number -- extra off-road cost in percent, 0 to 200, default 50
 ---@field whatsNew? boolean
 ---@field seenVersion? string -- the version last loaded, for the line after an update (WhatsNew.lua)
 ---@field debug? boolean

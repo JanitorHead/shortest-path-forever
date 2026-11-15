@@ -14,6 +14,15 @@ local plannerCache, knownSnapshot = {}, {}
 ---@type table<string, {at: number, seconds: number|false, legs?: SPFLeg[]}>
 local estimates, order, slot = {}, {}, 1
 local anchorSnapshot, context = {}, {}
+local teleportReadySnapshot = {}
+local estimateRevision = 0
+local revisionPartyPortals
+
+-- Incremental callers compare this after each estimate, which refreshes its context.
+---@return integer
+function ns.EstimateContextRevision()
+	return estimateRevision
+end
 local CACHE_LIMIT, CACHE_MS = 256, 5000
 -- Teleports are cast from where you stand, now: only an estimate that starts within this many yards of you counts
 -- them. Anywhere else is a later leg of the caller's route, when their cooldowns are unknown.
@@ -164,7 +173,7 @@ local function Owner(owner)
 end
 
 -- Only this module owns the caller's itinerary. Journey handles one destination at a time.
----@type {owner: string, points: SPFPoint[], index: integer}?
+---@type {owner: string, points: SPFPoint[], index: integer, policy: SPFRoutePolicy}?
 local route
 local MAX_STOPS = 64
 -- Why each owner's last journey ended, and when (GetTime); an owner's new journey forgets it.
@@ -270,6 +279,27 @@ function ns.JourneyChanged(point, reason)
 	ns.ItineraryChanged()
 end
 
+-- Private synchronous proof channel. Public subscribers still receive coalesced lifecycle changes.
+local farmingObservers = {}
+function ns.ObserveFarmingJourney(owner, callback)
+	local entry = { owner = owner, callback = callback }
+	farmingObservers[entry] = true
+	return function()
+		farmingObservers[entry] = nil
+	end
+end
+
+function ns.FarmingJourneyProof(phase, point, plan)
+	if not route or route.policy ~= "walking" or route.points[route.index] ~= point then
+		return
+	end
+	for entry in pairs(farmingObservers) do
+		if entry.owner == route.owner then
+			entry.callback(phase, route.index, point, plan)
+		end
+	end
+end
+
 -- A running route's stop was relabelled in place (API.RenameStop, from a guide renaming its step): the tracker names
 -- it. The label is cosmetic, so a tracker that cannot draw is not this journey's problem.
 local function Relabel()
@@ -280,6 +310,12 @@ function ns.JourneyRelabeled()
 	if ns.RefreshTracker then
 		ns.core.SafeCall("journey relabel", Relabel)
 	end
+end
+
+-- Corpse guidance uses its own normal policy while the queued route retains its policy.
+---@return SPFRoutePolicy
+function ns.JourneyRoutePolicy()
+	return not (ns.Corpse and ns.Corpse.Active()) and route and route.policy or "normal"
 end
 
 -- Which addon owns the journey under way, if one does (Resume.lua keeps only the player's own).
@@ -321,14 +357,33 @@ local function Differs(a, b)
 	return false
 end
 
+-- Absolute cooldown deadlines stay stable as the clock advances. A missing slot
+-- means unavailable, and zero means ready, so expiry changes the routing input.
+local function ReadyDiffers(a, b)
+	for key, value in pairs(a or {}) do
+		if not (b and b[key] == value) then
+			return true
+		end
+	end
+	for key in pairs(b or {}) do
+		if not (a and a[key] ~= nil) then
+			return true
+		end
+	end
+	return false
+end
+
 -- The planner options from here and now; a changed context drops every cached estimate.
 ---@param from SPFPoint
 ---@param to SPFPoint
-local function Options(from, to)
-	local options = ns.PlanContext.Options(from, to)
+---@param policy? SPFRoutePolicy
+local function Options(from, to, policy)
+	local options = ns.PlanContext.Options(from, to, policy)
 	local known, now, anchors = options.taxiKnown, options.now, options.anchors
+	local readiness = options.teleportState or {}
 	-- Discovery updates the same saved table in place; topology identity alone cannot detect it.
 	local changed = Differs(known, knownSnapshot)
+	local revisionChanged = changed
 	if changed then
 		plannerCache, knownSnapshot = {}, {}
 		for id, value in pairs(known) do
@@ -339,14 +394,21 @@ local function Options(from, to)
 	if not (x and map == from.map and (x - from.x) ^ 2 + (y - from.y) ^ 2 <= HERE ^ 2) then
 		options.teleportReady = {}
 	end
+	if options.routePolicy ~= "walking" and ReadyDiffers(readiness, teleportReadySnapshot) then
+		changed, revisionChanged = true, true
+		teleportReadySnapshot = {}
+		for index, value in pairs(readiness) do
+			teleportReadySnapshot[index] = value
+		end
+	end
 	for id, anchor in pairs(anchors) do
 		if anchorSnapshot[id] ~= anchor.epoch then
-			changed = true
+			changed, revisionChanged = true, true
 		end
 	end
 	for id in pairs(anchorSnapshot) do
 		if not anchors[id] then
-			changed = true
+			changed, revisionChanged = true, true
 		end
 	end
 	-- Same multimodal planner and baked walks as the arrow's initial plan. Endpoint terrain searches
@@ -355,7 +417,20 @@ local function Options(from, to)
 	for _, name in ipairs(CONTEXT_KEYS) do
 		if context[name] ~= options[name] then
 			changed = true
+			if name ~= "partyPortals" then
+				revisionChanged = true
+			end
 		end
+	end
+	-- Party portals are intentionally unavailable from later itinerary origins.
+	-- Compare their declaration at the player, so changing an estimate endpoint
+	-- clears its cache without pretending the player's routing inputs changed.
+	local party = x and y and map and ns.PartyPortalPlaces and ns.PartyPortalPlaces({ map = map, x = x, y = y }) or nil
+	if revisionPartyPortals ~= party then
+		revisionPartyPortals, revisionChanged = party, true
+	end
+	if revisionChanged then
+		estimateRevision = estimateRevision + 1
 	end
 	if changed then
 		estimates, order, slot, anchorSnapshot = {}, {}, 1, {}
@@ -421,9 +496,10 @@ end
 -- hop's legs itself, so they stay out of the estimate cache the public API answers from.
 ---@param from SPFPoint
 ---@param to SPFPoint
+---@param policy? SPFRoutePolicy
 ---@return SPFLeg[]?
-function ns.EstimateLegs(from, to)
-	local plan = ns.Planner.Plan((Options(from, to)))
+function ns.EstimateLegs(from, to, policy)
+	local plan = ns.Planner.Plan((Options(from, to, policy)))
 	return plan and plan.legs
 end
 
@@ -460,7 +536,7 @@ function API.EstimateDetail(fromMap, fromX, fromY, toMap, toX, toY)
 	}
 end
 
-function API.NavigateRoute(owner, stops)
+local function NavigateRoute(owner, stops, policy)
 	if not Owner(owner) or not Ready() or not ns.db.journey or type(stops) ~= "table" then
 		return false
 	end
@@ -562,6 +638,7 @@ function API.NavigateRoute(owner, stops)
 	-- different itinerary, and a journey waiting behind a corpse run is not this submission's to take.
 	if
 		count == 1
+		and ns.JourneyRoutePolicy() == policy
 		and (route == nil or route.owner ~= owner)
 		and (route == nil or #route.points == 1)
 		and ns.HasJourney
@@ -576,7 +653,7 @@ function API.NavigateRoute(owner, stops)
 			end
 			ended[owner] = nil
 			-- The stop the journey follows stays the object it is: Journey.lua recognises its own goal by identity.
-			route = { owner = owner, points = { goal }, index = 1 }
+			route = { owner = owner, points = { goal }, index = 1, policy = policy }
 			Settle()
 			return true
 		end
@@ -588,6 +665,7 @@ function API.NavigateRoute(owner, stops)
 	if
 		route
 		and route.owner == owner
+		and route.policy == policy
 		and ns.HasJourney
 		and ns.HasJourney()
 		and not (ns.Corpse and ns.Corpse.Active())
@@ -597,9 +675,18 @@ function API.NavigateRoute(owner, stops)
 		return true
 	end
 	ended[owner] = nil
-	route = { owner = owner, points = points, index = 1 }
+	route = { owner = owner, points = points, index = 1, policy = policy }
 	ns.ItineraryChanged()
-	return ns.StartJourney(points[1])
+	return ns.StartJourney(points[1], policy)
+end
+
+function API.NavigateRoute(owner, stops)
+	return NavigateRoute(owner, stops, "normal")
+end
+
+-- Internal farming submissions share every validation and copy rule with the public API.
+function ns.NavigateFarmingRoute(owner, stops)
+	return NavigateRoute(owner, stops, "walking")
 end
 
 function API.Navigate(owner, map, x, y, title, kind)

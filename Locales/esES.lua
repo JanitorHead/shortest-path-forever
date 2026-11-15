@@ -386,8 +386,6 @@ L["Hide departures"] = "Ocultar salidas"
 -- Travel stats.
 
 L["Follow roads"] = "Seguir caminos" -- mt
-L["Walks keep to roads and paved streets where that adds less than half again to the walk. Roads painted with a zone's plain dirt are not known."] =
-	"Los trayectos a pie siguen caminos y calles pavimentadas cuando eso añade menos de la mitad al recorrido. No se conocen los caminos pintados con la tierra llana de una zona." -- mt
 L["A flight would be quicker. Open a flight master's map in %s once to sync your flight points."] =
 	"Volar sería más rápido. Abre una vez el mapa de un maestro de vuelo en %s para sincronizar tus puntos de vuelo." -- mt
 L["Eastern Kingdoms"] = "Reinos del Este" -- mt
@@ -444,3 +442,91 @@ L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey
 L["Show the Nearby services tab"] = "Mostrar pestaña de servicios cercanos"
 L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."] =
 	"La pestaña en el registro de misiones del mapa del mundo. Desactivada, /spfnear y el menú de seguimiento siguen abriéndola."
+L["Use Water Walking and Levitate"] = "Usar Caminar sobre el agua y Levitar" -- mt
+L["Use Water Walking or Levitate when available. When off, routes use swimming times and may still cross water."] =
+	"Planifica con Caminar sobre el agua o Levitar cuando estén disponibles. Desactívalo para usar los tiempos normales de nado; las rutas aún pueden cruzar el agua." -- mt
+L["Farming tour"] = "Ruta de recolección" -- mt
+L["Herbs"] = "Hierbas" -- mt
+L["Mining"] = "Minería" -- mt
+L["All"] = "Todos" -- mt
+L["None"] = "Ninguno" -- mt
+L["Start"] = "Iniciar" -- mt
+L["Pause"] = "Pausar" -- mt
+L["Resume"] = "Reanudar" -- mt
+L["Stop"] = "Detener" -- mt
+L["Ready to start."] = "Listo para iniciar." -- mt
+L["Farming tour running."] = "Ruta de recolección en curso." -- mt
+L["Farming tour paused."] = "Ruta de recolección en pausa." -- mt
+L["Farming tour stopped."] = "Ruta de recolección detenida." -- mt
+L["Farming tour waiting."] = "Ruta de recolección en espera." -- mt
+L["Ordering recorded locations..."] = "Ordenando ubicaciones registradas..." -- mt
+L["Farming needs the GatherMate2 addon."] = "La recolección necesita el addon GatherMate2." -- mt
+L["Your current zone is unavailable."] = "Tu zona actual no está disponible." -- mt
+L["No recorded locations for these choices in your current zone."] =
+	"No hay ubicaciones registradas para esta selección en tu zona actual." -- mt
+L["Choose at least two different recorded locations."] = "Elige al menos dos ubicaciones registradas diferentes." -- mt
+L["Stop your current journey before starting a farming tour."] =
+	"Detén tu viaje actual antes de iniciar una ruta de recolección." -- mt
+L["Next location: %d. Completed circuits: %d."] = "Siguiente ubicación: %d. Circuitos completados: %d." -- mt
+L["Visit GatherMate2 recorded locations in your current zone. Nodes may be absent or unreachable."] =
+	"Visita ubicaciones registradas por GatherMate2 en tu zona actual. Los nodos pueden no estar presentes o ser inaccesibles." -- mt
+L["Waiting for combat to end."] = "Esperando a que termine el combate." -- mt
+L["Waiting until you are alive."] = "Esperando a que vuelvas a la vida." -- mt
+L["GatherMate2 recorded locations could not be read."] =
+	"No se pudieron leer las ubicaciones registradas por GatherMate2." -- mt
+L["These recorded locations could not be ordered."] = "No se pudieron ordenar estas ubicaciones registradas." -- mt
+L["Farming could not continue. Start a new tour when you are ready."] =
+	"No se pudo continuar la recolección. Inicia una ruta nueva cuando estés listo." -- mt
+L["Arrival could not be confirmed. The farming tour has stopped."] =
+	"No se pudo confirmar la llegada. La ruta de recolección se ha detenido." -- mt
+L["Your journey changed. The farming tour has stopped."] =
+	"Tu viaje ha cambiado. La ruta de recolección se ha detenido." -- mt
+L["No walking route was found. The farming tour has stopped."] =
+	"No se encontró una ruta a pie. La ruta de recolección se ha detenido." -- mt
+L["Walking map data is unavailable. The farming tour has stopped."] =
+	"Los datos del mapa para caminar no están disponibles. La ruta de recolección se ha detenido." -- mt
+L["A recorded location is outside the walking map. The farming tour has stopped."] =
+	"Una ubicación registrada está fuera del mapa para caminar. La ruta de recolección se ha detenido." -- mt
+L["A recorded location could not be reached. The farming tour has stopped."] =
+	"No se pudo llegar a una ubicación registrada. La ruta de recolección se ha detenido." -- mt
+L["/path farm - choose recorded gathering locations"] = "/path farm - elegir ubicaciones de recolección registradas" -- mt
+L["%d. %s (%.1f, %.1f)"] = "%d. %s (%.1f, %.1f)" -- mt
+L["A journey can have up to 64 stops."] = "Un viaje puede tener hasta 64 paradas." -- mt
+L["A stop could not be reached. Remove it or choose your own order."] =
+	"No se ha podido llegar a una parada. Elimínala o elige tu propio orden." -- mt
+L["Add at least one stop."] = "Añade al menos una parada." -- mt
+L["Add map waypoint"] = "Añadir punto de ruta del mapa" -- mt
+L["Already in this journey."] = "Ya está en este viaje." -- mt
+L["Clear"] = "Vaciar" -- mt
+L["Close"] = "Cerrar" -- mt
+L["Down"] = "Bajar" -- mt
+L["Estimated travel-time order"] = "Orden por tiempo de viaje estimado" -- mt
+L["Journey complete."] = "Viaje completado." -- mt
+L["Journey paused."] = "Viaje en pausa." -- mt
+L["Journey stopped."] = "Viaje detenido." -- mt
+L["Journey stops"] = "Paradas del viaje" -- mt
+L["Ordering stops by estimated travel time..."] = "Ordenando las paradas por tiempo de viaje estimado..." -- mt
+L["Orders the next stop by estimated travel time. You can change the order."] =
+	"Elige la siguiente parada según el tiempo de viaje estimado. Puedes cambiar el orden." -- mt
+L["Place a map waypoint, then add it to this journey."] = "Coloca un punto de ruta en el mapa y añádelo a este viaje." -- mt
+L["Remove"] = "Eliminar" -- mt
+L["Stop %d of %d."] = "Parada %d de %d." -- mt
+L["Stop your current journey before starting this journey."] = "Detén tu viaje actual antes de iniciar este viaje." -- mt
+L["That destination is unavailable."] = "Ese destino no está disponible." -- mt
+L["The journey could not start."] = "No se ha podido iniciar el viaje." -- mt
+L["Up"] = "Subir" -- mt
+L["Your journey changed."] = "Tu viaje ha cambiado." -- mt
+L["Your order"] = "Tu orden" -- mt
+L["Your position changed. Start again to order these stops."] =
+	"Tu posición ha cambiado. Vuelve a empezar para ordenar estas paradas." -- mt
+L["Combat interrupted ordering. Start again when combat ends."] =
+	"El combate ha interrumpido la ordenación. Vuelve a empezar cuando termine el combate." -- mt
+L["Ordering stopped while you are dead. Start again when you are alive."] =
+	"La ordenación se ha detenido porque has muerto. Vuelve a empezar cuando estés con vida." -- mt
+L["Travel options changed. Start again to order these stops."] =
+	"Las opciones de viaje han cambiado. Vuelve a empezar para ordenar estas paradas." -- mt
+L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are not known."] =
+	"Prefiere carreteras y calles pavimentadas. No se reconocen los caminos que usan la textura de tierra normal de la zona." -- mt
+L["Road detour allowance"] = "Desvío permitido por carretera" -- mt
+L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
+	"Con Seguir carreteras activado, cuánta distancia adicional merece la pena para evitar la misma distancia fuera de la carretera. 50% mantiene la preferencia habitual; 0% no da preferencia a las carreteras. No es un límite para el trayecto completo." -- mt

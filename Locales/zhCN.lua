@@ -379,8 +379,6 @@ L["Hide departures"] = "隐藏班次"
 -- Travel stats.
 
 L["Follow roads"] = "沿道路行走" -- mt
-L["Walks keep to roads and paved streets where that adds less than half again to the walk. Roads painted with a zone's plain dirt are not known."] =
-	"当绕行不到一半时，步行路线会沿道路和铺装街道前进。用区域普通泥土绘制的道路尚无法识别。" -- mt
 L["A flight would be quicker. Open a flight master's map in %s once to sync your flight points."] =
 	"飞行会更快。在%s打开一次飞行管理员的地图，以同步你的飞行点。" -- mt
 L["Eastern Kingdoms"] = "东部王国" -- mt
@@ -438,3 +436,87 @@ L["Over a Questie icon, Shift-click stays Questie's; Alt-click plans the journey
 L["Show the Nearby services tab"] = "显示附近服务标签"
 L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."] =
 	"世界地图任务日志中的标签。关闭后，/spfnear 和追踪菜单仍可打开它。"
+L["Use Water Walking and Levitate"] = "使用水上行走和漂浮术" -- mt
+L["Use Water Walking or Levitate when available. When off, routes use swimming times and may still cross water."] =
+	"可用时按水上行走或漂浮术规划路线。关闭后使用正常游泳时间；路线仍可能经过水域。" -- mt
+L["Farming tour"] = "采集巡回" -- mt
+L["Herbs"] = "草药" -- mt
+L["Mining"] = "采矿" -- mt
+L["All"] = "全部" -- mt
+L["None"] = "无" -- mt
+L["Start"] = "开始" -- mt
+L["Pause"] = "暂停" -- mt
+L["Resume"] = "继续" -- mt
+L["Stop"] = "停止" -- mt
+L["Ready to start."] = "准备就绪。" -- mt
+L["Farming tour running."] = "采集巡回进行中。" -- mt
+L["Farming tour paused."] = "采集巡回已暂停。" -- mt
+L["Farming tour stopped."] = "采集巡回已停止。" -- mt
+L["Farming tour waiting."] = "采集巡回等待中。" -- mt
+L["Ordering recorded locations..."] = "正在排列已记录的位置..." -- mt
+L["Farming needs the GatherMate2 addon."] = "采集需要 GatherMate2 插件。" -- mt
+L["Your current zone is unavailable."] = "无法获取你当前所在的区域。" -- mt
+L["No recorded locations for these choices in your current zone."] =
+	"当前区域没有符合所选类型的已记录位置。" -- mt
+L["Choose at least two different recorded locations."] = "请至少选择两个不同的已记录位置。" -- mt
+L["Stop your current journey before starting a farming tour."] = "开始采集巡回前，请先停止当前旅程。" -- mt
+L["Next location: %d. Completed circuits: %d."] = "下一个位置：%d。已完成圈数：%d。" -- mt
+L["Visit GatherMate2 recorded locations in your current zone. Nodes may be absent or unreachable."] =
+	"前往当前区域中 GatherMate2 已记录的位置。资源可能不存在，位置也可能无法到达。" -- mt
+L["Waiting for combat to end."] = "正在等待战斗结束。" -- mt
+L["Waiting until you are alive."] = "正在等待你复活。" -- mt
+L["GatherMate2 recorded locations could not be read."] = "无法读取 GatherMate2 已记录的位置。" -- mt
+L["These recorded locations could not be ordered."] = "无法排列这些已记录的位置。" -- mt
+L["Farming could not continue. Start a new tour when you are ready."] =
+	"无法继续采集。准备好后请开始新的巡回。" -- mt
+L["Arrival could not be confirmed. The farming tour has stopped."] = "无法确认到达。采集巡回已停止。" -- mt
+L["Your journey changed. The farming tour has stopped."] = "你的旅程已改变。采集巡回已停止。" -- mt
+L["No walking route was found. The farming tour has stopped."] = "未找到步行路线。采集巡回已停止。" -- mt
+L["Walking map data is unavailable. The farming tour has stopped."] =
+	"步行地图数据不可用。采集巡回已停止。" -- mt
+L["A recorded location is outside the walking map. The farming tour has stopped."] =
+	"一个已记录的位置位于步行地图之外。采集巡回已停止。" -- mt
+L["A recorded location could not be reached. The farming tour has stopped."] =
+	"无法到达一个已记录的位置。采集巡回已停止。" -- mt
+L["/path farm - choose recorded gathering locations"] = "/path farm - 选择已记录的采集位置" -- mt
+L["%d. %s (%.1f, %.1f)"] = "%d. %s (%.1f, %.1f)" -- mt
+L["A journey can have up to 64 stops."] = "一次旅程最多可有64个停靠点。" -- mt
+L["A stop could not be reached. Remove it or choose your own order."] =
+	"无法到达某个停靠点。请移除该点或自行安排顺序。" -- mt
+L["Add at least one stop."] = "请至少添加一个停靠点。" -- mt
+L["Add map waypoint"] = "添加地图路点" -- mt
+L["Already in this journey."] = "已在此旅程中。" -- mt
+L["Clear"] = "清空" -- mt
+L["Close"] = "关闭" -- mt
+L["Down"] = "下移" -- mt
+L["Estimated travel-time order"] = "按预计旅行时间排序" -- mt
+L["Journey complete."] = "旅程已完成。" -- mt
+L["Journey paused."] = "旅程已暂停。" -- mt
+L["Journey stopped."] = "旅程已停止。" -- mt
+L["Journey stops"] = "旅程停靠点" -- mt
+L["Ordering stops by estimated travel time..."] = "正在按预计旅行时间排列停靠点..." -- mt
+L["Orders the next stop by estimated travel time. You can change the order."] =
+	"按预计旅行时间选择下一个停靠点。你可以更改顺序。" -- mt
+L["Place a map waypoint, then add it to this journey."] =
+	"请先在地图上设置路点，再将其添加到此旅程。" -- mt
+L["Remove"] = "移除" -- mt
+L["Stop %d of %d."] = "第%d个停靠点，共%d个。" -- mt
+L["Stop your current journey before starting this journey."] = "请先停止当前旅程，再开始此旅程。" -- mt
+L["That destination is unavailable."] = "该目的地不可用。" -- mt
+L["The journey could not start."] = "无法开始旅程。" -- mt
+L["Up"] = "上移" -- mt
+L["Your journey changed."] = "你的旅程已更改。" -- mt
+L["Your order"] = "自定顺序" -- mt
+L["Your position changed. Start again to order these stops."] =
+	"你的位置已更改。请重新开始以排列这些停靠点。" -- mt
+L["Combat interrupted ordering. Start again when combat ends."] =
+	"战斗中断了排序。请在战斗结束后重新开始。" -- mt
+L["Ordering stopped while you are dead. Start again when you are alive."] =
+	"你已死亡，排序已停止。请在复活后重新开始。" -- mt
+L["Travel options changed. Start again to order these stops."] =
+	"旅行选项已更改。请重新开始以排列这些停靠点。" -- mt
+L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are not known."] =
+	"优先选择道路和铺装街道。无法识别使用区域普通泥土地表纹理的道路。" -- mt
+L["Road detour allowance"] = "道路绕行余量" -- mt
+L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
+	"启用沿道路行走时，为避开等长的非道路路段，愿意多走的距离。50%保持通常的道路偏好；0%不优先选择道路。这不是整段步行距离的上限。" -- mt

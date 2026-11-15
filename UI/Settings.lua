@@ -494,9 +494,38 @@ ns.Init(function()
 	Checkbox(
 		"followRoads",
 		L["Follow roads"],
-		-- luacheck: push ignore 631
-		L["Walks keep to roads and paved streets where that adds less than half again to the walk. Roads painted with a zone's plain dirt are not known."],
-		-- luacheck: pop
+		L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are not known."],
+		ns.TravelPolicyChanged
+	)
+	local roadDetour = Settings.RegisterAddOnSetting(
+		page,
+		"ShortestPathForever_roadDetour",
+		"roadDetour",
+		ns.db,
+		Settings.VarType.Number,
+		L["Road detour allowance"],
+		ns.Defaults.roadDetour
+	)
+	roadDetour:SetValueChangedCallback(ns.TravelPolicyChanged)
+	settings.roadDetour = roadDetour
+	local roadOptions = Settings.CreateSliderOptions(0, 200, 25)
+	roadOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
+		return value .. "%"
+	end)
+	Settings.RegisterInitializer(
+		page,
+		Settings.CreateSliderInitializer(
+			roadDetour,
+			roadOptions,
+			-- luacheck: push ignore 631
+			L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."]
+			-- luacheck: pop
+		)
+	)
+	Checkbox(
+		"useWaterWalking",
+		L["Use Water Walking and Levitate"],
+		L["Use Water Walking or Levitate when available. When off, routes use swimming times and may still cross water."],
 		ns.TravelPolicyChanged
 	)
 	Checkbox(
@@ -830,6 +859,14 @@ ns.Init(function()
 		if ns.core.Report.Command(message) then
 			return
 		end
+		if message == "stops" then
+			ns.ShowJourneyStops()
+			return
+		end
+		if message == "farm" then
+			ns.OpenFarming()
+			return
+		end
 		local way = message == "way" and "" or message:match("^way%s+(.*)$")
 		if way then
 			ns.Way(way)
@@ -878,6 +915,7 @@ ns.Init(function()
 			)
 			return
 		elseif message == "help" then
+			ns.Print(L["/path farm - choose recorded gathering locations"])
 			ns.Print(L["/path report - show a report to copy into a bug report"])
 			ns.Print(L["/path issue - report a bug or request a feature with a ready-made GitHub issue link"])
 			return

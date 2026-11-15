@@ -24,10 +24,8 @@ local IMPORTANT = { innkeeper = true, flight = true, bank = true, trade = true, 
 -- A town's service icon: the most useful thing the NPC offers, by section and then by the list's own order.
 local RANK = { services = 1, trainers = 2, vendors = 3 }
 
--- The Map Filter's checkboxes: one for every service a pin can wear, in the list's own order. Food and drink are one
--- service to a player, ammunition covers both arrows and bullets, and bags and trade supplies share one switch; every
--- profession trainer group joins the one Profession trainers switch. A dungeon entrance group is not a service here
--- and gets no checkbox, and neither does a flight master: its pin is its flight point's (Drawn).
+-- Legacy grouped preferences remain the default for each service until its own choice is saved.
+-- Entrances and flight points have their own map controls, outside the town service layer.
 ---@class SPFTownServiceFilter
 ---@field option string the saved setting, true while the service shows
 ---@field label string
@@ -72,11 +70,41 @@ local function FilterOf(group)
 	return FILTER_OF_KEY[group.key]
 end
 
+-- The old broad switches are the fallback for saves made before per-kind choices.
+---@param group SPFNearbyGroup
+---@return boolean
+function ns.TownServiceFilterable(group)
+	return group.section ~= "entrances" and group.key ~= "flight" and FilterOf(group) ~= nil
+end
+
 ---@param group SPFNearbyGroup
 ---@return boolean
 local function GroupShown(group)
+	local kinds = ns.db.townServiceKinds
+	if kinds and kinds[group.key] ~= nil then
+		return kinds[group.key]
+	end
 	local filter = FilterOf(group)
 	return not filter or ns.db[filter.option] ~= false
+end
+ns.TownServiceGroupShown = GroupShown
+
+---@param group SPFNearbyGroup
+---@param shown boolean
+function ns.SetTownServiceGroupShown(group, shown)
+	if not ns.TownServiceFilterable(group) then
+		return
+	end
+	local kinds = {}
+	for key, value in pairs(ns.db.townServiceKinds or {}) do
+		kinds[key] = value
+	end
+	kinds[group.key] = shown
+	ns.db.townServiceKinds = kinds
+	ns.RefreshTownServices()
+	if ns.RefreshServiceFilters then
+		ns.RefreshServiceFilters()
+	end
 end
 
 ---@type SPFTownServiceChoice[]
@@ -674,8 +702,8 @@ function Services:RefreshAllData()
 		rebuilt = true
 	end
 	local flags = {}
-	for _, filter in ipairs(FILTERS) do
-		flags[#flags + 1] = ns.db[filter.option] == false and "0" or "1"
+	for _, group in ipairs(nearby.Groups()) do
+		flags[#flags + 1] = group.key .. (GroupShown(group) and "=1;" or "=0;")
 	end
 	local shown = table.concat(flags)
 	local clusters = Clusters(map, Points(mapID, level))
@@ -748,14 +776,6 @@ function ns.RefreshTownServices()
 	end
 end
 
--- Shows or hides one service on every pin, as the Map Filter's checkbox does, and redraws the map at once.
----@param option string
----@param shown boolean
-function ns.SetTownServiceShown(option, shown)
-	ns.SetOption(option, shown)
-	ns.RefreshTownServices()
-end
-
 -- The world map's Map Filter ("Show:") menu gets the same four levels as the settings page, then a checkbox for each
 -- service the pins can wear.
 local function AddFilter(_, root)
@@ -770,13 +790,15 @@ local function AddFilter(_, root)
 		end)
 	end
 	submenu:CreateDivider()
-	-- menu-scroll-ok: one checkbox per fixed service
-	for _, filter in ipairs(FILTERS) do
-		submenu:CreateCheckbox(filter.label, function()
-			return ns.db[filter.option] ~= false
-		end, function()
-			ns.SetTownServiceShown(filter.option, ns.db[filter.option] == false)
-		end)
+	submenu:SetScrollMode(400)
+	for _, group in ipairs(ns.NearbyServices.Groups()) do
+		if ns.TownServiceFilterable(group) then
+			submenu:CreateCheckbox(group.label, function()
+				return GroupShown(group)
+			end, function()
+				ns.SetTownServiceGroupShown(group, not GroupShown(group))
+			end)
+		end
 	end
 end
 
