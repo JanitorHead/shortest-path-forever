@@ -33,7 +33,8 @@ local function portal(ns)
 end
 -- Each transport is faster than the direct walk; the SAME retained topology must switch both ways.
 for _, mode in ipairs({ "portal", "flight", "boat", "lift", "tram", "teleport", "party", "ride" }) do
-	local d, ns = harness()
+	local _, ns, api = harness()
+	local major, minor = api.major, api.minor
 	local from, to = point(0), point(5000)
 	if mode == "portal" then
 		portal(ns)
@@ -103,7 +104,7 @@ for _, mode in ipairs({ "portal", "flight", "boat", "lift", "tram", "teleport", 
 		ns.db.journey == true and o.baked == ns.Walks and o.landmasses == ns.Landmasses,
 		"walking preserves terrain and preferences"
 	)
-	check(d.env.ShortestPathForever.API.minor == 0, "internal policy adds no public API version")
+	check(api.major == major and api.minor == minor, "internal policy preserves the public API version")
 end
 -- Route replacement, both same-owner resubmission and different-owner same-goal adoption.
 do
