@@ -33,7 +33,7 @@ local HEADER = { boat = L["Boats"], zeppelin = L["Boats"], lift = L["Lifts"], tr
 -- The shared column builds every section header's menu and offers this addon's own entries through
 -- AddHeaderMenuEntries, below. A section showing departures also offers to hide them.
 local function HasDepartures()
-	return module ~= nil and (module.dockID ~= nil or module.riding ~= nil)
+	return not not (module and (module.dockID or module.riding))
 end
 
 local function HideDepartures()
