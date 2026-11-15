@@ -128,7 +128,7 @@ local DEFAULTS = {
 	compassBackground = 0,
 	corpse = true,
 	avoidHighZones = true,
-	followRoads = false,
+	followRoads = true,
 	roadDetour = 50,
 	whatsNew = true,
 }

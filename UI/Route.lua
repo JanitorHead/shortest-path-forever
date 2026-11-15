@@ -842,6 +842,9 @@ function ns.SetJourneyRoute(destination, route)
 			mode = leg.mode,
 			color = leg.color,
 			points = ns.Planner.LegPoints(leg, ns.Routes),
+			-- A walk still drawn as a straight placeholder is an unmeasured hint, never the solid route (#894).
+			preview = leg.walkPlaceholder or nil,
+			placeholder = leg.walkPlaceholder or nil,
 		}
 	end
 	stops, stopIndex = nil, nil

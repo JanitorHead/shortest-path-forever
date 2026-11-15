@@ -146,13 +146,19 @@ local function unpackField(data, field, key)
 	return raw
 end
 
--- A step involving steep ground (value 3) may only go downhill: the destination's stored height must not exceed the
--- source's. Both are the quantized heights the data file holds, the same ones the bake decided with.
-local function steepStep(valA, zA, from, valB, zB, to)
+-- The client walks a slope up to 50 degrees; the bake marks the faces from 50 to 61.6 degrees as steep, and those
+-- may only go downhill. The height check is kept even when a map's steep flag is missing: stored heights can still
+-- show a climb the player cannot make, so the decoder refuses it rather than trusting the flag alone (#897).
+local TAN50 = math.tan(50 * math.pi / 180)
+local function steepStep(valA, zA, from, valB, zB, to, distance)
+	local rise = zB[to + 1] - zA[from + 1]
+	if distance and rise > TAN50 * distance then
+		return false
+	end
 	if valA[from + 1] ~= 3 and valB[to + 1] ~= 3 then
 		return true
 	end
-	return zB[to + 1] <= zA[from + 1]
+	return rise <= 0
 end
 
 -- May a base step feed a diagonal detour? A steep step only does when its stored heights match: a step that only
@@ -212,6 +218,8 @@ local function State(map)
 			road = {}, -- [k] = road cells (local cell -> true), false when the cluster has none
 			roadEdges = {}, -- [k] = baked entrance edge ratios (RoadEdges.lua)
 			roadIn = {}, -- [k] = the same for the edges that reach a node, aligned with preceding()
+			nodeZ = {}, -- [id] = an entrance's stored height, kept after its cluster is released
+			nodeSteep = {}, -- [id] = whether its surface is steep ground
 		}
 		states[map] = st
 	end
@@ -1293,7 +1301,9 @@ local function detourStep(st, gx, gy, dx, dy, water)
 	local ak, an = baseAt(st, gx, gy)
 	local bk, bn = baseAt(st, gx + dx, gy + dy)
 	if st.val[ak][an + 1] ~= 3 and st.val[bk][bn + 1] ~= 3 then
-		return true
+		-- A detour's leg is an ordinary step too: the stored heights must clear the client's climb limit even
+		-- when the bake left the steep flag off the face (#897).
+		return steep(st.val[ak], st.z[ak], an, st.val[bk], st.z[bk], bn, st.cs)
 	end
 	return st.z[ak][an + 1] == st.z[bk][bn + 1]
 end
@@ -1322,7 +1332,7 @@ local function diagonalStep(st, gx, gy, dx, dy, water)
 	end
 	local ak, an = baseAt(st, gx, gy)
 	local bk, bn = baseAt(st, tx, ty)
-	return steep(st.val[ak], st.z[ak], an, st.val[bk], st.z[bk], bn)
+	return steep(st.val[ak], st.z[ak], an, st.val[bk], st.z[bk], bn, st.cs * math.sqrt(2))
 end
 
 -- The node one step (dx, dy) on from node of cluster k at global cell (gx, gy): the base surface's own step first,
@@ -1368,7 +1378,8 @@ local function neighbour(st, k, node, gx, gy, dx, dy, water)
 		if open then
 			grid(st, tk)
 			local steep = st.steep
-			if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], tlc) then
+			local distance = math.sqrt(dx * dx + dy * dy) * st.cs
+			if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], tlc, distance) then
 				return tk, tlc
 			end
 		end
@@ -1388,7 +1399,8 @@ local function neighbour(st, k, node, gx, gy, dx, dy, water)
 				grid(st, tk)
 				local v = surface(st, tk, tlc, floor(entry / 256) % 64 - 1, h)
 				if v and (water or (here ~= 2 and st.val[tk][v + 1] ~= 2)) then
-					if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], v) then
+					local distance = math.sqrt((entry % 16 - 8) ^ 2 + (floor(entry / 16) % 16 - 8) ^ 2) * st.cs
+					if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], v, distance) then
 						return tk, v
 					end
 				end
@@ -1399,7 +1411,10 @@ local function neighbour(st, k, node, gx, gy, dx, dy, water)
 				grid(st, tk)
 				local v = surface(st, tk, tlc, floor(l[e] / 8) - 1, h)
 				if v and (water or (here ~= 2 and st.val[tk][v + 1] ~= 2)) then
-					return tk, v
+					local distance = math.sqrt(DX[d] ^ 2 + DY[d] ^ 2) * st.cs
+					if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], v, distance) then
+						return tk, v
+					end
 				end
 			end
 		end
@@ -1418,6 +1433,7 @@ end
 ---@field n number[] -- node in that cluster
 ---@field r number[]? -- off-road entries up to each entry, with Follow roads
 ---@field roads? boolean -- Follow roads was on
+---@field roadFactor? number -- an off-road yard's cost while choosing a walk
 ---@field swim number? -- a water yard's cost in running yards, as the search charged it
 ---@field factor? fun(k: number, node: number): number -- a hazard profile's factor at an entry
 
@@ -1430,8 +1446,8 @@ end
 ---@param water boolean
 ---@param budget number
 ---@return number|nil
-local function pace(swim, spent, yards, water, budget)
-	local time = spent + (water and yards * swim or yards)
+local function pace(swim, spent, yards, water, budget, ratio)
+	local time = spent + (water and yards * swim or yards) * (ratio or 1)
 	return time <= budget and time or nil
 end
 
@@ -1446,7 +1462,7 @@ end
 ---@param limit number?
 ---@param budget number?
 ---@return boolean
-local function sight(st, P, a, b, water, road, limit, budget)
+local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 	local factor = limit and P.factor
 	local swim = P.swim or st.swim
 	local ax, ay, bx, by = P.x[a], P.y[a], P.x[b], P.y[b]
@@ -1484,7 +1500,10 @@ local function sight(st, P, a, b, water, road, limit, budget)
 			return false
 		end
 		if budget then
-			local paced = pace(swim, spent, (next2 - at) * span, st.val[nk][nn + 1] == 2, budget)
+			-- A pulled segment that leaves the road is charged the off-road preference too: a straight cut across a
+			-- field must not beat the road bend the walk took just because its own time is shorter (#891).
+			local ratio = roadFactor and not roadNode(st, nk, nn) and roadFactor or 1
+			local paced = pace(swim, spent, (next2 - at) * span, st.val[nk][nn + 1] == 2, budget, ratio)
 			if not paced then
 				return false
 			end
@@ -1495,7 +1514,8 @@ local function sight(st, P, a, b, water, road, limit, budget)
 		ix, iy = ix + mx * sx, iy + my * sy
 	end
 	if budget and k == P.k[b] and node == P.n[b] then -- the rest of the segment, inside the far entry's own cell
-		local paced = pace(swim, spent, (1 - at) * span, st.val[k][node + 1] == 2, budget)
+		local ratio = roadFactor and not roadNode(st, k, node) and roadFactor or 1
+		local paced = pace(swim, spent, (1 - at) * span, st.val[k][node + 1] == 2, budget, ratio)
 		if not paced then
 			return false
 		end
@@ -1668,7 +1688,7 @@ local function smooth(st, P)
 				limit = peak(P, factor, keep[j - 1] + 1, q, limit)
 			end
 			local road = PR and PR[q] - PR[p] == 0
-			if not sight(st, P, p, q, PW[q] - PW[p] > 0, road, factor and limit, PT[q] - PT[p]) then
+			if not sight(st, P, p, q, PW[q] - PW[p] > 0, road, factor and limit, PT[q] - PT[p], P.roadFactor) then
 				break
 			end
 			b = j
@@ -1734,6 +1754,134 @@ local function Reset()
 	decodedKB, decodedCount, graphKB = 0, 0, 0
 end
 
+-- The stored heights of a cluster's entrances, decoded without the grid's moves and links: a few graph nodes
+-- stand in a cluster the abstract search never walks, so decoding its whole grid for them is far too much work.
+-- Returns the walkable values and heights, plus each floor node's height and value, then forgets the arrays once
+-- the cluster's entrances have their two facts (#897).
+---@param st table
+---@param k number
+local function cacheEntranceHeights(st, k)
+	local gridData, heightData = unpackField(st.D, "grid", k + 1), unpackField(st.D, "height", k + 1)
+	if not gridData or not heightData then
+		for _, id in ipairs(nodesOf(st, k)) do
+			st.nodeZ[id], st.nodeSteep[id] = false, false
+		end
+		return
+	end
+	local C = st.C
+	local val, n, valueCode = {}, 0, 0
+	for i = 1, #gridData do
+		local sym = B64[byte(gridData, i)]
+		if sym < 48 then
+			valueCode = floor(sym / 16)
+			n = n + 1
+			val[n] = valueCode
+		else
+			for _ = 48, sym do
+				n = n + 1
+				val[n] = valueCode
+			end
+		end
+	end
+	local z = {}
+	decodeHeights(st, val, z, heightData)
+	local first, floorZ, floorVal = {}, {}, {}
+	local floors = unpackField(st.D, "floor", k + 1)
+	if floors then
+		local s, node, pos = floors, C * C, 4
+		if st.fmt >= 3 then
+			local lc = 0
+			for _ = 1, num(s, 1, 3) do
+				local sym = B64[byte(s, pos)]
+				pos = pos + 1
+				if sym < 63 then
+					lc = lc + sym
+				else
+					lc, pos = lc + 63 + num(s, pos, 3), pos + 3
+				end
+				local mask = num(s, pos + 3, 2)
+				first[lc] = first[lc] or node
+				floorVal[node], floorZ[node] = B64[byte(s, pos)], num(s, pos + 1, 2) - 2048
+				pos, node = pos + 5 + landingCount(mask), node + 1
+			end
+		else
+			for _ = 1, num(s, 1, 3) do
+				local lc, count = num(s, pos, 3), B64[byte(s, pos + 3)]
+				pos = pos + 4
+				first[lc] = first[lc] or node
+				for _ = 1, count do
+					floorVal[node], floorZ[node] = B64[byte(s, pos)], num(s, pos + 1, 2) - 2048
+					pos, node = pos + 5, node + 1
+				end
+			end
+		end
+	end
+	for _, id in ipairs(nodesOf(st, k)) do
+		local cell, layer = metadata(st, id)
+		local height, steep
+		if layer == 0 then
+			height, steep = z[cell + 1], val[cell + 1] == 3
+		else
+			local node = first[cell] and first[cell] + layer - 1
+			height, steep = node and floorZ[node], node and floorVal[node] == 3
+		end
+		st.nodeZ[id], st.nodeSteep[id] = height or false, steep or false
+	end
+end
+
+-- An entrance's stored height and whether it stands on steep ground. Kept per entrance, not per decoded grid:
+-- the abstract search visits far more clusters than the grid cache holds, and re-decoding one cluster's grid for
+-- every edge out of it made the search crawl. A released cluster keeps these two small facts (#897).
+---@param st table
+---@param id number
+---@return number|false? height, boolean?
+local function entranceHeight(st, id)
+	local height = st.nodeZ[id]
+	if height ~= nil then
+		return height or nil, st.nodeSteep[id]
+	end
+	cacheEntranceHeights(st, floor(id / 4096))
+	height = st.nodeZ[id]
+	return height or nil, st.nodeSteep[id]
+end
+
+-- Whether an abstract graph edge u -> v climbs more than the client allows. Graph edges join border entrances one
+-- cell apart; the same stored-height rule the grid applies therefore refuses a baked edge too, even if its map's
+-- steep flag missed the face (#897).
+---@param st table
+---@param a number
+---@param b number
+---@return boolean
+local function climbNodes(st, a, b)
+	if not st.steep or a < 0 or b < 0 then
+		return true
+	end
+	local ak, bk = floor(a / 4096), floor(b / 4096)
+	if ak == bk then
+		-- An edge between two entrances of one cluster stands for a walk through its grid, which the local search
+		-- charges step by step; its ends' heights say nothing about the climb between them.
+		return true
+	end
+	local ac = metadata(st, a)
+	local bc = metadata(st, b)
+	local C = st.C
+	local ax = floor(ak / st.ny) * C + floor(ac / C)
+	local ay = (ak % st.ny) * C + ac % C
+	local bx = floor(bk / st.ny) * C + floor(bc / C)
+	local by = (bk % st.ny) * C + bc % C
+	local distance = math.sqrt((ax - bx) ^ 2 + (ay - by) ^ 2) * st.cs
+	local za, steepA = entranceHeight(st, a)
+	local zb, steepB = entranceHeight(st, b)
+	if not za or not zb then
+		return true
+	end
+	local rise = zb - za
+	if rise > TAN50 * distance then
+		return false
+	end
+	return not (steepA or steepB) or rise <= 0
+end
+
 ---@param map number
 ---@return boolean
 function Path.HasData(map)
@@ -1773,6 +1921,7 @@ ns.PathGrid = {
 	roadEdges = roadEdges,
 	roadEdgesIn = roadEdgesIn,
 	smooth = smooth,
+	climbNodes = climbNodes,
 	peak = peak,
 	toward = toward,
 	bare = bare,

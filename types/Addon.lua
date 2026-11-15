@@ -395,6 +395,7 @@ ShortestPathForeverPathData = nil
 ---@field mode SPFMode
 ---@field points SPFWalkPoints
 ---@field preview? boolean
+---@field placeholder? boolean -- a straight stand-in for a walk no search has measured
 ---@field route? number
 ---@field stop? number -- the stop this path leads to, for a pointer hovering it (Itinerary.lua, Route.lua)
 ---@field color? ColorMixin
@@ -422,6 +423,7 @@ ShortestPathForeverPathData = nil
 ---@field walkCost? number -- the walk's running yards as searched, where water keeps its weight
 ---@field walkDeferred? boolean -- exact geometry waiting for arrival on its continent
 ---@field walkDrawn? boolean -- walkPoints came from a search, not a straight placeholder
+---@field walkPlaceholder? boolean -- walkPoints is still a straight stand-in, not a measured walk
 ---@field color? ColorMixin -- drawn in this colour rather than its mode's
 ---@field hazardNotes? string[] -- the hostile towns and high zones a measured walk meets or goes round (Hazards.lua)
 ---@field reachedAt? number -- when you reached a lift's shaft, whose landings share a spot (JourneySteps.lua)

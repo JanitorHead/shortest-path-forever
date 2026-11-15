@@ -866,12 +866,27 @@ function Search.Reset()
 	goal, followed = nil, nil
 end
 
--- The hazards a journey keeps away from, exempting where it started (the first readable position) and its goal;
--- walks searched with others no longer apply. Only a level-up or a setting changes them while the goal stays.
-local origin
+-- The hazards a journey keeps away from, exempting where it started (the first readable position), its goal, the
+-- zone the character is standing in now and the zone the walk being followed starts in; walks searched with others
+-- no longer apply. A boat can leave the character in a zone the origin never named, and the walk after it starts
+-- there: neither may be charged for the character to escape (#895).
+local origin, hereZone, landingZone
+local function WalkLanding()
+	local leg = followed and progress and followed.legs[progress.index]
+	if leg and leg.mode ~= "walk" then
+		local nextLeg = followed.legs[progress.index + 1]
+		if nextLeg and nextLeg.mode == "walk" then
+			return nextLeg.from
+		end
+	end
+end
 local function Avoid()
-	origin = origin or Here()
-	local profile = origin and goal and ns.Hazards.Profile(origin, goal) or nil
+	local here = Here()
+	origin = origin or here
+	hereZone = here and ns.Hazards.ZoneAt(here.map, here.x, here.y)
+	local landing = WalkLanding()
+	landingZone = landing and ns.Hazards.ZoneAt(landing.map, landing.x, landing.y)
+	local profile = origin and goal and ns.Hazards.Profile(origin, goal, here, landing) or nil
 	if (profile and profile.key) ~= (hazards and hazards.key) then
 		hazards = profile
 		Walks.SetHazards(profile)
@@ -908,8 +923,12 @@ end
 -- for a position.
 ---@param changed? boolean the travel policy changed since the last frame
 function Search.Poll(changed)
-	if changed then
-		-- A setting or your level changed what to avoid, from where you stand now.
+	local here = Here()
+	local zone = here and ns.Hazards.ZoneAt(here.map, here.x, here.y)
+	local landing = WalkLanding()
+	local landZone = landing and ns.Hazards.ZoneAt(landing.map, landing.x, landing.y)
+	if changed or zone ~= hereZone or landZone ~= landingZone then
+		-- A setting, your level or a zone you stand in or land in changed what to avoid, from where you stand now.
 		Avoid()
 		RefreshCosts(true, true)
 	end

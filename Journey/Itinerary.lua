@@ -57,7 +57,12 @@ local function PlanHop(hop)
 	hop.paths = legs and {} or false
 	for index, leg in ipairs(legs or {}) do
 		local walk = leg.mode == "walk"
-		local path = { mode = leg.mode, points = ns.PlanContext.LegPoints(leg), preview = walk or nil }
+		local path = {
+			mode = leg.mode,
+			points = ns.PlanContext.LegPoints(leg),
+			preview = walk or nil,
+			placeholder = walk or nil,
+		}
 		hop.paths[index] = path
 		if walk and leg.from.map == leg.to.map and ns.Path.HasData(leg.from.map) then
 			hop.walks[#hop.walks + 1] = { path = path, leg = leg }
@@ -99,7 +104,7 @@ SearchWalk = function(hop)
 		table.remove(hop.walks, 1)
 		-- An unreachable walk keeps its straight placeholder rather than vanishing.
 		if points and #points > 1 then
-			walk.path.points, walk.path.preview = points, nil
+			walk.path.points, walk.path.preview, walk.path.placeholder = points, nil, nil
 			dirty = true
 		end
 		-- Queued from this callback, the next walk keeps the search queue from draining, which frees the grids. A

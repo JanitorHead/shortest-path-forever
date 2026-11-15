@@ -52,6 +52,9 @@ local ns = {
 		policy = policy + 1
 	end,
 	ZoneMap = function(map, x, y)
+		if map == 2 then
+			return 500
+		end
 		if map ~= 1 or math.abs(y) > 1000 then
 			return nil
 		end
@@ -213,6 +216,19 @@ do
 	level = 10
 	-- The level a profile plans for never drops below the last level-up's.
 	assert(Hazards.Level() == 16)
+
+	-- #895: level 21 standing in a level 35-45 zone the origin never named. The zone it is physically inside is
+	-- exempt, while a hostile town inside it is still charged.
+	level = 21
+	ns.Zones[500] = { low = 35, high = 45, map = 2, minX = -1000, minY = -1000, maxX = 1000, maxY = 1000 }
+	ns.TaxiNodes[6] = { map = 2, x = -500, y = 500, name = "Camp, High Zone", faction = "Horde" }
+	local inside = Hazards.Profile(west, east, { map = 2, x = -500, y = 0 })
+	assert(not inside.zones[500], "the zone the character stands in is never charged")
+	near(inside.Point(2, -500, 0), 1, "the standing zone costs nothing")
+	near(inside.Point(2, -500, 500), 6, "a town inside it is still charged")
+	-- The walk after a transport starts in a zone the origin never named, even before the character is there.
+	local landing = Hazards.Profile(west, east, nil, { map = 2, x = 500, y = 0 })
+	assert(not landing.zones[500], "the zone the followed walk lands in is exempt for it")
 
 	print("hazards: profile: ok")
 end

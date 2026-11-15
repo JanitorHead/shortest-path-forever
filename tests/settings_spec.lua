@@ -259,7 +259,7 @@ local ns = {
 		focusedQuest = false,
 		journeyKey = "shift",
 		routeColor = "gold",
-		followRoads = false,
+		followRoads = true,
 		roadDetour = 50,
 		arrivalDistance = 15,
 		townServices = "capitals",
@@ -660,7 +660,7 @@ assert(Row("avoidHighZones").setting.default == true, "avoiding high zones is on
 local policyBefore = policyChanged
 Row("avoidHighZones").setting.onChanged()
 assert(policyChanged == policyBefore + 1, "the journey plans again with the new costs")
-assert(Row("followRoads").setting.default == false, "following roads is off by default")
+assert(Row("followRoads").setting.default == true, "following roads is on by default")
 Row("followRoads").setting.onChanged()
 assert(policyChanged == policyBefore + 2, "following roads plans again with the new costs")
 assert(Row("tomtom").setting.default == true)

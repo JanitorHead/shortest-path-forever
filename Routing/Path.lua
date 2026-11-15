@@ -17,7 +17,7 @@ local tick, Deadline, Expansions, State, surface, grid =
 local cellOf, nodesOf, metadata = Grid.cellOf, Grid.nodesOf, Grid.metadata
 local adjacent, preceding = Grid.adjacent, Grid.preceding
 local entrance, locate, standing, snap, smooth = Grid.entrance, Grid.locate, Grid.standing, Grid.snap, Grid.smooth
-local toward, peak = Grid.toward, Grid.peak
+local toward, peak, climbNodes = Grid.toward, Grid.peak, Grid.climbNodes
 
 local TILE, SNAP, ZTOL, DX, DY = Grid.TILE, Grid.SNAP, Grid.ZTOL, Grid.DX, Grid.DY
 local OFFROAD = Grid.OFFROAD
@@ -180,11 +180,12 @@ local function search(st, k, swim, source, tree, goal, targets, left, roads, hz,
 	local u, ux, uy, gu, ru
 	local function relax(v, length, override)
 		-- Forward walks u -> v; a reverse tree walks the stored edge the other way, v -> u, into the source.
+		local distance = (length or 1) * cs
 		if reverse then
-			if steep and not steep(val, z, v, val, z, u) then
+			if steep and not steep(val, z, v, val, z, u, distance) then
 				return
 			end
-		elseif steep and not steep(val, z, u, val, z, v) then
+		elseif steep and not steep(val, z, u, val, z, v, distance) then
 			return
 		end
 		local i = v + 1
@@ -529,18 +530,11 @@ local function connectPoint(st, swim, k, node, h, roadsOn, hz, inbound)
 		local C, val, z, at = st.C, values, st.z[k], st.at[k]
 		local cell = cellOf(st, k, node)
 		local lx, ly = floor(cell / C), cell % C
-		local function consider(n, r)
-			-- A neighbour's water is where the point is not: it would be standing in it.
-			if r > 0 and val[n + 1] == 2 then
-				return
-			end
-			for _, m in ipairs(nodes) do
-				if abs(z[n + 1] - z[m + 1]) <= ZTOL then
-					return
-				end
-			end
-			nodes[#nodes + 1] = n
-		end
+		-- A pier's planks stand over the water: the base surface at the point's spot is the water, and the planks
+		-- are a floor six to eight yards above it. Take every surface within a cell, then choose the dry ones first:
+		-- a dry surface within ZTOL replaces an already-taken water node at the same spot, so a walk from a pier
+		-- starts on its planks rather than in the water below (#889).
+		local candidates = {}
 		for r = 0, 1 do
 			for dx = -r, r do
 				for dy = -r, r do
@@ -548,17 +542,47 @@ local function connectPoint(st, swim, k, node, h, roadsOn, hz, inbound)
 					if (dx == r or dx == -r or dy == r or dy == -r) and x >= 0 and y >= 0 and x < C and y < C then
 						local c = x * C + y
 						if val[c + 1] ~= 0 then
-							consider(c, r)
+							candidates[#candidates + 1] = { n = c, r = r, wet = val[c + 1] == 2 }
 						end
 						local n = at[-(c + 1)]
 						while n and at[n + 1] == c do
-							consider(n, r)
+							candidates[#candidates + 1] = { n = n, r = r, wet = val[n + 1] == 2 }
 							n = n + 1
 						end
 					end
 				end
 			end
 		end
+		local taken = {}
+		local function take(candidate)
+			local n, r = candidate.n, candidate.r
+			-- A neighbour's water is where the point is not: it would be standing in it.
+			if r > 0 and candidate.wet then
+				return
+			end
+			for index, m in ipairs(taken) do
+				if abs(z[n + 1] - z[m + 1]) <= ZTOL then
+					if not candidate.wet and val[m + 1] == 2 then
+						taken[index] = n
+					end
+					return
+				end
+			end
+			taken[#taken + 1] = n
+		end
+		-- Two passes rather than a sort: every dry surface is considered before any water at the same spot, so the
+		-- planks on a pier win over the water under them without reordering the handful of candidates.
+		for _, candidate in ipairs(candidates) do
+			if not candidate.wet then
+				take(candidate)
+			end
+		end
+		for _, candidate in ipairs(candidates) do
+			if candidate.wet then
+				take(candidate)
+			end
+		end
+		nodes = taken
 	end
 	local ends, merged, mergedReal, via = {}, {}, {}, {}
 	for _, start in ipairs(nodes) do
@@ -748,7 +772,7 @@ local function run(map, from, to, waterWalking, costOnly, hz)
 				end
 				for e = 1, #adj, 3 do
 					local v = adj[e]
-					if aclosed[v] ~= gen then
+					if aclosed[v] ~= gen and climbNodes(st, u, v) then
 						nodesOf(st, floor(v / 4096))
 						local yards = adj[e + cost2]
 						local factor = hz and hazard(st, hz, u, v) or 1
@@ -802,7 +826,7 @@ local function run(map, from, to, waterWalking, costOnly, hz)
 		P.factor = factorOf(st, hz)
 	end
 	if roadsOn then
-		P.roads, P.r = true, {}
+		P.roads, P.r, P.roadFactor = true, {}, hz.roadFactor
 	end
 	local seen = {}
 	local function add(k, node)
@@ -1121,7 +1145,7 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 				end
 				for e = 1, #adj, 3 do
 					local v = adj[e]
-					if not closed[v] then
+					if not closed[v] and climbNodes(st, reverse and v or u, reverse and u or v) then
 						local yards = adj[e + cost2]
 						local factor = hz and hazard(st, hz, u, v) or 1
 						if custom and floor(v / 4096) == k then
@@ -1196,7 +1220,7 @@ local function bakeEdges(st, k, road)
 	end
 	local flat, head, size = {}, {}, 0
 	local function add(from, v, length, override)
-		if steep and not steep(val, z, from, val, z, v) then
+		if steep and not steep(val, z, from, val, z, v, (length or 1) * cs) then
 			return
 		end
 		local i = v + 1

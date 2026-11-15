@@ -302,18 +302,25 @@ local function Inside(zone, map, x, y)
 	return zone.map == map and x >= zone.minX and x <= zone.maxX and y >= zone.minY and y <= zone.maxY
 end
 
--- The costs a journey from `from` to `goal` walks with. Nothing is avoided where neither end could ever mind it, but
--- the profile always exists: the other faction's towns are on every continent.
+-- The costs a journey from `from` to `goal` walks with, keeping away from nothing in the zone `here` stands in:
+-- after a boat the origin may still be Menethil while the character walks Dustwallow, and the zone it is physically
+-- inside must not be charged for it to escape (#895). The zone a transport lands the character in for the walk being
+-- followed is exempt for that leg too, even before the character is there. Nothing is avoided where none of these
+-- ends could ever mind it, but the profile always exists: the other faction's towns are on every continent.
 ---@param from SPFPoint
 ---@param goal SPFPoint
+---@param here SPFPoint? where the character stands now, when it is not the origin
+---@param landing SPFPoint? where the walk being followed starts, after a transport
 ---@return SPFHazards
-function Hazards.Profile(from, goal)
+function Hazards.Profile(from, goal, here, landing)
 	local faction = UnitFactionGroup("player")
 	local level = Hazards.Level()
 	local exempt, keys = {}, {}
-	for _, point in ipairs({ from, goal }) do
+	local ends = { from, goal, here, landing }
+	for i = 1, 4 do
+		local point = ends[i]
 		-- The point's own zone, not its cached square's: a goal just over a border is in the zone it is in.
-		local zone = ns.ZoneMap(point.map, point.x, point.y)
+		local zone = point and ns.ZoneMap(point.map, point.x, point.y)
 		if zone then
 			exempt[zone] = true
 		end

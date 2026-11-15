@@ -95,6 +95,7 @@ LINKED_OF = defaultdict(list)  # cluster -> its nodes with LINKS, sorted
 FLOORS_AT = {}  # cell -> its floor nodes, lowest first
 TERRAIN = {}  # cluster -> its terrain field (tools/baker/terrain.py)
 KINDS = defaultdict(int)  # how the encoded links came out: step bits, one-way records, drops
+ROAD_CELLS = set()  # global cells Data/RoadCells.lua calls road, so a road crossing can be an entrance
 
 
 def configure(map_id, rows=None, cols=None):
@@ -115,6 +116,8 @@ def configure(map_id, rows=None, cols=None):
     X0, Y0 = CX0 * T, CY0 * T
     GW, GH = NX * CELLS, NY * CELLS
     ORD = {rc: i for i, rc in enumerate(sorted(TILES))}
+    global ROAD_CELLS
+    ROAD_CELLS = read_roads(map_id)
 
 
 def enc(v, width):
@@ -132,6 +135,43 @@ def places(map_id):
         ["luajit", "tools/baker/places.lua", str(map_id)], cwd=ROOT, check=True, capture_output=True, text=True
     )
     return [tuple(p) for p in json.loads(run.stdout)]
+
+
+def decode_road_runs(s):
+    """The local cells a Data/RoadCells.lua run string calls road: alternating off/on run lengths, two symbols each."""
+    cells, at, on, pos = set(), 0, False, 0
+    while pos < len(s):
+        run = B64.index(s[pos]) * 64 + B64.index(s[pos + 1])
+        pos += 2
+        if run > 0:
+            if on:
+                cells.update(range(at, at + run))
+            at += run
+        on = not on
+    return cells
+
+
+def read_roads(map_id):
+    """Data/RoadCells.lua's road cells for a map, as global cell ids; empty before a road bake."""
+    path = ROOT / "Data" / "RoadCells.lua"
+    if not path.exists():
+        return set()
+    found, inside = {}, False
+    for line in path.read_text().splitlines():
+        if line.strip() == f"[{map_id}] = {{":
+            inside = True
+            continue
+        if inside:
+            if line.strip() == "},":
+                break
+            m = re.match(r'\s*\[(\d+)\] = "([^"]+)"', line)
+            if m:
+                found[int(m.group(1)) - 1] = decode_road_runs(m.group(2))
+    roads = set()
+    for k, locals_ in found.items():
+        for cell in locals_:
+            roads.add((k // NY * CELLS + cell // CELLS) * GH + (k % NY * CELLS + cell % CELLS))
+    return roads
 
 
 def drop_cost(horizontal, fall):
@@ -479,7 +519,7 @@ def rasterize_tile(rc):
         ceiling, and leaves it at most as high as that portal's top. Without it a path could climb a steep face between
         two ordinary surfaces, such as the slope that joins the terrain under Stormwind to its streets."""
         (pa, a), (pb, b) = layers[i][la][2], layers[j][lb][2]
-        if pa == pb or pb in adj.get(pa, ()):
+        if pa == pb:
             return True
         (xi, yi), (xj, yj) = divmod(i, GH), divmod(j, GH)
         box = (
@@ -488,6 +528,10 @@ def rasterize_tile(rc):
             Y0 + min(yi, yj) * CS - MARGIN,
             Y0 + (max(yi, yj) + 1) * CS + MARGIN,
         )
+        if pb in adj.get(pa, ()):
+            # An edge shared anywhere is not a path between these two cells: a street and a keep floor that meet
+            # only at a doorway far outside the box must not link every pair of cells facing each other (#890).
+            return seg_in_box(*portal[(pa, pb)], box=box)
         hb = height(polys[pb], *b)
         best = {pa: height(polys[pa], *a) if polys[pa]["steep"] else math.inf}
         stack = [pa]
@@ -969,6 +1013,14 @@ def grid_hpa(grid, cuts, jobs=1):
                     edges[(u, v)] = step_into(u, v, diagonal)
                 nodes[cluster_of_cell(u)].add(u)
                 nodes[cluster_of_cell(v)].add(v)
+            # A road crosses a border at a few points, often midway between the grid's entrances. Place an entrance
+            # at each road-to-road crossing too, so a road-following walk does not leave the road to reach one
+            # (#892). Roads come from Data/RoadCells.lua; without them nothing is added.
+            for _t, diagonal, u, v, cost in crossings:
+                if cost is None and (u, v) not in edges and u in ROAD_CELLS and v in ROAD_CELLS:
+                    edges[(u, v)] = step_into(u, v, diagonal)
+                    nodes[cluster_of_cell(u)].add(u)
+                    nodes[cluster_of_cell(v)].add(v)
 
     for k in range(NX * NY):
         kx, ky = divmod(k, NY)

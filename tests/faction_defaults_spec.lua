@@ -62,6 +62,8 @@ assert(loadCore({}).db.guidelime == true, "saves without a Guidelime preference 
 assert(loadCore({ guidelime = false }).db.guidelime == false, "saved Guidelime opt-out survives reload")
 assert(fresh.db.otherFaction == false, "new installs avoid opposing-faction transport")
 assert(fresh.db.hearthMinimumSavings == 0, "new installs preserve the fastest Hearthstone routing")
+assert(fresh.db.followRoads == true, "new installs follow roads")
+assert(fresh.db.roadDetour == 50, "and keep the 50% road allowance")
 assert(loadCore({}).db.hearthMinimumSavings == 0, "old saves acquire the numeric default")
 assert(
 	loadCore({ hearthMinimumSavings = 300 }).db.hearthMinimumSavings == 300,
