@@ -531,7 +531,7 @@ end
 function ns.SetTrackerHeight(value)
 	value = TrackerHeight(value)
 	ns.db.trackerHeight = value
-	local host = ForeverCore.TrackerHost
+	local host = ForeverCore.TrackerHost --[[@as any]]
 	if module and type(host) == "table" and type(host.SetSectionMaxHeight) == "function" then
 		return host.SetSectionMaxHeight(module, value)
 	end

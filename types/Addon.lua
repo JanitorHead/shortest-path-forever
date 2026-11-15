@@ -272,6 +272,7 @@
 ---@field arrivalDistance? number yards that count as arrived at a journey's final destination (Journey.lua)
 ---@field npcArrows? boolean arrows beside the nameplate of the NPC a Nearby services journey walks to (NpcArrows.lua)
 ---@field trackerHost? ForeverTrackerLegacySettings the old tracker table, offered to ForeverCore once
+---@field trackerHeight? number the Journey section viewport cap in Core UI units
 ---@field menuTest? string `/path menutest`: which world map filter menu entries to leave out ("map", "nearby", "both")
 ---@field pins? boolean
 ---@field transit? boolean
