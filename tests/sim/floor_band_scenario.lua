@@ -102,7 +102,6 @@ scenario(
 			-- A carried bandage adds its on-use spell's 15 yd range to the ladder, so a friendly NPC is measured by an
 			-- item as well as by a spell.
 			sim.world.items[1251] = { name = "Linen Bandage", count = 1 }
-			ns.Band.Forget()
 			local before = itemAsks
 			local band = assert(ns.Band.At(0, HERE.x, HERE.y), "the carried bandage answers")
 			assert(itemAsks > before, "the item ladder asked the carried bandage")
@@ -115,7 +114,6 @@ scenario(
 			-- enemy, while the bandage targets an ally and is not asked of it.
 			sim.world.units.target.friendly = false
 			sim.world.units.nameplate1.friendly = false
-			ns.Band.Forget()
 			local before = itemAsks
 			local band = assert(ns.Band.At(0, HERE.x, HERE.y), "the hostile guard answers an any-target spell")
 			assert(itemAsks == before, "a friendly-only bandage is not asked of a hostile NPC")
@@ -131,7 +129,6 @@ scenario(
 			ns.IdleSpawns[0][5697] = "-9011 877 148 -9020 900 148"
 			sim.world.units.target.guid = "Creature-0-0-0-0-5697-0000000001"
 			sim.world.units.nameplate1 = nil
-			ns.Band.Forget()
 			assert(ns.Band.At(0, HERE.x, HERE.y) == nil, "two spawns leave no single height to bound")
 
 			-- A GUID the client withholds is no identification either.
@@ -144,10 +141,8 @@ scenario(
 				end
 				return realGUID(unit)
 			end
-			ns.Band.Forget()
 			assert(ns.Band.At(0, HERE.x, HERE.y) == nil, "a secret GUID measures nothing")
 			sim.impl.UnitGUID = realGUID
-			ns.Band.Forget()
 			assert(ns.Band.At(0, HERE.x, HERE.y), "the readable GUID measures again")
 		end)
 		sim:expectNoErrors(ADDON)

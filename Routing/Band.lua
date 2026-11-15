@@ -375,31 +375,9 @@ function Band.Measure(map, x, y)
 	return { map = map, lo = lo, hi = hi, anchors = anchors }
 end
 
-local kept -- the band measured last, while the player stays in range of the NPCs it came from
-
--- The band the player is standing in on map, measured when there is none kept. A measured band is kept while the
--- player stays within every anchor's range of that NPC, and dropped when they move away from one: a range check is
--- the client's answer about the distance to a unit, and it still holds while that unit is that close.
----@param map number
----@param x number
----@param y number
----@return SPFBand?
-function Band.At(map, x, y)
-	if kept and kept.map == map then
-		local holds = true
-		for _, anchor in ipairs(kept.anchors) do
-			if (anchor.x - x) ^ 2 + (anchor.y - y) ^ 2 > anchor.reach * anchor.reach then
-				holds = false
-				break
-			end
-		end
-		if holds then
-			return kept
-		end
-	end
-	kept = Band.Measure(map, x, y)
-	return kept
-end
+-- Range answers and their height bounds belong to the current position, including vertical motion.
+-- Re-measure when planning asks; no timer or idle polling is needed.
+Band.At = Band.Measure
 
 -- Whether a surface at height z is one the player can be standing on.
 ---@param band SPFBand
@@ -407,9 +385,4 @@ end
 ---@return boolean
 function Band.Holds(band, z)
 	return z >= band.lo and z <= band.hi
-end
-
--- The band is no longer about this player: on a loading screen, a teleport, or a floor that moved without them.
-function Band.Forget()
-	kept = nil
 end

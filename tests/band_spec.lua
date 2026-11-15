@@ -302,7 +302,6 @@ end
 do
 	reset()
 	units = {}
-	Band.Forget()
 	assert(Band.Measure(0, HERE.x, HERE.y) == nil, "no unit answers, so no band")
 	assert(Band.At(0, HERE.x, HERE.y) == nil, "and nothing is kept")
 end
@@ -313,7 +312,6 @@ do
 	reset()
 	ns.IdleSpawns[0][5696] = string.format("%d %d 100 %d %d 100", HERE.x, HERE.y + 29, HERE.x - 9, HERE.y)
 	units = { target = { x = HERE.x, y = HERE.y + 29, z = 100, guid = GUID(5696) } }
-	Band.Forget()
 	assert(Band.Measure(0, HERE.x, HERE.y) == nil, "two spawns leave no single height to bound")
 	ns.IdleSpawns[0][5696] = nil
 end
@@ -325,7 +323,6 @@ do
 		target = { x = HERE.x, y = HERE.y + 29, z = 100, guid = GUID(999999) },
 		mouseover = { x = HERE.x, y = HERE.y + 29, z = 100, guid = GUID(5694), secret = true },
 	}
-	Band.Forget()
 	assert(Band.Measure(0, HERE.x, HERE.y) == nil, "an unknown creature and a secret GUID measure nothing")
 	assert(asked[1] == nil and itemAsked[1] == nil, "and no range check is asked")
 end
@@ -338,7 +335,6 @@ do
 		target = { x = HERE.x, y = HERE.y + 29, z = 100, guid = GUID(5694), player = true },
 		mouseover = { x = HERE.x, y = HERE.y + 29, z = 100, guid = GUID(5694), dead = true },
 	}
-	Band.Forget()
 	assert(Band.Measure(0, HERE.x, HERE.y) == nil, "a player and a corpse are not stationary NPCs")
 end
 
@@ -348,20 +344,34 @@ do
 	carried = { [LINEN] = 1 }
 	units = { target = placed(5698, 12, 0, 100) }
 	restricted = true
-	Band.Forget()
 	assert(Band.Measure(0, HERE.x, HERE.y) == nil, "a secret answer measures nothing")
 	assert(itemAsked[1] == LINEN, "the item check was asked and its secret answer refused")
 	restricted = nil
 end
 
--- The measured band is kept while the player stays in range of the spawns it came from, and dropped when they walk
--- away from one: no clock is involved.
+-- Changing floors can leave horizontal coordinates unchanged while every old range answer becomes stale.
+do
+	reset()
+	player.x, player.y, player.z = HERE.x, HERE.y, 100
+	units = { target = placed(5698, -9, 0, 100) }
+	local first = assert(Band.At(0, HERE.x, HERE.y))
+	assert(Band.Holds(first, 100) and not Band.Holds(first, 130), "the initial short range excludes the upper floor")
+	player.z = 130
+	local upstairs = assert(Band.At(0, HERE.x, HERE.y))
+	assert(Band.Holds(upstairs, 130), "the current range answer includes the floor the player moved to")
+	player.z = 200
+	assert(Band.At(0, HERE.x, HERE.y) == nil, "no range answer survives a floor beyond every known range")
+	player.z = 100
+end
+
+-- A new planning position gets a fresh bound, and no band remains after leaving range.
 do
 	reset()
 	units = { target = { x = HERE.x, y = HERE.y + 29, z = 100, guid = GUID(5694) } }
-	Band.Forget()
 	local first = assert(Band.At(0, HERE.x, HERE.y), "measured at the Keep")
-	assert(Band.At(0, HERE.x + 5, HERE.y) == first, "still the same band five yards on")
+	player.x = HERE.x + 5
+	local moved = assert(Band.At(0, player.x, HERE.y))
+	assert(moved ~= first and moved.hi < first.hi, "moving sideways recalculates the vertical bound")
 	player.x = HERE.x + 40
 	assert(Band.At(0, player.x, HERE.y) == nil, "away from the spawn, the band is gone")
 	player.x = HERE.x
@@ -377,7 +387,6 @@ do
 	local NPC = { x = -9011, y = 877, z = 148 }
 	player.map, player.x, player.y, player.z = 0, HERE.x, HERE.y, 152
 	units = { target = { x = NPC.x, y = NPC.y, z = NPC.z, guid = GUID(5694) } }
-	Band.Forget()
 	local band = assert(Band.Measure(0, HERE.x, HERE.y), "the Keep's spawn answers the 25 yd check")
 	assert(asked[1] == MIN, "the 10 yd check is skipped: the spawn is 11.4 yd off")
 	assert(Band.Holds(band, 152) and Band.Holds(band, 150), "the Keep's floor is in the band")
