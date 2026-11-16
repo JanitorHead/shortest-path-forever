@@ -68,6 +68,8 @@ local index = {
 }
 local navigated
 local catalogueState, catalogueReads = "idle", 0
+-- The goods each NPC sells in each group, which the "Only my professions" rule judges a vendor by.
+local vendorItems = {}
 ns.NearbyServices = {
 	Request = function()
 		if catalogueState == "idle" then
@@ -83,6 +85,10 @@ ns.NearbyServices = {
 	end,
 	Groups = function()
 		return groups
+	end,
+	Items = function(key, npc)
+		local byNpc = vendorItems[key]
+		return byNpc and byNpc[npc] or nil
 	end,
 	OnReady = function() end,
 	Navigate = function(key, spot)
@@ -447,6 +453,88 @@ check(
 )
 navigated = nil
 
+-- Only my professions (#914): a profession trainer and the supply rows whose goods serve a profession give way when
+-- the character has not learned it, while a general supplier and every other service stay. What a vendor sells in the
+-- row decides, never its title, so every supplier below is called Trade Supplies. A mixed NPC keeps its other service
+-- and its tooltip stops naming the hidden one, and a food seller that also stocks a cooking reagent keeps its Food pin
+-- while its Trade supplies row goes.
+local realProfessions, realProfessionInfo = GetProfessions, GetProfessionInfo
+local realItemProfessions = ns.ItemProfessions
+GetProfessions = function()
+	return 1
+end
+GetProfessionInfo = function()
+	return "", 0, 1, 300, 0, 0, 197
+end
+ns.ItemProfessions = { [7001] = { 197 }, [7002] = { 164 }, [7003] = { 164, 185 }, [7004] = { 129, 185 } }
+local trainer197 = group("trainers", "profession:197", "Tailoring", "Profession")
+trainer197.skill = 197
+local trainer164 = group("trainers", "profession:164", "Blacksmithing", "Profession")
+trainer164.skill = 164
+local tradeGroup = group("vendors", "trade", "Trade supplies", "Reagents")
+local foodGroup = group("vendors", "food", "Food", "Food")
+local innGroup = group("services", "innkeeper", "Innkeeper", "Innkeeper")
+local tailor = place(30, "Tailor trainer", 2000, 0)
+local smith = place(31, "Smith trainer", 2100, 0)
+local tailorSupplies = place(32, "Thread and dye", 2200, 0)
+tailorSupplies.title = "Trade Supplies"
+local mixed = place(33, "Flux and hammers", 2300, 0)
+mixed.title = "Trade Supplies"
+local general = place(34, "General supplier", 2400, 0)
+general.title = "Trade Supplies"
+local twoProfessions = place(35, "Camping goods", 2500, 0)
+twoProfessions.title = "Trade Supplies"
+local breadSeller = place(36, "Bread and spices", 2600, 0)
+breadSeller.title = "Trade Supplies"
+vendorItems = {
+	trade = {
+		[32] = { 7001 },
+		[33] = { 7002 },
+		-- A good no profession's work consumes, so the general supplier always shows.
+		[34] = { 7005 },
+		[35] = { 7003 },
+		[36] = { 7004 },
+	},
+	food = { [36] = { 7006 } },
+}
+groups = { foodGroup, tradeGroup, trainer197, trainer164, innGroup }
+index = {
+	["profession:197"] = { tailor },
+	["profession:164"] = { smith },
+	trade = { tailorSupplies, mixed, general, twoProfessions, breadSeller },
+	food = { breadSeller },
+	innkeeper = { mixed },
+}
+ns.db.townServiceKinds = nil
+ns.db.onlyMyProfessions = true
+ns.db.townServices = "all"
+zoom = 1
+canvasScaled()
+ns.RefreshTownServices()
+check(find(30) ~= nil and find(31) == nil, "only the learned profession's trainer draws a pin")
+check(find(32) ~= nil and find(34) ~= nil, "the learned profession's and the general supplier's pins stay")
+check(find(35) == nil, "a supplier for two unlearned professions goes")
+check(find(33) ~= nil, "a vendor with another shown service stays")
+check(#linesOf(find(33)) == 0, "its tooltip names no service for the unlearned profession")
+check(find(36) ~= nil, "a food seller with nothing for a profession keeps its Food pin")
+check(#linesOf(find(36)) == 0, "the cooking reagent it also sells hides its Trade supplies row")
+GetProfessionInfo = function()
+	return "", 0, 1, 300, 0, 0, 185
+end
+ns.RefreshTownServices()
+check(find(35) ~= nil, "a supplier for two professions returns when either is learned")
+check(
+	table.concat(linesOf(find(36)), ", ") == "Trade supplies",
+	"learning Cooking names its other row again"
+)
+ns.db.onlyMyProfessions = false
+ns.RefreshTownServices()
+check(find(31) ~= nil, "with the filter off, every trainer draws again")
+check(table.concat(linesOf(find(33)), ", ") == "Trade supplies", "and the mixed NPC names the vendor service again")
+ns.db.onlyMyProfessions = nil
+ns.ItemProfessions = realItemProfessions
+GetProfessions, GetProfessionInfo = realProfessions, realProfessionInfo
+
 -- A newly classified service gets its own pin and saved visibility control.
 local transmog = group("services", "transmog", "Transmogrifier", "poi-transmogrifier")
 groups = {transmog}
@@ -464,7 +552,7 @@ check(#errors == 0, table.concat(errors, "\n"))
 
 print(
 	(
-		"town_services_spec: %d checks: service icons, grouping, tooltip, journey click, maps, levels and hidden services ok"
+		"town_services_spec: %d checks: icons, grouping, tooltip, journey, maps, levels, hidden services and professions ok"
 	):format(checks)
 )
 ]==]))()

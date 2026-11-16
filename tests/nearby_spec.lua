@@ -356,6 +356,7 @@ for _, file in ipairs({
 	"UI/NearbyQuestie.lua",
 	"UI/NearbyEntrances.lua",
 	"UI/NearbyRoles.lua",
+	"UI/NearbyProfessions.lua",
 	"UI/Nearby.lua",
 }) do
 	setfenv(assert(loadfile(file)), env)("ShortestPathForever", ns)
@@ -886,6 +887,7 @@ do
 		"UI/NearbyQuestie.lua",
 		"UI/NearbyEntrances.lua",
 		"UI/NearbyRoles.lua",
+		"UI/NearbyProfessions.lua",
 		"UI/Nearby.lua",
 	}) do
 		driver.load(file)

@@ -4,6 +4,7 @@ local _, ns = ...
 
 ns.Credits = {
 	players = {
+		{ name = "zhega", what = "Nearby services can show only learned professions" },
 		{ name = "catubba", what = "Journey legs name where they start and end" },
 		{ name = "Hatemost", what = "Resume the RestedXP guide from a macro" },
 		{ name = "JaidyEU", what = "Resume the RestedXP guide from a macro" },

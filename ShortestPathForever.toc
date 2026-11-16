@@ -59,6 +59,7 @@ UI\NearbyGroups.lua
 UI\NearbyQuestie.lua
 UI\NearbyEntrances.lua
 UI\NearbyRoles.lua
+UI\NearbyProfessions.lua
 UI\Nearby.lua
 Transport\Observer.lua
 UI\Map.xml
@@ -106,6 +107,7 @@ UI\QuestPins.lua
 UI\Route.lua
 UI\RouteTransports.lua
 UI\Alert.lua
+UI\SettingsMapMarks.lua
 UI\Settings.lua
 UI\WhatsNew.lua
 Core\APIInput.lua

@@ -17,6 +17,7 @@
 ---@field ClassTrainers table<number, number> class trainer NPC -> its class (Data/Services.lua)
 ---@field PortalTrainers table<number, number> portal trainer NPC -> its class (Data/Services.lua)
 ---@field Battlemasters table<number, number> battlemaster NPC -> its battleground template (Data/Services.lua)
+---@field ItemProfessions table<number, number[]> item -> the profession skill lines its goods supply, for the items a vendor sells (Data/Services.lua)
 ---@field Walks table<number, table<string, (number|false)[]>>
 ---@field WalkPlaces table<number, table<string, number[]>>
 ---@field RoadCells table<number, table<number, string>>
@@ -31,12 +32,14 @@
 ---@field charDB SPFCharacterDatabase
 ---@field Defaults SPFDefaults
 ---@field NearbyRoles SPFNearbyRolesAPI the class, portal and battlemaster groups (UI/NearbyRoles.lua)
+---@field NearbyProfessions SPFNearbyProfessionsAPI the "Only my professions" shop rule (UI/NearbyProfessions.lua)
 ---@field NearbyServices SPFNearbyServices
 ---@field NearbyGroups SPFNearbyGroups the vendor and service groups the list and the map share (UI/NearbyGroups.lua)
 ---@field TownServiceChoices SPFTownServiceChoice[] the town services' four levels (UI/TownServices.lua)
 ---@field RefreshTownServices fun() redraws the town services on the world map (UI/TownServices.lua)
 ---@field RefreshNearbyTab fun() shows or hides the Nearby services tab as the setting says (UI/ServicesPanel.lua)
 ---@field NearbyEntrances SPFNearbyEntrancesAPI the dungeons and raids in the Nearby services list (UI/NearbyEntrances.lua)
+---@field SettingsMapMarks SPFSettingsMapMarks the Map marks settings page (UI/SettingsMapMarks.lua)
 ---@field core ForeverCoreAddon the addon's own ForeverCore services: journal, log, report and map canvas
 ---@field broken? boolean set when ForeverCore is missing a member this addon calls, so the addon's files stop
 ---@field ForeverRequire fun(ready: boolean): boolean the shared out-of-date warning, from Core/ForeverRequire.lua
@@ -103,6 +106,23 @@
 ---@class SPFTownServiceChoice
 ---@field key string
 ---@field label string
+
+--- One choice of a settings dropdown: the saved key, and the label the row shows for it.
+---@class SPFSettingsChoice
+---@field key string
+---@field label string
+
+--- The row builders UI/Settings.lua hands each settings page module. A page is opened by name, and every row added
+--- after it goes on that page: the same secure registration path ns.SetOption reads back.
+---@class SPFSettingsRows
+---@field Page fun(name: string)
+---@field Checkbox fun(key: string, name: string, tooltip?: string, onChanged?: fun(setting: SPFSetting?, value: boolean|number|string?))
+---@field Scale fun(key: string, name: string, tooltip: string|nil, refresh: fun(), minimum?: number, step?: number)
+---@field Dropdown fun(key: string, name: string, tooltip: string|nil, choices: SPFSettingsChoice[], onChanged?: fun(setting: SPFSetting?, value: boolean|number|string?))
+
+--- A settings page that lives in its own module: it opens its page and adds its rows through the shared builders.
+---@class SPFSettingsMapMarks
+---@field Register fun(rows: SPFSettingsRows)
 
 ---@alias SPFMode 'walk'|'flight'|'boat'|'zeppelin'|'lift'|'tram'|'portal'|'passage'|'teleport'
 ---@alias SPFKind 'start'|'goal'|'dock'|'taxi'|'portal'|'teleport'
@@ -303,6 +323,7 @@
 ---@field townServiceReagents? boolean whether reagent vendor pins show
 ---@field townServiceBooks? boolean whether books and recipe pins show
 ---@field townServiceGear? boolean whether weapon and armour pins show
+---@field onlyMyProfessions? boolean Nearby services and the town pins follow only the professions this character learned
 ---@field otherFaction? boolean
 ---@field tracker? boolean
 ---@field alerts? boolean
