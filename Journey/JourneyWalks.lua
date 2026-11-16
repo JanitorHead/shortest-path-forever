@@ -71,17 +71,26 @@ end
 
 local function FindWalk(planned, leg, key, water, done)
 	local version, previous = pathVersion, leg.walkPoints
-	leg.walkDrawn = previous ~= nil
-	leg.walkPoints = previous or ns.Planner.WalkPoints(leg.from, leg.to)
+	-- A straight placeholder is not a drawn walk: only points an earlier search measured are kept through this one.
+	local measuredBefore = previous ~= nil and not leg.walkPlaceholder
+	if not previous then
+		previous = ns.Planner.WalkPoints(leg.from, leg.to)
+		leg.walkPoints, leg.walkPlaceholder = previous, true
+	end
+	leg.walkDrawn = measuredBefore
 	local function apply(points, cost)
 		leg.walkError = not points and cost or nil
-		leg.walkPoints = points or previous or {}
 		if points then
+			leg.walkPoints, leg.walkPlaceholder = points, nil
 			leg.measured, leg.walkDrawn, leg.wet, leg.walkCost = true, true, points.wet, cost
 			leg.hazardNotes = hazards and ns.Hazards.Notes(hazards, leg, points) or nil
 			if planned.preview then
 				leg.yards = cost
 			end
+		else
+			-- A failed search drops its straight placeholder: what is left is not a walk to draw or keep (#894).
+			leg.walkPoints = measuredBefore and previous or {}
+			leg.walkDrawn, leg.walkPlaceholder = measuredBefore, not measuredBefore
 		end
 	end
 	if walkPending[key] then
@@ -102,7 +111,8 @@ local function FindWalk(planned, leg, key, water, done)
 			entry.apply(points, cost)
 		end
 		CacheWalk(key, {
-			points = points or previous,
+			-- A failed search never stores its straight placeholder as a measured walk (#894).
+			points = points or (measuredBefore and previous or nil),
 			reason = not points and cost or nil,
 			cost = points and cost,
 			notes = points and leg.hazardNotes,
@@ -183,6 +193,7 @@ function Walks.Prepare(planned, drawn, water, done, index)
 			if entry then
 				leg.walkPoints, leg.measured = entry.points or {}, entry.reason == nil
 				leg.walkDrawn = entry.points ~= nil
+				leg.walkPlaceholder = entry.reason ~= nil and entry.points == nil or nil
 				leg.wet, leg.walkError = entry.points and entry.points.wet, entry.reason
 				leg.hazardNotes = entry.notes
 				if entry.cost then
@@ -197,11 +208,17 @@ function Walks.Prepare(planned, drawn, water, done, index)
 			then
 				-- Exact costs already prove this leg; draw it once it is the walk to follow, or its continent loads.
 				leg.walkDeferred = true
-				leg.walkPoints, leg.walkDrawn = ns.Planner.WalkPoints(leg.from, leg.to), false
+				leg.walkPoints, leg.walkDrawn, leg.walkPlaceholder =
+					ns.Planner.WalkPoints(leg.from, leg.to), false, true
 			elseif leg.from.map == leg.to.map and ns.Path.HasData(leg.from.map) then
 				-- A replacement may itself still be pending while drawing an older result; preserve that too.
 				for _, previous in ipairs(drawn or {}) do
-					if previous.mode == "walk" and SamePlace(previous.to, leg.to) and previous.walkDrawn then
+					if
+						previous.mode == "walk"
+						and SamePlace(previous.to, leg.to)
+						and previous.walkDrawn
+						and not previous.walkPlaceholder
+					then
 						leg.walkPoints = previous.walkPoints
 						break
 					end

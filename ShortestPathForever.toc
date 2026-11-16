@@ -4,7 +4,7 @@
 ## Author: cjber
 ## Version: @project-version@
 ## Category: Map
-## OptionalDeps: QuestieDB, TweaksForever, RXPGuides, Guidelime, !KalielsTracker, GatherMate2
+## OptionalDeps: QuestieDB, TweaksForever, RXPGuides, Guidelime, !KalielsTracker, GatherMate2, DugisGuideViewerZ
 ## X-License: GPL-3.0-or-later
 ## X-Website: https://github.com/cjber/shortest-path-forever
 ## X-Donate: https://github.com/sponsors/cjber
@@ -43,6 +43,8 @@ Data\Walks.lua
 Data\RoadCells.lua
 Data\RoadEdges.lua
 Data\Heights.lua
+Data\IdleSpawns.lua
+Data\SpellTargets.lua
 Data\Credits.lua
 Transport\Model.lua
 Routing\Planner.lua
@@ -85,6 +87,7 @@ Routing\PathGrid.lua
 Routing\Path.lua
 Routing\PathJobs.lua
 Routing\Floor.lua
+Routing\Band.lua
 Journey\JourneySteps.lua
 Journey\Hazards.lua
 Journey\JourneySearch.lua
@@ -120,6 +123,8 @@ Core\TomTom.lua
 Core\Way.lua
 Core\RestedXP.lua
 Core\Guidelime.lua
+Core\Dugi.lua
 Core\KalielsTracker.lua
 UI\DestinationPin.lua
 UI\NpcArrows.lua
+UI\HearthPin.lua

@@ -46,6 +46,7 @@ local DEFAULTS = {
 	townServiceRepair = false,
 	townServiceBank = true,
 	townServiceAuction = true,
+	townServiceTransmog = true,
 	townServiceBattlemaster = true,
 	townServiceClass = true,
 	townServiceProfessions = true,
@@ -82,6 +83,8 @@ local DEFAULTS = {
 	-- An on-screen marker over the destination, like the client's own waypoint pin. Off by default: it is
 	-- new screen furniture, and a player asks for it from Settings > Guidance.
 	destinationPin = false,
+	-- The world map's journey goal pin, as a share of its stock size. 100 keeps the pin exactly as it was.
+	destinationPinSize = 100,
 	-- Bouncing arrows beside the nameplate of the NPC a Nearby services journey walks to.
 	npcArrows = true,
 	resumeJourney = false,
@@ -91,10 +94,15 @@ local DEFAULTS = {
 	-- The arrow takeover alone: keep RestedXP's arrow while still following its guide.
 	restedxpHideArrow = true,
 	guidelime = true,
+	-- Dugi Guides is read through an undocumented surface of a viewer it does not publish an API for, so following
+	-- it is opt-in. It never changes Dugi's tables or hides Dugi's arrow.
+	dugi = false,
 	taxiRoute = true,
 	teleports = true,
 	useWaterWalking = true,
 	townServiceKinds = {},
+	-- The Hearthstone alone can be kept out of journeys, with class teleports still offered (Transport/Teleports.lua).
+	useHearthstone = true,
 	-- Another player's spellbook is not queryable, so a party mage's portals are declared. Off by default; when on,
 	-- every capital portal of the player's faction is offered until the player unticks one.
 	partyMagePortals = false,
@@ -109,9 +117,12 @@ local DEFAULTS = {
 	stats = true,
 	guideStops = true,
 	journeyTracker = true,
+	-- The Journey section's scroll viewport, applied by ForeverCore when its setter is available.
+	trackerHeight = 200,
 	arrow = true,
 	-- Under the arrow: "distance", the journey's "time" left, or "both".
 	arrowLabel = "distance",
+	arrowDirect = false,
 	-- The stop's live objectives under the arrow while it leads; the arrival pin keeps its own lines either way.
 	arrowObjectives = true,
 	-- On reaching a held stop's area, the arrow turns into a pin with the stop's objectives rather than hiding.
@@ -128,7 +139,7 @@ local DEFAULTS = {
 	compassBackground = 0,
 	corpse = true,
 	avoidHighZones = true,
-	followRoads = false,
+	followRoads = true,
 	roadDetour = 50,
 	whatsNew = true,
 }

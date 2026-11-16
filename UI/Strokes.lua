@@ -381,6 +381,7 @@ function Strokes.Map(buffer, paths, view)
 	for pathIndex, path in ipairs(paths) do
 		local color = path.color or view.colors[path.mode]
 		route = path.route
+		fade = path.placeholder and 0.45 or 1
 		later = pathIndex > view.current and LATER_ALPHA or 1
 		-- A stop under the pointer shows its own leg at full strength, so the faded way ahead answers the cursor.
 		if view.highlight and path.stop and view.highlight[path.stop] then
@@ -506,6 +507,7 @@ function Strokes.Minimap(buffer, paths, view)
 	local inset = 1 - border / math.min(width, height)
 	for _, path in ipairs(paths) do
 		walked = 0
+		fade = path.placeholder and 0.45 or 1
 		if path.mode ~= "portal" and path.mode ~= "passage" then
 			local points = ns.FlightLinePoints(path)
 			local color = path.color or view.colors[path.mode]

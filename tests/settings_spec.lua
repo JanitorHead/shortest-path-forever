@@ -173,19 +173,29 @@ env.ForeverCore = {
 	},
 }
 
-local refreshed, taxiRefreshed, policyChanged, tomtomRefreshed, guidelimeRefreshed = 0, 0, 0, 0, 0
+local refreshed, taxiRefreshed, policyChanged, tomtomRefreshed, guidelimeRefreshed, dugiRefreshed = 0, 0, 0, 0, 0, 0
 local nearbyTabRefreshed = 0
 local trackerRefreshed = 0
 local compassMoving = false
 local arrowMoving, arrowScaled, arrowLabelSet = false, nil, nil
 local arrowObjectivesChanged = 0
+local arrowVisibilityChanged, travelWoken = 0, 0
 local tomtomFollowRefreshed, ways = 0, {}
 local routeColour = nil
 local routeLinesRefreshed = 0
 local journeyPreviewRefreshed = 0
+local destinationPinSizeRefreshed = 0
 local questPinsRefreshed = 0
 -- Core/Core.lua's defaults: every row on.
 local ns = {
+	JourneyGuide = {
+		ArrowChanged = function()
+			arrowVisibilityChanged = arrowVisibilityChanged + 1
+		end,
+	},
+	WakeTravel = function()
+		travelWoken = travelWoken + 1
+	end,
 	core = {
 		SafeCall = function(_, fn, ...)
 			return pcall(fn, ...)
@@ -222,6 +232,9 @@ local ns = {
 	RefreshGuidelime = function()
 		guidelimeRefreshed = guidelimeRefreshed + 1
 	end,
+	RefreshDugi = function()
+		dugiRefreshed = dugiRefreshed + 1
+	end,
 	RefreshTomTom = function()
 		tomtomRefreshed = tomtomRefreshed + 1
 	end,
@@ -252,17 +265,21 @@ local ns = {
 		arrowScale = 100,
 		arrowLabel = "distance",
 		compassBackground = 0,
+		trackerHeight = 200,
 		tomtomFollow = false,
+		-- Dugi is opt-in: its viewer has no published API.
+		dugi = false,
 		compassTime = false,
 		arrivalSound = false,
 		resumeJourney = false,
 		focusedQuest = false,
 		journeyKey = "shift",
 		routeColor = "gold",
-		followRoads = false,
+		followRoads = true,
 		roadDetour = 50,
 		arrivalDistance = 15,
 		townServices = "capitals",
+		destinationPinSize = 100,
 	}, {
 		__index = function()
 			return true
@@ -336,6 +353,9 @@ local ns = {
 	RefreshJourneyPreview = function()
 		journeyPreviewRefreshed = journeyPreviewRefreshed + 1
 	end,
+	RefreshDestinationPinSize = function()
+		destinationPinSizeRefreshed = destinationPinSizeRefreshed + 1
+	end,
 	RouteColors = {
 		{ key = "gold", label = "Gold" },
 		{ key = "white", label = "White" },
@@ -379,6 +399,7 @@ local groups = {
 		"journeyTracker",
 		"resumeJourney",
 		"destinationPin",
+		"destinationPinSize",
 		"arrivalPin",
 		"arrivalDistance",
 		"npcArrows",
@@ -387,11 +408,13 @@ local groups = {
 		"restedxp",
 		"restedxpHideArrow",
 		"guidelime",
+		"dugi",
 		"avoidHighZones",
 		"followRoads",
 		"roadDetour",
 		"useWaterWalking",
 		"teleports",
+		"useHearthstone",
 		"hearthMinimumSavings",
 		"guideStops",
 		"taxiRoute",
@@ -411,6 +434,7 @@ local groups = {
 		"arrow",
 		"arrowMove",
 		"arrowScale",
+		"arrowDirect",
 		"arrowLabel",
 		"arrowObjectives",
 		"metres",
@@ -419,6 +443,7 @@ local groups = {
 		"compassTime",
 		"compassMove",
 		"trackerScale",
+		"trackerHeight",
 		"compassScale",
 		"compassBackground",
 		"whatsNew",
@@ -435,10 +460,7 @@ local order = {
 }
 
 assert(#buttons == #order + 1, "one index button per group, then the Forever addons page")
--- Main's arrival pin added arrivalPin, the line switches added mapLine, minimapLine and laterLegs, the town services
--- added townServices, and the tab switch added nearbyTab; the travel stats and departure sharing switches are gone
--- with their sharing.
-assert(#rows == 69, #rows)
+assert(#rows == 74, #rows)
 local cursor = 0
 for index, name in ipairs(order) do
 	local button = buttons[index].initializer
@@ -475,6 +497,11 @@ local function Row(key)
 	error("no row for " .. key)
 end
 assert(Row("pins").setting.variable == "ShortestPathForever_pins" and Row("pins").setting.default)
+local trackerHeight = Row("trackerHeight")
+assert(trackerHeight.kind == "slider", "the Journey tracker height is a slider")
+assert(trackerHeight.setting.variable == "ShortestPathForever_trackerHeight", "the tracker height is saved")
+assert(trackerHeight.setting.default == 200, "the tracker height defaults to Core's viewport cap")
+assert(trackerHeight.tooltip:find("longer journeys scroll", 1, true), "the tracker height explains its scroll behavior")
 assert(
 	Row("minimapPins").tooltip
 		== "Docks, lifts, the tram and portals. Also under Transport in the minimap's tracking menu."
@@ -608,9 +635,38 @@ assert(hearth.options.format(0) == "Off" and hearth.options.format(90) == "90 Se
 hearth.setting.onChanged()
 assert(policyChanged == 1, "changing Hearthstone savings invalidates the current travel policy")
 assert(hearth.options.minValue == 0 and hearth.options.maxValue == 600 and hearth.options.step == 30)
+-- The Hearthstone has its own switch beside the teleport master, on by default; a change replans.
+local useHearthstone = Row("useHearthstone")
+assert(useHearthstone.kind == "checkbox" and useHearthstone.setting.default == true, "the Hearthstone starts allowed")
+assert(useHearthstone.setting.variable == "ShortestPathForever_useHearthstone", "the switch is saved")
+assert(useHearthstone.tooltip:find("class teleports", 1, true), "the tooltip says class teleports keep working")
+ns.SetHearthstoneEnabled = function(value)
+	useHearthstone.value = value
+	policyChanged = policyChanged + 1
+end
+useHearthstone.setting.onChanged(nil, false)
+assert(useHearthstone.value == false and policyChanged == 2, "turning the Hearthstone off replans without it")
+ns.db.useHearthstone = true
+useHearthstone.setting.onChanged()
+assert(useHearthstone.value == true and policyChanged == 3, "the row falls back to the saved value")
 assert(Row("taxiRoute").tooltip:find("flight master", 1, true))
 Row("taxiRoute").setting.onChanged()
 assert(taxiRefreshed == 1, "flight route updates when its setting changes")
+-- Destination pin size: a slider under the destination pin switch, 50 to 100 percent, at the stock size by default.
+local destinationSize = Row("destinationPinSize")
+assert(destinationSize.kind == "slider", "the destination pin size is a slider")
+assert(destinationSize.setting.default == 100, "the destination pin starts at its stock size")
+assert(destinationSize.setting.variable == "ShortestPathForever_destinationPinSize", "the size is saved")
+assert(
+	destinationSize.options.minValue == 50
+		and destinationSize.options.maxValue == 100
+		and destinationSize.options.step == 5,
+	"the slider runs from 50 to 100 percent in fives"
+)
+assert(destinationSize.options.format(75) == "75%", "the slider labels its value as a percent")
+assert(destinationSize.tooltip:find("world map", 1, true), "the tooltip says which map the pin is on")
+destinationSize.setting.onChanged(nil, 75)
+assert(destinationPinSizeRefreshed == 1, "the slider redraws the goal pin")
 assert(Row("corpse").setting.default == true)
 -- Arrival distance: a slider from 5 to 50 yards, at the fixed 15 the journey has always used, labelled as the rest.
 local arrivalRow = Row("arrivalDistance")
@@ -628,6 +684,8 @@ assert(
 )
 -- The NPC nameplate arrows are guidance furniture and start on, with the friendly-nameplate condition in the tooltip.
 assert(Row("npcArrows").setting.default == true, "nameplate arrows are on by default")
+Row("arrow").setting.onChanged()
+assert(arrowVisibilityChanged == 1 and travelWoken == 1, "arrow visibility refreshes casting and wakes travel")
 assert(Row("npcArrows").tooltip:find("Friendly nameplates", 1, true), "the tooltip says friendly nameplates must be on")
 -- Party mage portals are opt-in, and every capital starts ticked for the mage to open.
 assert(Row("partyMagePortals").setting.default == false, "party mage portals are off by default")
@@ -655,12 +713,16 @@ assert(Row("guidelime").setting.default == true, "Guidelime journeys are enabled
 assert(Row("guidelime").tooltip:find("Guidelime's arrow", 1, true), "the row says the guide arrow steps aside")
 Row("guidelime").setting.onChanged()
 assert(guidelimeRefreshed == 1, "the row follows its setting")
+assert(Row("dugi").setting.default == false, "Dugi journeys are opt-in")
+assert(Row("dugi").tooltip:find("Dugi", 1, true), "the row names the guide it follows")
+Row("dugi").setting.onChanged()
+assert(dugiRefreshed == 1, "the Dugi row follows its setting")
 -- Walks keep out of zones far above your level unless this is off; changing it plans the journey again.
 assert(Row("avoidHighZones").setting.default == true, "avoiding high zones is on by default")
 local policyBefore = policyChanged
 Row("avoidHighZones").setting.onChanged()
 assert(policyChanged == policyBefore + 1, "the journey plans again with the new costs")
-assert(Row("followRoads").setting.default == false, "following roads is off by default")
+assert(Row("followRoads").setting.default == true, "following roads is on by default")
 Row("followRoads").setting.onChanged()
 assert(policyChanged == policyBefore + 2, "following roads plans again with the new costs")
 assert(Row("tomtom").setting.default == true)

@@ -50,6 +50,7 @@ ROOT = Path(__file__).resolve().parents[2]
 T = 1600 / 3
 CELLS = 67
 CS = T / CELLS
+TAN50 = math.tan(math.radians(50))
 # A swum yard counts as three running ones: beyond the slower pace (4.7 against 7 yd/s), swimming means climbing
 # out at a bank that may be a cliff, aggro from things that cannot be outrun, and fatigue far from shore.
 SWIM = 3.0
@@ -95,6 +96,7 @@ LINKED_OF = defaultdict(list)  # cluster -> its nodes with LINKS, sorted
 FLOORS_AT = {}  # cell -> its floor nodes, lowest first
 TERRAIN = {}  # cluster -> its terrain field (tools/baker/terrain.py)
 KINDS = defaultdict(int)  # how the encoded links came out: step bits, one-way records, drops
+ROAD_CELLS = set()  # global cells Data/RoadCells.lua calls road, so a road crossing can be an entrance
 
 
 def configure(map_id, rows=None, cols=None):
@@ -115,6 +117,8 @@ def configure(map_id, rows=None, cols=None):
     X0, Y0 = CX0 * T, CY0 * T
     GW, GH = NX * CELLS, NY * CELLS
     ORD = {rc: i for i, rc in enumerate(sorted(TILES))}
+    global ROAD_CELLS
+    ROAD_CELLS = read_roads(map_id)
 
 
 def enc(v, width):
@@ -132,6 +136,43 @@ def places(map_id):
         ["luajit", "tools/baker/places.lua", str(map_id)], cwd=ROOT, check=True, capture_output=True, text=True
     )
     return [tuple(p) for p in json.loads(run.stdout)]
+
+
+def decode_road_runs(s):
+    """The local cells a Data/RoadCells.lua run string calls road: alternating off/on run lengths, two symbols each."""
+    cells, at, on, pos = set(), 0, False, 0
+    while pos < len(s):
+        run = B64.index(s[pos]) * 64 + B64.index(s[pos + 1])
+        pos += 2
+        if run > 0:
+            if on:
+                cells.update(range(at, at + run))
+            at += run
+        on = not on
+    return cells
+
+
+def read_roads(map_id):
+    """Data/RoadCells.lua's road cells for a map, as global cell ids; empty before a road bake."""
+    path = ROOT / "Data" / "RoadCells.lua"
+    if not path.exists():
+        return set()
+    found, inside = {}, False
+    for line in path.read_text().splitlines():
+        if line.strip() == f"[{map_id}] = {{":
+            inside = True
+            continue
+        if inside:
+            if line.strip() == "},":
+                break
+            m = re.match(r'\s*\[(\d+)\] = "([^"]+)"', line)
+            if m:
+                found[int(m.group(1)) - 1] = decode_road_runs(m.group(2))
+    roads = set()
+    for k, locals_ in found.items():
+        for cell in locals_:
+            roads.add((k // NY * CELLS + cell // CELLS) * GH + (k % NY * CELLS + cell % CELLS))
+    return roads
 
 
 def drop_cost(horizontal, fall):
@@ -479,7 +520,7 @@ def rasterize_tile(rc):
         ceiling, and leaves it at most as high as that portal's top. Without it a path could climb a steep face between
         two ordinary surfaces, such as the slope that joins the terrain under Stormwind to its streets."""
         (pa, a), (pb, b) = layers[i][la][2], layers[j][lb][2]
-        if pa == pb or pb in adj.get(pa, ()):
+        if pa == pb:
             return True
         (xi, yi), (xj, yj) = divmod(i, GH), divmod(j, GH)
         box = (
@@ -488,6 +529,10 @@ def rasterize_tile(rc):
             Y0 + min(yi, yj) * CS - MARGIN,
             Y0 + (max(yi, yj) + 1) * CS + MARGIN,
         )
+        if pb in adj.get(pa, ()):
+            # An edge shared anywhere is not a path between these two cells: a street and a keep floor that meet
+            # only at a doorway far outside the box must not link every pair of cells facing each other (#890).
+            return seg_in_box(*portal[(pa, pb)], box=box)
         hb = height(polys[pb], *b)
         best = {pa: height(polys[pa], *a) if polys[pa]["steep"] else math.inf}
         stack = [pa]
@@ -723,18 +768,18 @@ def value_of(grid, n):
 def steep_ok(grid, ux, uy, vx, vy):
     """Steep ground (value 3) is walked downhill only, compared on the stored heights the file holds: the runtime's
     own rule, so the graph and the grid it emits cannot disagree about a step."""
-    u, v = ux * GH + uy, vx * GH + vy
-    if grid[u] == 3 or grid[v] == 3:
-        return stored_z(v) <= stored_z(u)
-    return True
+    return steep_node_ok(grid, ux * GH + uy, vx * GH + vy)
 
 
 def steep_node_ok(grid, u, v):
     """The runtime's steep test between two nodes, base cells or floors: a step with a steep end goes downhill only,
     by the stored heights the file holds."""
-    if value_of(grid, u) == 3 or value_of(grid, v) == 3:
-        return stored_z(v) <= stored_z(u)
-    return True
+    ux, uy = divmod(cell_of(u), GH)
+    vx, vy = divmod(cell_of(v), GH)
+    rise = stored_z(v) - stored_z(u)
+    if rise > TAN50 * math.hypot(vx - ux, vy - uy) * CS:
+        return False
+    return (value_of(grid, u) != 3 and value_of(grid, v) != 3) or rise <= 0
 
 
 def bit_step(g, grid, cuts, ux, uy, vx, vy):
@@ -743,6 +788,8 @@ def bit_step(g, grid, cuts, ux, uy, vx, vy):
     if not step_ok(g, cuts, ux, uy, vx, vy):
         return False
     u, v = ux * GH + uy, vx * GH + vy
+    if not steep_node_ok(grid, u, v):
+        return False
     if grid[u] == 3 or grid[v] == 3:
         return stored_z(u) == stored_z(v)
     return True
@@ -850,6 +897,7 @@ def run_clusters(work, keys, jobs):
 
 def cluster_regions(k):
     """Cluster k's strongly connected parts as (node, label) pairs, under the grid's own directed steps."""
+    assert _HPA is not None
     grid, cuts, _ = _HPA
     g = lambda gx, gy: grid[gx * GH + gy]  # noqa: E731
     box = cluster_box(k)
@@ -862,7 +910,9 @@ def cluster_regions(k):
 def cluster_edges(k):
     """Cluster k's intra-cluster edges between its entrances: Dijkstra under each of WEIGHTS, dropped when a
     two-hop path is within PRUNE under every weight."""
+    assert _HPA is not None
     grid, cuts, nodes = _HPA
+    assert nodes is not None
     g = lambda gx, gy: grid[gx * GH + gy]  # noqa: E731
     found = {}
     cells = nodes[k]
@@ -910,11 +960,12 @@ def cluster_edges(k):
     return found
 
 
-def grid_hpa(grid, cuts, jobs=1):
+def grid_entrances(grid, cuts, jobs=1):
     """HPA* over the grid. Every border crossing (orthogonal or diagonal) is grouped by the strongly connected parts
     of its two clusters it leaves and enters, in the direction it is walked: a crossing into a part the route cannot
     leave, or out of a part the route cannot reach, is of no use to it, so one entrance per such group guarantees a
-    route wherever the grid has one. Each group keeps an entrance every ENTRANCE_RUN cells. Intra-cluster edges come
+    route wherever the grid has one. Each contiguous border run keeps an entrance every ENTRANCE_RUN crossings.
+    Separate doorways keep separate entrances even when both clusters join them elsewhere. Intra-cluster edges come
     from Dijkstra under each of WEIGHTS, dropped when a two-hop path is within PRUNE under every weight. An edge
     carries a cost per weight."""
     global _HPA
@@ -945,30 +996,44 @@ def grid_hpa(grid, cuts, jobs=1):
                     if cluster_of_cell(w) != across:
                         continue
                     # a two-way record is still one-way at a steep pair, as the decoder reads it
-                    if cost is None and not steep_node_ok(grid, u, w):
+                    if not steep_node_ok(grid, u, w):
                         continue
                     wx, wy = divmod(cell_of(w), GH)
                     t = 0 if axis is None else uy - ky * CELLS if axis == 0 else ux - kx * CELLS
                     groups[(region[u], region[w])].append((t, int(wx != ux and wy != uy), u, w, cost))
 
     def entrances(groups):
-        """Each group's entrances, one every ENTRANCE_RUN crossings, with the edge the crossing walks."""
+        """Each contiguous run's entrances, with the edge the crossing walks."""
         for crossings in groups.values():
             # A crossing carries its cost: None for an ordinary step, a float for a drop. Two identical crossings
             # (a step and a drop over the same pair) would make the tuple comparison fall through to the cost and
             # raise, so the order is the crossing itself and an ordinary step wins a tie (its reverse is a step).
             crossings.sort(key=lambda c: (c[0], c[1], c[2], c[3], c[4] is not None))
-            for i in range(0, len(crossings), ENTRANCE_RUN):
-                chunk = crossings[i : i + ENTRANCE_RUN]
-                mid = chunk[len(chunk) // 2][0]
-                # prefer orthogonal, then the crossing nearest the chunk's middle
-                _, diagonal, u, v, cost = min(chunk, key=lambda c: (c[1], abs(c[0] - mid)))
-                if cost is not None:
-                    edges[(u, v)] = tuple(cost for _ in WEIGHTS)
-                else:
+            # A wall between openings ends a run. Whole-cluster connectivity does not make that wall a doorway:
+            # choosing one opening for both can send a walk around an entire district (#910).
+            ends = [i for i in range(1, len(crossings)) if crossings[i][0] > crossings[i - 1][0] + 1]
+            first = 0
+            for end in [*ends, len(crossings)]:
+                for i in range(first, end, ENTRANCE_RUN):
+                    chunk = crossings[i : min(i + ENTRANCE_RUN, end)]
+                    mid = chunk[len(chunk) // 2][0]
+                    # prefer orthogonal, then the crossing nearest the chunk's middle
+                    _, diagonal, u, v, cost = min(chunk, key=lambda c: (c[1], abs(c[0] - mid)))
+                    if cost is not None:
+                        edges[(u, v)] = tuple(cost for _ in WEIGHTS)
+                    else:
+                        edges[(u, v)] = step_into(u, v, diagonal)
+                    nodes[cluster_of_cell(u)].add(u)
+                    nodes[cluster_of_cell(v)].add(v)
+                first = end
+            # A road crosses a border at a few points, often midway between the grid's entrances. Place an entrance
+            # at each road-to-road crossing too, so a road-following walk does not leave the road to reach one
+            # (#892). Roads come from Data/RoadCells.lua; without them nothing is added.
+            for _t, diagonal, u, v, cost in crossings:
+                if cost is None and (u, v) not in edges and u in ROAD_CELLS and v in ROAD_CELLS:
                     edges[(u, v)] = step_into(u, v, diagonal)
-                nodes[cluster_of_cell(u)].add(u)
-                nodes[cluster_of_cell(v)].add(v)
+                    nodes[cluster_of_cell(u)].add(u)
+                    nodes[cluster_of_cell(v)].add(v)
 
     for k in range(NX * NY):
         kx, ky = divmod(k, NY)
@@ -1014,6 +1079,14 @@ def grid_hpa(grid, cuts, jobs=1):
                     groups[(region[u], region[w])].append((0, 1, u, w, None))
             records(groups, k, (kx + 1) * NY + ky + dy, None)
             entrances(groups)
+    _HPA = None
+    return nodes, edges
+
+
+def grid_hpa(grid, cuts, jobs=1):
+    """Build the border entrances, then their weighted paths inside each cluster."""
+    global _HPA
+    nodes, edges = grid_entrances(grid, cuts, jobs)
     inter = len(edges)
     _HPA = (grid, cuts, nodes)
     for found in run_clusters(cluster_edges, sorted(nodes), jobs):
@@ -1023,7 +1096,7 @@ def grid_hpa(grid, cuts, jobs=1):
     return nodes, edges
 
 
-def encode_map(nodes, edges, grid, cuts):
+def encode_map(nodes, edges, grid, cuts, *, collision=True):
     cells = sorted(c for cs in nodes.values() for c in cs)
     parent = {c: c for c in cells}
 
@@ -1078,6 +1151,8 @@ def encode_map(nodes, edges, grid, cuts):
                     costs = "".join(enc(round(w), 2) for w in d)  # 4095 is ample: the longest baked is 2357
                     erec.append(enc((dx + 1) * 3 + dy + 1, 1) + enc(local[m], 2) + costs)
             graph[k] = "".join(rec) + "".join(erec)
+        if not collision:
+            continue
         vals = []
         for i in range(CELLS):
             for j in range(CELLS):
@@ -1141,6 +1216,9 @@ def terrain_header():
 
 
 def emit(nodes, edges, grid, cuts, out, name):
+    assert all(steep_node_ok(grid, u, v) for u, v in edges if cluster_of_cell(u) != cluster_of_cell(v)), (
+        "a cluster crossing exceeds the runtime climb limit"
+    )
     graph, grids, heights, floors, terrains, components = encode_map(nodes, edges, grid, cuts)
     lines = [
         "-- Generated by tools/baker/gen_nav.py — do not edit.",
@@ -1156,6 +1234,7 @@ def emit(nodes, edges, grid, cuts, out, name):
         "-- Only a step one way takes, a ledge drop or a step carrying a cost is its own record. A map without",
         "-- `steep` is the older format 2, whose flag 8 opens the -x-y diagonal and whose bits pick the surface",
         "-- nearest their height; without `format` it is format 1, whose links are symmetric.",
+        "-- climbChecked: every cluster crossing passes the stored-height 50 degree climb rule at bake time.",
         "-- graph[k + 1]: n(2) | n x [cell(3) layer(1) component(2) degree(1)] | n x degree edges in node order, each",
         "--   [cluster offset(1): (dx + 1) * 3 + dy + 1, node(2), cost(2) swimming with water at swim, cost(2) walking",
         "--   on water, both in running yards]; the decoder builds each node's predecessors from them. grid[k + 1]:",
@@ -1184,6 +1263,7 @@ def emit(nodes, edges, grid, cuts, out, name):
         f"\tzstep = {ZQ},",
         "\tformat = 3,",
         "\tsteep = true,",
+        "\tclimbChecked = true,",
     ]
     for key, table in (
         ("graph", graph),

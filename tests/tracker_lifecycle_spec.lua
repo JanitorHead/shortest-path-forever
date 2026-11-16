@@ -71,7 +71,7 @@ for _, readyAtLoad in ipairs({ false, true }) do
 				return fn(...)
 			end,
 		},
-		db = { trackerHost = { scale = 0.8 } },
+		db = { trackerHost = { scale = 0.8 }, trackerHeight = 999 },
 		TrackerHost = host,
 		L = setmetatable({}, {
 			__index = function(_, key)
@@ -97,6 +97,7 @@ for _, readyAtLoad in ipairs({ false, true }) do
 	local module = assert(modules[1], "the section is made")
 	assert(module.uiOrder == -3, "the section keeps its slot above the other Forever addons")
 	assert(module.lineTemplate == "ShortestPathForeverTrackerLineTemplate", "and its own line pool")
+	assert(module.trackerMaxHeight == 400, "an invalid saved height is clamped before first attachment")
 	assert(module.safeCall == ns.core.SafeCall, "its errors go to the addon's journal")
 	if not readyAtLoad then
 		assert(owners[module] == nil, "nothing attaches before the world and saved variables are ready")
@@ -110,6 +111,10 @@ for _, readyAtLoad in ipairs({ false, true }) do
 	end
 	assert(owners[module] == native, "private ownership survives initialization and late loading")
 	assert(module.legacySettings.scale == 0.8, "the old tracker table is offered to the shared column")
+	assert(
+		ns.SetTrackerHeight(-5) == false and ns.db.trackerHeight == 100,
+		"the absent Core setter path still clamps safely"
+	)
 	assert(ns.db.trackerHost == nil, "and cleared once it is offered")
 	-- The Journey's right-click menu lets the shared column go, to drag it anywhere, and takes it back.
 	local entries, attached = {}, true

@@ -1,3 +1,4 @@
+-- rule-ignore: file-size-no-growth - the journey search, its leg policy and the zone exemptions it builds stay together
 ---@class SPFNamespace
 local ns = select(2, ...)
 
@@ -68,13 +69,15 @@ end
 Search.SamePlace = SamePlace
 
 -- Where you stand, with the height of your floor when Floor.lua knows it: the walks then start on that floor rather
--- than the cheapest surface near you.
+-- than the cheapest surface near you. Where the floor is not known, the range checks to the NPCs around you bound the
+-- height instead, and the walks start on the surfaces inside that band (Band.lua, #737).
 local function Here()
 	local x, y, _, map = ns.JourneyPosition()
 	if not (x and y and map) then
 		return nil
 	end
-	return { map = map, x = x, y = y, z = ns.Floor and ns.Floor.Height(map, x, y) or nil }
+	local z = ns.Floor and ns.Floor.Height(map, x, y) or nil
+	return { map = map, x = x, y = y, z = z, band = z == nil and ns.Band and ns.Band.At(map, x, y) or nil }
 end
 
 -- Cancelled searches leave both batches paused with their settled costs.
@@ -866,12 +869,27 @@ function Search.Reset()
 	goal, followed = nil, nil
 end
 
--- The hazards a journey keeps away from, exempting where it started (the first readable position) and its goal;
--- walks searched with others no longer apply. Only a level-up or a setting changes them while the goal stays.
-local origin
+-- The hazards a journey keeps away from, exempting where it started (the first readable position), its goal, the
+-- zone the character is standing in now and the zone the walk being followed starts in; walks searched with others
+-- no longer apply. A boat can leave the character in a zone the origin never named, and the walk after it starts
+-- there: neither may be charged for the character to escape (#895).
+local origin, hereZone, landingZone
+local function WalkLanding()
+	local leg = followed and progress and followed.legs[progress.index]
+	if leg and leg.mode ~= "walk" then
+		local nextLeg = followed.legs[progress.index + 1]
+		if nextLeg and nextLeg.mode == "walk" then
+			return nextLeg.from
+		end
+	end
+end
 local function Avoid()
-	origin = origin or Here()
-	local profile = origin and goal and ns.Hazards.Profile(origin, goal) or nil
+	local here = Here()
+	origin = origin or here
+	hereZone = here and ns.Hazards.ZoneAt(here.map, here.x, here.y)
+	local landing = WalkLanding()
+	landingZone = landing and ns.Hazards.ZoneAt(landing.map, landing.x, landing.y)
+	local profile = origin and goal and ns.Hazards.Profile(origin, goal, here, landing) or nil
 	if (profile and profile.key) ~= (hazards and hazards.key) then
 		hazards = profile
 		Walks.SetHazards(profile)
@@ -908,8 +926,12 @@ end
 -- for a position.
 ---@param changed? boolean the travel policy changed since the last frame
 function Search.Poll(changed)
-	if changed then
-		-- A setting or your level changed what to avoid, from where you stand now.
+	local here = Here()
+	local zone = here and ns.Hazards.ZoneAt(here.map, here.x, here.y)
+	local landing = WalkLanding()
+	local landZone = landing and ns.Hazards.ZoneAt(landing.map, landing.x, landing.y)
+	if changed or zone ~= hereZone or landZone ~= landingZone then
+		-- A setting, your level or a zone you stand in or land in changed what to avoid, from where you stand now.
 		Avoid()
 		RefreshCosts(true, true)
 	end

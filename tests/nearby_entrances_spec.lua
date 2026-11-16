@@ -42,7 +42,7 @@ local function QuestieDB()
 		RequireContract = function(version)
 			return version == 2
 		end,
-		Enum = { byExpansion = { Classic = { npcFlags = {} } } },
+		Enum = { npcFlags = {}, byExpansion = { Classic = { npcFlags = {} } } },
 		Support = {
 			Get = function(name)
 				assert(name == "ZoneDB", "the zone tables are the support module this file reads")
@@ -183,6 +183,7 @@ local function load()
 	for _, fn in ipairs(initializers) do
 		fn()
 	end
+	ns.NearbyServices.Request()
 	while #timers > 0 do
 		table.remove(timers, 1)()
 	end

@@ -86,6 +86,7 @@ L["Flight master icon size"] = "비행 조련사 아이콘 크기"
 L["Flight path known"] = "알고 있는 비행 경로"
 L["Flights from here"] = "여기서 출발하는 비행"
 L["Fly to %s"] = "%s(으)로 비행"
+L["Follow Dugi guides"] = "Dugi 가이드 따르기" -- mt
 L["Follow Guidelime guides"] = "Guidelime 가이드 따르기"
 L["Follow RestedXP guides"] = "RestedXP 가이드 따르기"
 L["Follow TomTom's arrow"] = "TomTom 화살표 따르기"
@@ -95,8 +96,6 @@ L["Friendly nameplates must be on to see them."] =
 	"우호적인 유닛의 이름표가 켜져 있어야 볼 수 있습니다."
 L["Go through to %s"] = "%s(으)로 통과"
 L["Guidance"] = "안내"
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"안내는 지도에서 각 단계가 끝나는 곳을 표시하며, 걷는 길의 모든 갈림길을 표시하지는 않습니다. 화살표는 계속 걷는 길을 따라갑니다."
 L["Guide me"] = "안내 받기"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "호드"
@@ -159,6 +158,8 @@ L["This menu needs mouse and keyboard."] = "이 메뉴는 마우스와 키보드
 L["Open these settings from the minimap."] = "미니맵에서 이 설정을 엽니다."
 L["Other Faction's Routes"] = "다른 진영의 노선"
 L["Plan journey"] = "여정 계획"
+L["Plan journeys to Dugi's current guide step. Dugi keeps its own arrow."] =
+	"Dugi 가이드의 현재 단계로 여정을 계획합니다. Dugi는 자체 화살표를 유지합니다." -- mt
 L["Plan journeys to Guidelime's current guide step. Guidelime's arrow steps aside while ours draws."] =
 	"Guidelime의 현재 가이드 단계로 여정을 계획합니다. 우리 화살표가 그려지는 동안 Guidelime의 화살표는 물러납니다."
 L["Plan journeys to RestedXP guide targets and hide its arrow. No TomTom needed."] =
@@ -172,6 +173,7 @@ L["Portals"] = "차원문"
 L["Reagents"] = "마법 재료"
 L["Repair"] = "장비 수리"
 L["RestedXP guide"] = "RestedXP 가이드"
+L["Resume Dugi guide"] = "Dugi 가이드 재개" -- mt
 L["Resume Guidelime guide"] = "Guidelime 가이드 재개"
 L["Resume RestedXP guide"] = "RestedXP 가이드 재개"
 L["Resume guide"] = "가이드 재개"
@@ -231,6 +233,9 @@ L["The objective tracker is unavailable."] = "목표 추적기를 사용할 수 
 L["Through %s transport, there is a way"] = "%s 교통수단을 이용하면 길이 있습니다"
 L["Through %s transport: about %d min faster"] = "%s 교통수단 이용 시: 약 %d분 더 빠름"
 L["Tracker scale"] = "추적기 크기"
+L["Journey tracker height"] = "여정 추적기 높이"
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"여정 섹션의 높이를 제한하며 긴 여정은 내부에서 스크롤됩니다."
 L["Trade supplies"] = "전문 기술"
 L["Trainers"] = "상급자"
 L["Tram to %s"] = "%s행 지하철"
@@ -251,8 +256,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "무기 및 방어구"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"다음은? Adventure Guide Forever가 레벨에 맞는 퀘스트를 추천합니다."
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"방향 화살표 아래에 표시할 내용: 걸어갈 거리, 여정의 남은 시간 또는 둘 다." -- mt
 L["What's new after an update"] = "업데이트 후 새로운 소식"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"안내가 켜져 있는 동안: 다음 갈림길, 다음 정거장, 목적지를 화면 위쪽에 표시합니다."
@@ -419,6 +422,7 @@ L["How close you must get to a journey's destination for it to count as reached.
 	"여정의 목적지에 얼마나 가까워져야 도착으로 칩니다." -- mt
 L["Stops before the last on a multi-stop route keep 15 yards."] =
 	"여러 정류장이 있는 경로에서 마지막 이전 정류장은 15미터를 유지합니다." -- mt
+L["Dugi Guides"] = "Dugi Guides" -- mt
 L["Dungeons and raids"] = "던전 및 공격대" -- mt
 L["Town services"] = "마을 서비스" -- mt
 L["Town services on the world map"] = "세계 지도에 마을 서비스 표시" -- mt
@@ -428,6 +432,17 @@ L["All towns"] = "모든 마을" -- mt
 L["Books and recipes"] = "책과 조리법" -- mt
 L["One icon per town, or one per service as you zoom in."] =
 	"마을마다 아이콘 하나, 확대하면 서비스마다 아이콘 하나." -- mt
+L["Click to save it."] = "저장하려면 클릭하세요." -- mt
+L["Click to use it."] = "사용하려면 클릭하세요." -- mt
+L["Destination pin size"] = "목적지 핀 크기" -- mt
+L["Hearthstone"] = "귀환석" -- mt
+L["Saved for later."] = "나중을 위해 저장됨." -- mt
+L["Scales the pin over the destination on the world map."] =
+	"세계 지도의 목적지 위 핀 크기를 조정합니다." -- mt
+L["This journey uses it: %s faster."] = "이 여정에서 사용: %s 더 빠름." -- mt
+L["Use Hearthstone"] = "귀환석 사용" -- mt
+L["Journeys can start with your Hearthstone. Turn it off to save it for later; class teleports are still offered."] =
+	"여정은 귀환석으로 시작할 수 있습니다. 나중을 위해 끄면 직업 순간이동은 계속 제공됩니다." -- mt
 L["Ammunition"] = "탄약" -- mt
 L["Bags and trade supplies"] = "가방 및 전문 기술" -- mt
 L["Food and drink"] = "음식 및 음료" -- mt
@@ -540,3 +555,12 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "도로 우회 허용량" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"도로 따라가기가 켜져 있을 때 도로 밖의 같은 거리를 피하기 위해 허용할 추가 거리입니다. 50%는 기존 우선도를 유지하며, 0%는 도로를 우선하지 않습니다. 전체 도보 거리의 제한은 아닙니다." -- mt
+L["Point straight to the destination"] = "목적지를 바로 가리키기" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"화살표가 목적지를 바로 가리키고 직선 거리를 표시합니다. 다른 지도에 있으면 현재 이동 단계의 끝을 가리킵니다. 지도 표시와 여정 시간은 계속 경로를 따릅니다." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"지도에는 걸어가는 길의 각 모퉁이 대신 각 단계가 끝나는 곳을 표시합니다. 화살표 방향은 별도로 설정합니다." -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"방향 화살표 아래에 표시할 정보: 선택한 화살표 모드의 거리, 남은 여정 시간 또는 둘 다." -- mt
+
+L["Transmogrifier"] = "형상변환사" -- mt

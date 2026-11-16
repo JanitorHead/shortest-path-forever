@@ -6,6 +6,29 @@ if ns.broken then
 end
 local L = ns.L
 
+local USE_ITEM, CAST_SPELL = L["Use %s"], L["Cast %s"]
+
+-- The tracker and screen prompt name the same item or spell in the client's language. `formatPlace`, when the
+-- tracker asks for it, wraps the capital a party mage opens inside the same locale sentence.
+---@param teleport SPFTeleportPlace
+---@param formatPlace? fun(place: string): string
+---@return string action, number? icon
+function ns.TeleportAction(teleport, formatPlace)
+	if teleport.partyMage then
+		local icon = C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(teleport.spell)
+		local place = teleport.destination or UNKNOWN
+		if formatPlace then
+			place = formatPlace(place)
+		end
+		return L["Ask %s for a portal to %s"]:format(teleport.partyMage, place), icon
+	end
+	local name = teleport.item and C_Item.GetItemNameByID(teleport.item)
+		or C_Spell.GetSpellName(teleport.spell)
+		or UNKNOWN
+	local icon = teleport.item and C_Item.GetItemIconByID(teleport.item) or (C_Spell.GetSpellTexture(teleport.spell))
+	return (teleport.item and USE_ITEM or CAST_SPELL):format(name), icon
+end
+
 -- How a journey step reads. The tracker and the public API's EstimateDetail share these words, so a step names
 -- the same place in SPF's list and in another addon's travel line.
 local SCHEDULED = { boat = true, zeppelin = true, lift = true, tram = true }
@@ -208,4 +231,88 @@ function ns.AdvanceJourneyProgress(legs, progress, goal, riding, flying, near, g
 		progress.index, progress.departed = progress.index + 1, false
 	end
 	return goal.hold
+end
+
+---@param plan SPFPlan
+---@param current integer
+---@return SPFRow?
+function ns.NewFlightPathReminderRow(plan, current)
+	for index = current, #plan.legs do
+		local leg = plan.legs[index]
+		if leg.mode == "walk" and leg.to.undiscovered then
+			return {
+				key = "new-flight-path",
+				text = string.format(L["Step %d: discover flight master %s before flying."], index, ns.LegLabel(leg)),
+				grey = true,
+			}
+		end
+	end
+	if plan.unknownFlight then
+		local walk, flight = false, false
+		for index = current, #plan.legs do
+			local mode = plan.legs[index].mode
+			walk = walk or mode == "walk"
+			flight = flight or mode == "flight"
+		end
+		if walk and not flight then
+			return {
+				key = "unknown-flight-path",
+				text = L["A flight point you have not discovered yet would shorten this route: visit a flight master to learn it."],
+				grey = true,
+			}
+		end
+	end
+	return nil
+end
+
+local function Whole(ms)
+	return math.max(0, math.ceil(ms / 1000))
+end
+
+-- Where a leg starts and ends, as the planner's own leg points name them: the first and last point of the line it
+-- draws, copied to uiMapID and 0-1 fractions. A leg with no such line, or an end this client cannot place, keeps that
+-- field nil. Nothing is estimated here.
+---@param leg SPFLeg
+---@param place fun(point: SPFPoint): SPFAPIPlace?
+---@return SPFAPIPlace?, SPFAPIPlace?
+local function LegEnds(leg, place)
+	local points = ns.PlanContext.LegPoints(leg)
+	local first, last = points[1], points[#points]
+	return first and place(first), last and place(last)
+end
+
+-- The planner's legs from the one under way on, as fresh copies: the tracker's plain action words, the mode's own
+-- name and the leg's whole seconds including its wait, which is how JourneyTime adds the header up, and the leg's own
+-- ends as the planner drew them. Every table is new, so a caller never reaches the plan.
+---@param plan SPFPlan
+---@param index integer
+---@param place fun(point: SPFPoint): SPFAPIPlace?
+---@return SPFAPIJourneyLeg[]
+function ns.JourneyLegDetails(plan, index, place)
+	local legs = {}
+	for legIndex = index, #plan.legs do
+		local leg = plan.legs[legIndex]
+		local from, to = LegEnds(leg, place)
+		legs[#legs + 1] = {
+			mode = leg.mode,
+			text = ns.StepText(leg),
+			seconds = Whole(ns.LegSpan(leg)) + Whole(leg.wait or 0),
+			from = from,
+			to = to,
+		}
+	end
+	return legs
+end
+
+-- A place with the goal's name: the title its caller gave the stop, else the name the tracker's header gives it. The
+-- header's own line also counts the stops ("Stop 1 of 2: ..."), which a caller reads from index instead.
+---@param project fun(point: SPFPoint): SPFAPIPlace?
+---@param point SPFPoint
+---@return SPFAPIJourneyGoal?
+function ns.JourneyGoalDetails(project, point)
+	local place = project(point)
+	if not place then
+		return nil
+	end
+	return { map = place.map, x = place.x, y = place.y, title = point.label or ns.JourneyTitle(point) }
 end

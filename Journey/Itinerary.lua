@@ -17,8 +17,8 @@ end
 ---@field paths? SPFDrawPath[]|false false when the planner found no way
 ---@field walks {path: SPFDrawPath, leg: SPFLeg}[] walking legs still to search, nearest first
 
--- Hops are keyed by both stops' coordinates, so an unchanged hop survives a replan of the current leg and a caller
--- sending the same stops again. Only the current route's hops are kept, at most one per stop (64).
+-- Hops are keyed by both stops' coordinates and heights, so an unchanged hop survives a current-leg replan or a
+-- caller sending the same stops again. Only the current route's hops are kept, at most one per stop (64).
 ---@type table<string, SPFHop>
 local hops = {}
 ---@type SPFRoutePolicy
@@ -32,7 +32,18 @@ local job, searching
 local Step
 
 local function Key(from, to)
-	return string.format("%d:%.17g:%.17g:%d:%.17g:%.17g", from.map, from.x, from.y, to.map, to.x, to.y)
+	-- An unknown height differs from zero: a guide may learn which stacked floor its stop stands on later.
+	return string.format(
+		"%d:%.17g:%.17g:%s:%d:%.17g:%.17g:%s",
+		from.map,
+		from.x,
+		from.y,
+		from.z ~= nil and string.format("%.17g", from.z) or "?",
+		to.map,
+		to.x,
+		to.y,
+		to.z ~= nil and string.format("%.17g", to.z) or "?"
+	)
 end
 
 local function Schedule()
@@ -57,7 +68,12 @@ local function PlanHop(hop)
 	hop.paths = legs and {} or false
 	for index, leg in ipairs(legs or {}) do
 		local walk = leg.mode == "walk"
-		local path = { mode = leg.mode, points = ns.PlanContext.LegPoints(leg), preview = walk or nil }
+		local path = {
+			mode = leg.mode,
+			points = ns.PlanContext.LegPoints(leg),
+			preview = walk or nil,
+			placeholder = walk or nil,
+		}
 		hop.paths[index] = path
 		if walk and leg.from.map == leg.to.map and ns.Path.HasData(leg.from.map) then
 			hop.walks[#hop.walks + 1] = { path = path, leg = leg }
@@ -99,7 +115,7 @@ SearchWalk = function(hop)
 		table.remove(hop.walks, 1)
 		-- An unreachable walk keeps its straight placeholder rather than vanishing.
 		if points and #points > 1 then
-			walk.path.points, walk.path.preview = points, nil
+			walk.path.points, walk.path.preview, walk.path.placeholder = points, nil, nil
 			dirty = true
 		end
 		-- Queued from this callback, the next walk keeps the search queue from draining, which frees the grids. A

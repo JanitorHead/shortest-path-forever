@@ -134,6 +134,10 @@ assert(
 	"on the way, the centre is still the direction arrow"
 )
 
+-- Direct bearing does not bypass Journey's held-stop arrival semantics.
+ns.db.arrowDirect = true
+ns.ArrowBearingChanged()
+
 -- Standing in the stop's area: the pin, the title and the objective lines, capped at a few.
 driver.move({ map = 1, x = 0, y = 0, z = 0 })
 driver.update(0.1)

@@ -413,8 +413,17 @@ local function Plan(options)
 	end
 	local function Add(kind, id, point)
 		local index = #nodes + 1
-		nodes[index] =
-			{ kind = kind, id = id, map = point.map, x = point.x, y = point.y, z = point.z, label = point.label }
+		-- The band a walk from where the player stands starts inside (Band.lua) rides along to the walk's own search.
+		nodes[index] = {
+			kind = kind,
+			id = id,
+			map = point.map,
+			x = point.x,
+			y = point.y,
+			z = point.z,
+			band = point.band,
+			label = point.label,
+		}
 		nodes[index].pointKey = PointKey(point)
 		nodes[index].bakedKey = PlaceKey(nodes[index])
 		edges[index] = {}
@@ -542,6 +551,7 @@ local function Plan(options)
 				x = point.x,
 				y = point.y,
 				z = point.z,
+				band = point.band,
 				label = point.label,
 				pointKey = PointKey(point),
 			}
@@ -558,8 +568,9 @@ local function Plan(options)
 	end
 
 	local ride = options.ride
-	if ride and docks[ride.dock] and (options.routes or {})[ride.route] then
-		local route = options.routes[ride.route]
+	local rideRoute = ride and (ride.data or (options.routes or {})[ride.route])
+	if ride and docks[ride.dock] and rideRoute then
+		local route = rideRoute
 		for _, stop in ipairs(route.stops) do
 			if stop.dock == ride.dock then
 				Edge(start, docks[ride.dock], {

@@ -12,6 +12,41 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Journeys avoid lifts with opposing-faction landing guards.** Horde-guarded approaches are left out of Alliance journeys by default. A lift already being ridden can still reach its next stop. Thanks to a player for the report (#911).
+
+- **Nearby transport pins avoid work between samples.** Minimap boats and portals keep following movement without a callback on every frame. Polling stops while the minimap is hidden or combat is active (#784).
+
+- **Follow roads keeps the road at either end of a walk.** Shortcuts from your position or into your destination now respect the road route and the surface you stand on (#891).
+
+- **Turning off the direction arrow hides its cast prompt too.** Turning it back on restores the current item or spell without interrupting cast guidance. Thanks to Zerhathos for the report (#881).
+
+- **Short walks through Ironforge keep nearby doorways.** Walking from the Hall of Explorers to Tinker Town uses the connecting corridor instead of looping through the Military Ward. Thanks to cmartin303 for the report (#910).
+
+- **Find transmogrifiers in Nearby services.** Search for transmog to plan a journey to a transmogrifier, and show or hide their world map pins with their own checkbox. Thanks to kaelr1 for the idea (#909).
+
+- **The arrow can point straight to your destination.** Turn on *Point straight to the destination* to use a direct bearing and straight-line distance, independently of map marks. Destinations on another map lead to the current travel step. Journey time still follows the route. Thanks to Drusangus for the idea (#904).
+
+- **Manual destinations stay selected when RestedXP advances.** A guide update during a flight or after landing keeps your active manual destination. *Resume guide* hands control back. Thanks to ubrider for the report (#905).
+
+- **Later stops keep their corrected floor.** When a guide updates a stop's height without moving its map marker, the journeys into and out of that stop are planned again for the new floor (#903).
+
+- **Companion addons can read guidance.** API version 2, minor 1 adds copied next points, active-leg waypoints and guidance subscription notices. Thanks to nimri82 of RestedXP-Navigator for the request (#777).
+
+- **Dugi Guides can lead the journey.** Turn on *Follow Dugi guides* in Guidance to travel to the guide's current step without TomTom or a bridge addon. Dugi's own arrow stays visible. Thanks to ghuff07 for the request (#689).
+
+- **NPC arrows keep following the right creature.** A live creature GUID can include an instance field that the old parser discarded, so an arrow could follow a different NPC with the same entry number. The arrow now matches the complete live identity and drops the arrow when that identity no longer matches (#771).
+
+- **Long journeys can stay inside a fixed tracker height.** Set *Journey tracker height* under Interface to keep the Journey section compact; longer journeys scroll inside it while the shared tracker column keeps its width and placement (#887). Requires the matching ForeverCore viewport API before release.
+
+- **Walks start on the floor you are standing on.** Where floors stack, such as the ground under Stormwind or the hall above the Undercity's city, a journey started from whichever surface at your spot walked cheapest, so it could set off on a floor you were not on and run beneath the city. It now reads how far you are from the NPCs standing around you with the game's own range checks, and starts only on the surfaces within that height. Where nothing around you can be measured it starts exactly as it did before. The idea comes from BV Addon Suite - Routing, which works out the player's height the same way. Thanks to jixxor for the Stormwind report (#737, #602).
+
+- **The destination pin can be made smaller.** *Destination pin size* in Guidance, directly under *Show a pin over the destination*, scales the world map's journey goal pin from 50% to 100%. The pin keeps its shape and its point stays on the destination at every size, and 100% is how it always drew (#778).
+- **The Hearthstone can be kept out of a journey without opening settings.** Right-click the Journey header in the tracker and untick *Use Hearthstone*, or click the innkeeper button at your bind point on the world map. Both flip the same saved switch, replan the journey, and leave your class teleports on offer. The button greys out while the Hearthstone is saved and its tooltip says how much time the Hearthstone saves (cjber/adventure-guide-forever#707).
+
+### For addon authors
+
+- **Journey API 2.2 includes leg endpoints.** `Journey()` returns copied `from` and `to` map points when the client can place them. `Subscribe` reports replans, and `ResumeRestedXP()` resumes a paused guide outside combat (#782, #786).
+
 ## [1.38.0] - 2026-11-15
 
 <!-- discord-image: docs/screenshots/stops.png -->

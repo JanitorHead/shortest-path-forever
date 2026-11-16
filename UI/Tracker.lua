@@ -12,6 +12,15 @@ local Line = ForeverCore.TrackerLine --[[@as ForeverTrackerLineAPI]]
 
 ---@type SPFTracker
 local module
+local TRACKER_MIN_HEIGHT, TRACKER_MAX_HEIGHT = 100, 400
+
+local function TrackerHeight(value)
+	value = tonumber(value)
+	if not value or value ~= value or value == math.huge or value == -math.huge then
+		return 200
+	end
+	return math.max(TRACKER_MIN_HEIGHT, math.min(TRACKER_MAX_HEIGHT, value))
+end
 ---@class SPFTracker : SPFTrackerModule
 ---@field journeyTracker? boolean
 ---@field metres? boolean
@@ -33,7 +42,7 @@ local HEADER = { boat = L["Boats"], zeppelin = L["Boats"], lift = L["Lifts"], tr
 -- The shared column builds every section header's menu and offers this addon's own entries through
 -- AddHeaderMenuEntries, below. A section showing departures also offers to hide them.
 local function HasDepartures()
-	return module ~= nil and (module.dockID ~= nil or module.riding ~= nil)
+	return not not (module and (module.dockID or module.riding))
 end
 
 local function HideDepartures()
@@ -61,6 +70,7 @@ function ModuleMixin:OnBlockHeaderClick(block, button)
 		elseif button == "RightButton" then
 			ForeverCore.ContextMenu(block, function(_, root)
 				root:CreateCheckbox(L["Guide me"], ns.IsJourneyGuided, ns.ToggleJourneyGuide)
+				root:CreateCheckbox(L["Use Hearthstone"], ns.HearthstoneEnabled, ns.ToggleHearthstone)
 				root:CreateButton(L["Show on map"], ns.ShowJourneyMap)
 				root:CreateButton(L["Resume RestedXP guide"], function()
 					ns.ResumeRestedXP()
@@ -68,6 +78,12 @@ function ModuleMixin:OnBlockHeaderClick(block, button)
 				if GuidelimeArrow then
 					root:CreateButton(L["Resume Guidelime guide"], function()
 						ns.ResumeGuidelime()
+					end)
+				end
+				local viewer = DugisGuideViewer
+				if type(viewer) == "table" and viewer.DugisArrow then
+					root:CreateButton(L["Resume Dugi guide"], function()
+						ns.ResumeDugi()
 					end)
 				end
 				-- A corpse run ends only when you live again.
@@ -512,12 +528,25 @@ function ns.RefreshTracker()
 	RefreshTracker(ns.NearestDock())
 end
 
+function ns.SetTrackerHeight(value)
+	value = TrackerHeight(value)
+	local db = ns.db --[[@as any]]
+	db.trackerHeight = value
+	local host = ForeverCore.TrackerHost
+	local setSectionMaxHeight = (host --[[@as any]]).SetSectionMaxHeight
+	if module and type(setSectionMaxHeight) == "function" then
+		return setSectionMaxHeight(module, value)
+	end
+	return false
+end
+
 ns.Init(function()
 	-- The shared column builds the section, mixes this addon in, sets its order and header, and attaches it once the
 	-- world loads. The old tracker table is offered once so the player keeps the scale, lock and position they chose.
 	local tracker = Section.Create("ShortestPathForeverObjectiveTracker", ModuleMixin, {
 		-- Above quests, SkillUp Forever (-2) and Legacy Forever (0, -1): each needs its own slot.
 		order = -3,
+		maxHeight = TrackerHeight((ns.db --[[@as any]]).trackerHeight),
 		lineTemplate = LINE_TEMPLATE,
 		header = ModuleMixin.headerText,
 		legacy = function()

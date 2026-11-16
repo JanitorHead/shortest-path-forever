@@ -98,5 +98,7 @@ module.dockID, module.riding = nil, 1
 assert(Open()["Hide departures"], "riding a boat or lift is departures too")
 module.riding = nil
 assert(Open()["Hide departures"] == nil, "a section with no departures has no such entry")
+module.riding = false
+assert(Open()["Hide departures"] == nil, "disabled departures do not count as an active ride")
 
 print("departures_menu_spec: ok")

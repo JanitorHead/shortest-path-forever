@@ -73,9 +73,17 @@ local castPrompt
 local arrival
 local ShowArrival, RefreshTravelLines
 
+-- Guidance changes that are not a new journey stop or leg: a bend passed, the source walk replaced, or the
+-- guideStops setting collapsing what the arrow draws. Core/API.lua turns it into the public Subscribe notice.
+local function NotifyGuidance()
+	if ns.GuideGuidanceChanged then
+		ns.GuideGuidanceChanged()
+	end
+end
+
 -- Counter-clockwise from north, like GetPlayerFacing: UnitPosition's first value grows north, its second west.
-local function Bearing(x, y)
-	return math.atan2(target.y - y, target.x - x)
+local function Bearing(x, y, point)
+	return math.atan2(point.y - y, point.x - x)
 end
 
 -- The shorter way round from a to b, between -pi and pi.
@@ -177,18 +185,18 @@ local function Update(elapsed)
 	end
 	local moved = x ~= frame.x or y ~= frame.y or map ~= frame.map or facing ~= frame.facing
 	frame.x, frame.y, frame.map, frame.facing = x, y, map, facing
-	while index < #path and map == target.map and (target.x - x) ^ 2 + (target.y - y) ^ 2 <= PASSED ^ 2 do
-		index = index + 1
-		target = path[index]
-	end
-	-- The guide places its native marker at this bend, unless "Mark only where steps end" keeps it off the walk.
-	local placed = placeTarget and placeTarget(target, false)
+	ns.AdvanceGuide()
+	-- Direct bearing uses the final destination on this map. Across maps, keep leading to the active
+	-- leg's endpoint so boats, flights and portals still have a reachable boarding point.
+	local direct = ns.db.arrowDirect == true
+	local pointing = direct and ((destination and destination.map == map and destination) or path[#path]) or target
+	local placed = placeTarget and placeTarget(pointing, false)
 	-- Waypoint callbacks can stop or replace guidance synchronously.
 	if revision ~= updating then
 		return
 	end
 	native = placed
-	if not (facing and map == target.map) or (native and NativeMarkerShown()) then
+	if not (facing and map == pointing.map) or (native and NativeMarkerShown()) then
 		-- The native marker leads; nothing to draw, so only the slow poll runs, moving or not.
 		frame.behind = false
 		frame:SetAlpha(moving and 1 or 0)
@@ -196,7 +204,7 @@ local function Update(elapsed)
 		SetUpdating(false)
 		return
 	end
-	local angle = Difference(Bearing(x, y), facing)
+	local angle = Difference(Bearing(x, y, pointing), facing)
 	-- The arrow still points the way, and dims with the compass when that way is behind you.
 	frame.behind = ns.TurnAround.Behind(angle, frame.behind)
 	frame:SetAlpha(frame.behind and ns.BEHIND_ALPHA or 1)
@@ -205,9 +213,9 @@ local function Update(elapsed)
 	local easing = math.abs(delta) > SETTLED
 	frame.angle = easing and (frame.angle + delta * (1 - math.exp(-EASE * elapsed))) % TURN or angle
 	Draw(frame.angle)
-	-- The distance still to walk: to this bend, then along the rest of the path.
-	local distance = math.sqrt((target.x - x) ^ 2 + (target.y - y) ^ 2)
-	for i = index + 1, #path do
+	-- Direct mode measures the displayed bearing; route mode adds the remaining walking bends.
+	local distance = math.sqrt((pointing.x - x) ^ 2 + (pointing.y - y) ^ 2)
+	for i = index + 1, direct and 0 or #path do
 		distance = distance + math.sqrt((path[i].x - path[i - 1].x) ^ 2 + (path[i].y - path[i - 1].y) ^ 2)
 	end
 	local yards = math.floor(distance)
@@ -536,10 +544,34 @@ function ns.ArrivalPinChanged()
 	end
 end
 
--- Guide follows the walk bend by bend. "Mark only where steps end" thins only the point the map marks, never the
--- walk the arrow follows.
+-- Advance the bend under way from where the player stands. This is the guide's one progress step: the arrow, the
+-- compass and the public API all read it, so it must not live in a renderer. It runs only from an existing tick or a
+-- read, never from a timer of its own.
+---@return boolean advanced
+function ns.AdvanceGuide()
+	if not (path and target) then
+		return false
+	end
+	local x, y, _, map = ns.JourneyPosition()
+	if not (x and y) then
+		return false
+	end
+	local advanced = false
+	while index < #path and map == target.map and (target.x - x) ^ 2 + (target.y - y) ^ 2 <= PASSED ^ 2 do
+		index = index + 1
+		target = path[index]
+		advanced = true
+	end
+	if advanced then
+		NotifyGuidance()
+	end
+	return advanced
+end
+
+-- Guide follows every bend; map marks may show only step ends.
 function ns.RefreshGuideStops()
 	revision = revision + 1
+	local previousPath, previousTarget = path, target
 	path = source
 	index = 1
 	local x, y, _, map = ns.JourneyPosition()
@@ -558,12 +590,13 @@ function ns.RefreshGuideStops()
 		end
 	end
 	target = path and path[index]
+	if path ~= previousPath or target ~= previousTarget then
+		NotifyGuidance()
+	end
 end
 
--- Settings: "Mark only where steps end" swaps which pointer leads, so the arrow and the guide's own marker change
--- over at once rather than at the next poll.
-function ns.GuideStopsChanged()
-	ns.RefreshGuideStops()
+-- Refresh arrow rendering without changing the canonical walk or its progress.
+function ns.ArrowBearingChanged()
 	if frame then
 		Wake()
 		Update(0)
@@ -571,6 +604,11 @@ function ns.GuideStopsChanged()
 	if ns.RefreshCompass then
 		ns.RefreshCompass()
 	end
+end
+
+function ns.GuideStopsChanged()
+	ns.RefreshGuideStops()
+	ns.ArrowBearingChanged()
 end
 
 -- placeBend owns waypoint placement and returns whether native tracking is ours. Progress lives only here.
@@ -670,12 +708,26 @@ end
 -- Read-only targets share Guide's passed bends as the map marks them: with "Mark only where steps end" on, that is
 -- the step's end, which the compass marks too, while the arrow itself follows every bend.
 function ns.GuideTargets()
+	ns.AdvanceGuide()
 	if path then
 		if ns.db.guideStops then
 			return path[#path], nil, stepEnd, destination
 		end
 		return target, path[index + 1], stepEnd, destination
 	end
+end
+
+-- What the public guidance read copies: the target, the canonical source walk, its index in that walk, and the stop
+-- and goal it leads to. Map marks may show only step ends; guidance keeps the full source walk.
+-- The returned points are Guide's own; Core/API.lua makes the public copies.
+---@return SPFPoint? target, SPFWalkPoints? source, integer? index, SPFPlace? stop, SPFPoint? goal
+function ns.GuideState()
+	ns.AdvanceGuide()
+	if not (target and source and index) then
+		return nil
+	end
+	local canonical = path == source and index or #source
+	return target, source, canonical, stepEnd, destination
 end
 
 ---@class SPFCastPromptFrame : Frame
@@ -685,7 +737,7 @@ end
 local castTarget
 
 local function RenderCastPrompt()
-	if not castPrompt or not castTarget then
+	if not castPrompt or not castTarget or ns.db.arrow == false then
 		return
 	end
 	local action, icon = ns.TeleportAction(castTarget)
@@ -697,7 +749,7 @@ end
 ---@param teleport? SPFTeleportPlace
 function ns.PointCastPrompt(teleport)
 	castTarget = teleport
-	if not teleport then
+	if not teleport or ns.db.arrow == false then
 		if castPrompt then
 			castPrompt:UnregisterAllEvents()
 			castPrompt:Hide()

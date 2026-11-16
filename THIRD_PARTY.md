@@ -32,6 +32,7 @@ as the glossary for game terms; eight frFR lines are Brainc3ll's.
 |---|---|---|
 | QuestieDB, if installed | Quest givers and objectives as route goals | QuestieDB carries no licence; nothing is copied |
 | TomTom, RestedXP Guides and Guidelime, if installed | Waypoints and guide steps, through their public APIs | Their own; nothing is copied |
+| Dugi Guides, if installed | Its current guide step, read from the viewer's own arrow tables | All rights reserved; no code, art or guide data is copied or bundled |
 | TomTom's API, while TomTom is not installed | `Core/TomTom.lua` answers guide addons' TomTom calls, and `/way` reads its arguments as TomTom does | Our own code; only TomTom's public call names and `/way` syntax are followed |
 | Adventure Guide Forever and Tweaks Forever, if installed | The RestedXP hand-off, and class trainers for nearby services, through their public APIs | GPL-3.0-or-later |
 
@@ -60,6 +61,8 @@ Credit for the reports and requests behind the addon.
 
 | Who | What | Notes |
 |---|---|---|
+| A player | Journeys avoid opposing-faction guarded lifts | CurseForge thread 8726893, #911 |
+| kaelr1 | Transmogrifiers in Nearby services and map pins | Discord, #909 |
 | user\_lsqt69ps7bgb5p7e | Journeys with several chosen stops | CurseForge thread 8705002, #846 |
 | Enel3008 | Choose how strongly journeys prefer roads | CurseForge thread 8705155, #848 |
 | user\_lsqt69ps7bgb5p7e | Farming tours through GatherMate2 recorded locations | CurseForge; thread 8705002; #847 |
@@ -156,7 +159,7 @@ Credit for the reports and requests behind the addon.
 | user\_efwsfml273dlvfm5 | Fixed the remaining path job yield error | CurseForge; #803 |
 | IronmanBG | Plan journey back in Kaliel's Tracker | CurseForge; #718 |
 | vladsnz | Quest list More options works with a controller | CurseForge; #788 |
-| vcatalin | Forever Core bundled in the download again | GitHub; #731 |
+| vcatalin | ForeverCore bundled in the download again | GitHub; #731 |
 | sdtom | Town service pins wear their own icons | CurseForge; #794 |
 | Bervath | Town service pins wear their own icons | CurseForge; #794 |
 | Blast22 | Guidance no longer flickers between two objectives | CurseForge; 8693782 |
@@ -170,6 +173,8 @@ Credit for the reports and requests behind the addon.
 | CptShooter | Hide the objective lines under the arrow | CurseForge; #691 |
 | user\_10oietw0rdrgk4le | Hovering the minimap map pin no longer errors | CurseForge; #824 |
 | ubrider | Hovering the minimap map pin no longer errors | CurseForge; #824 |
+| ubrider | Manual destinations keep priority over RestedXP updates | CurseForge; #905 |
+| Drusangus | An arrow pointing straight to the destination | CurseForge; #904 |
 | cwebbx | Journeys start from a focused quest or map pin | CurseForge; #687 |
 | lone\_viking1921 | Journeys start from a focused quest or map pin | CurseForge; #687 |
 | Nivlemoth\_Nathrezim | Horde walks stay out of Southshore | CurseForge; #719 |
@@ -178,6 +183,9 @@ Credit for the reports and requests behind the addon.
 | MrOxiMoron | The game's quest markers can stay on the map during a journey | CurseForge; #871; thread 8698185 |
 | Zhiroc | A choice of key for planning a journey from a map click | CurseForge; #882; thread 8712334 |
 | Crypa7 | Walk to a new flight master before flying | CurseForge; #868; thread 8706618 |
+| ghuff07 | Dugi Guides can lead the journey | CurseForge; #689 |
+| nimri82 | The public guidance point for RestedXP-Navigator | CurseForge; #777 |
+| [cmartin303](https://github.com/cmartin303) | Short walks through Ironforge keep nearby doorways | GitHub; #910 |
 
 ## Inspired by
 
@@ -187,5 +195,6 @@ Credit for the addons and projects an idea came from.
 |---|---|---|
 | [Polestar](https://github.com/fitzforge/polestar) by Fitz | Ideas for many features | Hearthstone learning, journeys after `/reload`, the fallback arrow, flight tooltips, instance routing, compass time, minimap rim, own map frames, and the shared report window and tooling. GPL-3.0. Inspired only; no code was copied. Fitz is welcome to use our code. |
 | Ding! by Yendi | Walks that keep out of zones far above your level | Inspired only; no code was copied. |
+| [BV Addon Suite - Routing](https://www.curseforge.com/wow/addons/bv-addon-suite-routing) | Walks that start on the floor you are standing on | Its idea of working out the player's height from the game's range checks to nearby NPCs, instead of guessing a surface. All rights reserved; inspired only, no code was copied. |
 
 Thanks also to everyone else who reported a bug or asked for a feature, here or on CurseForge.

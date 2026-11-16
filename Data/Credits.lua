@@ -4,6 +4,8 @@ local _, ns = ...
 
 ns.Credits = {
 	players = {
+		{ name = "A player", what = "Journeys avoid opposing-faction guarded lifts" },
+		{ name = "kaelr1", what = "Transmogrifiers in Nearby services and map pins" },
 		{ name = "user_lsqt69ps7bgb5p7e", what = "Journeys with several chosen stops" },
 		{ name = "Enel3008", what = "Choose how strongly journeys prefer roads" },
 		{ name = "user_lsqt69ps7bgb5p7e", what = "Farming tours through GatherMate2 recorded locations" },
@@ -103,7 +105,7 @@ ns.Credits = {
 		{ name = "user_efwsfml273dlvfm5", what = "Fixed the remaining path job yield error" },
 		{ name = "IronmanBG", what = "Plan journey back in Kaliel's Tracker" },
 		{ name = "vladsnz", what = "Quest list More options works with a controller" },
-		{ name = "vcatalin", what = "Forever Core bundled in the download again" },
+		{ name = "vcatalin", what = "ForeverCore bundled in the download again" },
 		{ name = "sdtom", what = "Town service pins wear their own icons" },
 		{ name = "Bervath", what = "Town service pins wear their own icons" },
 		{ name = "Blast22", what = "Guidance no longer flickers between two objectives" },
@@ -120,6 +122,8 @@ ns.Credits = {
 		{ name = "CptShooter", what = "Hide the objective lines under the arrow" },
 		{ name = "user_10oietw0rdrgk4le", what = "Hovering the minimap map pin no longer errors" },
 		{ name = "ubrider", what = "Hovering the minimap map pin no longer errors" },
+		{ name = "ubrider", what = "Manual destinations keep priority over RestedXP updates" },
+		{ name = "Drusangus", what = "An arrow pointing straight to the destination" },
 		{ name = "cwebbx", what = "Journeys start from a focused quest or map pin" },
 		{ name = "lone_viking1921", what = "Journeys start from a focused quest or map pin" },
 		{ name = "Nivlemoth_Nathrezim", what = "Horde walks stay out of Southshore" },
@@ -128,9 +132,13 @@ ns.Credits = {
 		{ name = "MrOxiMoron", what = "The game's quest markers can stay on the map during a journey" },
 		{ name = "Zhiroc", what = "A choice of key for planning a journey from a map click" },
 		{ name = "Crypa7", what = "Walk to a new flight master before flying" },
+		{ name = "ghuff07", what = "Dugi Guides can lead the journey" },
+		{ name = "nimri82", what = "The public guidance point for RestedXP-Navigator" },
+		{ name = "cmartin303", what = "Short walks through Ironforge keep nearby doorways" },
 	},
 	inspired = {
 		{ name = "Polestar by Fitz", what = "Ideas for many features" },
 		{ name = "Ding! by Yendi", what = "Walks that keep out of zones far above your level" },
+		{ name = "BV Addon Suite - Routing", what = "Walks that start on the floor you are standing on" },
 	},
 }

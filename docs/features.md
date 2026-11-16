@@ -26,7 +26,7 @@ With the game's gamepad interface on, Shortest Path never opens or turns the wor
 
 Click the current journey step and choose **Complete this step** to advance it. Skipping a Hearthstone leaves it out of plans for that journey. Other steps may return if your actual position still requires them.
 
-With RestedXP or Guidelime installed, **Resume guide** in Guidance or the Journey header menu resumes that guide's current target after another journey. Adventure Guide owns this action when its RestedXP display is enabled; update both addons to use the integrated resume control.
+With RestedXP, Guidelime or Dugi Guides installed, **Resume guide** in Guidance or the Journey header menu resumes that guide's current target after another journey. Dugi Guides is off by default: turn on *Follow Dugi guides* in Guidance to follow it, and Dugi's own arrow stays in place. Adventure Guide owns this action when its RestedXP display is enabled; update both addons to use the integrated resume control.
 
 ## Routes and map marks
 
@@ -61,7 +61,8 @@ With RestedXP or Guidelime installed, **Resume guide** in Guidance or the Journe
   bound at an innkeeper with the addon on, or where your last Hearthstone or Astral Recall set you down. Until
   then, or after binding somewhere else with the addon off, the hearth is left out. The recorded bind position is saved per character and checked against
   the current bind name. Class teleports need no bind point. Turn this
-  off with *Use hearth and teleports* in `/path`.
+  off with *Use hearth and teleports* in `/path`, or keep just the Hearthstone out with *Use Hearthstone* in
+  `/path`, the tracker's Journey menu or the innkeeper button at your bind point on the world map.
   ![Journey steps from Auberdine to Silithus with time and distance remaining](screenshots/tracker.png)
 
   The tracker shows each travel step, with time and distance remaining.

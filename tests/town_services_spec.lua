@@ -67,9 +67,16 @@ local index = {
 	trade = { place(4, "Trade Four", 2000, 0) },
 }
 local navigated
+local catalogueState, catalogueReads = "idle", 0
 ns.NearbyServices = {
+	Request = function()
+		if catalogueState == "idle" then
+			catalogueReads = catalogueReads + 1
+			catalogueState = "building"
+		end
+	end,
 	State = function()
-		return "ready"
+		return catalogueState
 	end,
 	Index = function()
 		return index
@@ -108,8 +115,21 @@ check(saved.townServiceBank == true and saved.townServiceProfessions == true, "a
 saved.townServiceBank = false
 check(ns.Defaults.townServiceBank == true, "a saved switch does not change the shipped defaults")
 mapID, zoom = 1414, 0
+setMapShown(false)
+ns.RefreshTownServices()
+check(catalogueReads == 0, "a closed map does not demand the catalogue")
+ns.db.townServices = "off"
 setMapShown(true)
 ns.RefreshTownServices()
+check(catalogueReads == 0, "disabled town services do not demand the catalogue")
+ns.db.townServices = "all"
+ns.RefreshTownServices()
+check(catalogueReads == 1 and catalogueState == "building", "map-only demand starts before the ready gate")
+ns.RefreshTownServices()
+check(catalogueReads == 1, "a loading map consumer keeps the first request")
+catalogueState = "ready"
+ns.RefreshTownServices()
+check(catalogueReads == 1, "a ready map consumer keeps the completed request")
 
 local function pins()
 	return ns.Canvas.Pools(WorldMapFrame).ShortestPathForeverServicePinTemplate.active
@@ -426,6 +446,19 @@ check(
 	"a journey goes to that real spawn, not the mean"
 )
 navigated = nil
+
+-- A newly classified service gets its own pin and saved visibility control.
+local transmog = group("services", "transmog", "Transmogrifier", "poi-transmogrifier")
+groups = {transmog}
+index = {transmog = {place(270582, "Mon'ye", 1800, -4900)}}
+ns.RefreshTownServices()
+check(ns.Defaults.townServiceTransmog == true, "transmogrifiers show on old saves by default")
+check(ns.TownServiceFilterable(transmog), "the shared transmog group has a map checkbox")
+check(find(270582) ~= nil, "the shared index produces a transmogrifier town pin")
+ns.SetTownServiceGroupShown(transmog, false)
+check(find(270582) == nil, "the checkbox hides the transmogrifier pin")
+ns.SetTownServiceGroupShown(transmog, true)
+check(find(270582) ~= nil, "the checkbox restores the transmogrifier pin")
 
 check(#errors == 0, table.concat(errors, "\n"))
 

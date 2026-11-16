@@ -149,7 +149,7 @@ local lib = {
 		assert(v == 2)
 		return true
 	end,
-	Enum = { byExpansion = { Classic = { npcFlags = flags } } },
+	Enum = { npcFlags = flags, byExpansion = { Classic = { npcFlags = flags } } },
 	Support = {
 		Get = function(name)
 			assert(name == "ZoneDB")
@@ -671,6 +671,7 @@ local function fresh(questie, away, L)
 	for _, fn in ipairs(starts) do
 		fn()
 	end
+	copy.NearbyServices.Request()
 	while #timers > 0 do
 		pump()
 	end
@@ -837,7 +838,7 @@ do
 		RequireContract = function(version)
 			return version == 2
 		end,
-		Enum = { byExpansion = { Classic = { npcFlags = flags } } },
+		Enum = { npcFlags = flags, byExpansion = { Classic = { npcFlags = flags } } },
 		Support = {
 			Get = function(name)
 				assert(name == "ZoneDB")
@@ -888,6 +889,7 @@ do
 	}) do
 		driver.load(file)
 	end
+	worldNs.NearbyServices.Request()
 	local guard = 0
 	while #travelTimers > 0 do
 		guard = guard + 1

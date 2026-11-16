@@ -9,8 +9,7 @@ local L = ns.L
 
 local settings = {}
 
--- Change an option from anywhere (the map's filter menu) with the settings panel kept in step. A menu-only setting
--- has no row to move, so its saved value is written directly.
+-- Change an option from anywhere and keep the settings panel in step.
 ---@param key string
 ---@param value boolean|number|string
 function ns.SetOption(key, value)
@@ -21,16 +20,12 @@ function ns.SetOption(key, value)
 		ns.db[key] = value
 	end
 end
-
 local category
 
--- The settings category is the addon's one options surface: the slash command and the compartment entry open it.
--- Through ForeverCore's secure opener: the client's Settings.OpenToCategory and its C_SettingsUtil.OpenSettingsPanel
--- refuse a direct call from addon code (cjber/forever-core#333).
+-- The settings category is opened through ForeverCore's secure opener.
 function ns.OpenSettings()
 	ForeverCore.OpenSettingsPanel(category:GetID())
 end
-
 local optionsButton
 function ns.RefreshOptionsButton()
 	if ns.db.minimapButton and not optionsButton then
@@ -55,7 +50,6 @@ function ns.RefreshOptionsButton()
 		optionsButton:SetShown(ns.db.minimapButton)
 	end
 end
-
 local function Perf()
 	local profiler, metrics = C_AddOnProfiler, Enum.AddOnProfilerMetric
 	if profiler and profiler.GetAddOnMetric and metrics and (not profiler.IsEnabled or profiler.IsEnabled()) then
@@ -86,7 +80,6 @@ local function Perf()
 		ns.Print("Memory accounting is unavailable on this client.")
 	end
 end
-
 -- Rows go in through Settings.RegisterInitializer, which inserts them from Blizzard's secure delegate.
 -- Settings.CreateCheckbox inserts from our code instead, and the settings search reads every layout, so that
 -- tainted it: a restricted button in the results (Social's Discord Sign In) was then blocked and blamed on us.
@@ -107,7 +100,6 @@ ns.Init(function()
 			end, nil, false)
 		)
 	end
-
 	local function Checkbox(key, name, tooltip, onChanged)
 		local setting = Settings.RegisterAddOnSetting(
 			page,
@@ -124,8 +116,7 @@ ns.Init(function()
 		Settings.RegisterInitializer(page, Settings.CreateCheckboxInitializer(setting, nil, tooltip))
 		settings[key] = setting
 	end
-
-	local function Scale(key, name, tooltip, refresh)
+	local function Scale(key, name, tooltip, refresh, minimum, step)
 		local setting = Settings.RegisterAddOnSetting(
 			page,
 			"ShortestPathForever_" .. key,
@@ -137,13 +128,12 @@ ns.Init(function()
 		)
 		setting:SetValueChangedCallback(refresh)
 		settings[key] = setting
-		local options = Settings.CreateSliderOptions(25, 200, 5)
+		local options = Settings.CreateSliderOptions(minimum or 25, 200, step or 5)
 		options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
 			return value .. "%"
 		end)
 		Settings.RegisterInitializer(page, Settings.CreateSliderInitializer(setting, options, tooltip))
 	end
-
 	-- Map marks: what the world map and the minimap draw.
 	Page(L["Map marks"])
 	Checkbox("pins", L["Show boats and zeppelins"], L["On the world map."], ns.RefreshMap)
@@ -401,6 +391,33 @@ ns.Init(function()
 			ns.DestinationPinChanged()
 		end
 	)
+	local destinationPinSize = Settings.RegisterAddOnSetting(
+		page,
+		"ShortestPathForever_destinationPinSize",
+		"destinationPinSize",
+		ns.db,
+		Settings.VarType.Number,
+		L["Destination pin size"],
+		ns.Defaults.destinationPinSize
+	)
+	destinationPinSize:SetValueChangedCallback(function(_, value)
+		if type(value) == "number" then
+			ns.RefreshDestinationPinSize()
+		end
+	end)
+	settings.destinationPinSize = destinationPinSize
+	local destinationPinOptions = Settings.CreateSliderOptions(50, 100, 5)
+	destinationPinOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
+		return value .. "%"
+	end)
+	Settings.RegisterInitializer(
+		page,
+		Settings.CreateSliderInitializer(
+			destinationPinSize,
+			destinationPinOptions,
+			L["Scales the pin over the destination on the world map."]
+		)
+	)
 	Checkbox(
 		"arrivalPin",
 		L["Show a pin when you reach a stop"],
@@ -486,6 +503,14 @@ ns.Init(function()
 		end
 	)
 	Checkbox(
+		"dugi",
+		L["Follow Dugi guides"],
+		L["Plan journeys to Dugi's current guide step. Dugi keeps its own arrow."],
+		function()
+			ns.RefreshDugi()
+		end
+	)
+	Checkbox(
 		"avoidHighZones",
 		L["Avoid zones far above my level"],
 		L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."],
@@ -533,6 +558,14 @@ ns.Init(function()
 		L["Use hearth and teleports"],
 		L["Journeys, and other addons' estimates from here, can start with your hearthstone or a teleport, cooldown counted."]
 	)
+	Checkbox(
+		"useHearthstone",
+		L["Use Hearthstone"],
+		L["Journeys can start with your Hearthstone. Turn it off to save it for later; class teleports are still offered."],
+		function(_, value)
+			ns.SetHearthstoneEnabled(type(value) == "boolean" and value or (ns.db.useHearthstone == true))
+		end
+	)
 	local hearth = Settings.RegisterAddOnSetting(
 		page,
 		"ShortestPathForever_hearthMinimumSavings",
@@ -559,7 +592,7 @@ ns.Init(function()
 	Checkbox(
 		"guideStops",
 		L["Mark only where steps end"],
-		L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."],
+		L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."],
 		ns.GuideStopsChanged
 	)
 	Checkbox(
@@ -574,7 +607,6 @@ ns.Init(function()
 		L["While you are a ghost, a red dotted path leads to your body. Your journey waits until you are alive again."],
 		ns.RefreshCorpseRun
 	)
-
 	Settings.RegisterInitializer(
 		page,
 		CreateSettingsButtonInitializer(L["RestedXP guide"], L["Resume guide"], function()
@@ -585,6 +617,12 @@ ns.Init(function()
 		page,
 		CreateSettingsButtonInitializer(L["Guidelime"], L["Resume guide"], function()
 			ns.ResumeGuidelime()
+		end, nil, false)
+	)
+	Settings.RegisterInitializer(
+		page,
+		CreateSettingsButtonInitializer(L["Dugi Guides"], L["Resume guide"], function()
+			ns.ResumeDugi()
 		end, nil, false)
 	)
 
@@ -632,7 +670,7 @@ ns.Init(function()
 		L["Show direction arrow"],
 		L["Show the next direction and the game's navigation marker."],
 		function()
-			ns.JourneyGuide.Retarget()
+			ns.JourneyGuide.ArrowChanged()
 			ns.WakeTravel()
 		end
 	)
@@ -652,28 +690,17 @@ ns.Init(function()
 			L["Shows the arrow to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."]
 		)
 	)
-	local arrowScale = Settings.RegisterAddOnSetting(
-		page,
-		"ShortestPathForever_arrowScale",
-		"arrowScale",
-		ns.db,
-		Settings.VarType.Number,
-		L["Arrow scale"],
-		ns.Defaults.arrowScale
-	)
-	arrowScale:SetValueChangedCallback(function(_, value)
+	Scale("arrowScale", L["Arrow scale"], L["Scales the arrow and the cast prompt."], function(_, value)
 		if type(value) == "number" then
 			ns.SetArrowScale(value)
 		end
-	end)
-	settings.arrowScale = arrowScale
-	local arrowOptions = Settings.CreateSliderOptions(50, 200, 10)
-	arrowOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
-		return value .. "%"
-	end)
-	Settings.RegisterInitializer(
-		page,
-		Settings.CreateSliderInitializer(arrowScale, arrowOptions, L["Scales the arrow and the cast prompt."])
+	end, 50, 10)
+	-- stylua: ignore
+	Checkbox(
+		"arrowDirect",
+		L["Point straight to the destination"],
+		L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."], -- luacheck: ignore 631
+		ns.ArrowBearingChanged
 	)
 	local arrowLabel = Settings.RegisterAddOnSetting(
 		page,
@@ -694,11 +721,12 @@ ns.Init(function()
 	arrowLabelOptions:Add("distance", L["Distance"])
 	arrowLabelOptions:Add("time", L["Time left"])
 	arrowLabelOptions:Add("both", L["Both"])
+	-- stylua: ignore
 	Settings.RegisterInitializer(
 		page,
 		Settings.CreateDropdownInitializer(arrowLabel, function()
 			return arrowLabelOptions:GetData()
-		end, L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."])
+		end, L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."]) -- luacheck: ignore 631
 	)
 	Checkbox(
 		"arrowObjectives",
@@ -779,6 +807,32 @@ ns.Init(function()
 			)
 		)
 	end
+	local trackerHeight = Settings.RegisterAddOnSetting(
+		page,
+		"ShortestPathForever_trackerHeight",
+		"trackerHeight",
+		ns.db,
+		Settings.VarType.Number,
+		L["Journey tracker height"],
+		(ns.Defaults --[[@as any]]).trackerHeight
+	)
+	trackerHeight:SetValueChangedCallback(function(_, value)
+		local db = ns.db --[[@as any]]
+		db.trackerHeight = value
+		ns.SetTrackerHeight(value)
+	end)
+	local trackerHeightOptions = Settings.CreateSliderOptions(100, 400, 20)
+	trackerHeightOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
+		return value .. " UI units"
+	end)
+	Settings.RegisterInitializer(
+		page,
+		Settings.CreateSliderInitializer(
+			trackerHeight,
+			trackerHeightOptions,
+			L["Limits the Journey section to this height; longer journeys scroll inside it."]
+		)
+	)
 	local compassScale = Settings.RegisterAddOnSetting(
 		page,
 		"ShortestPathForever_compassScale",

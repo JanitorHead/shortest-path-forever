@@ -70,3 +70,27 @@ loaded[0] = true
 Walks.Prepare(plan(), nil, false, function() end)
 assert(#jobs == 3, "already loaded terrain should still refine distant geometry")
 print("journey_walks_spec: ok")
+
+-- A failed search never leaves its straight placeholder as the leg's points, and never caches it as a measured
+-- walk: a later Prepare must not resurrect the line (#894).
+do
+	Walks.Clear()
+	Walks.Cancel()
+	map = 0
+	local failed = plan()
+	local before = #jobs
+	Walks.Prepare(failed, nil, false, function() end)
+	assert(#jobs == before + 1, "the walk is searched")
+	jobs[#jobs].callback(nil, "offmesh", jobs[#jobs])
+	local leg = failed.legs[1]
+	assert(not leg.measured and leg.walkPlaceholder, "a failed walk is an unmeasured placeholder")
+	assert(#leg.walkPoints == 0, "the failed search drops the straight line")
+	assert(Walks.Pending() == 0)
+	local again = plan()
+	local searched = #jobs
+	Walks.Prepare(again, nil, false, function() end)
+	leg = again.legs[1]
+	assert(#jobs == searched, "the failure is cached, not searched again")
+	assert(not leg.measured and leg.walkPlaceholder, "the cached failure stays unmeasured")
+	assert(#leg.walkPoints == 0, "the cache does not resurrect the straight line")
+end

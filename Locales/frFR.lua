@@ -85,6 +85,7 @@ L["Flight master icon size"] = "Taille des icônes des maîtres de vol" -- mt
 L["Flight path known"] = "Trajet aérien connu" -- mt
 L["Flights from here"] = "Vols depuis ici" -- mt
 L["Fly to %s"] = "Voler vers %s" -- mt
+L["Follow Dugi guides"] = "Suivre les guides Dugi" -- mt
 L["Follow Guidelime guides"] = "Suivre les guides Guidelime" -- mt
 L["Follow RestedXP guides"] = "Suivre les guides RestedXP" -- mt
 L["Follow TomTom's arrow"] = "Suivre la flèche de TomTom" -- mt
@@ -94,8 +95,6 @@ L["Friendly nameplates must be on to see them."] =
 	"Les plaques de nom des unités amies doivent être activées pour les voir."
 L["Go through to %s"] = "Passer vers %s" -- mt
 L["Guidance"] = "Guidage" -- mt
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"Le guidage marque sur la carte la fin de chaque étape, pas chaque virage du trajet à pied. La flèche suit toujours le trajet à pied." -- mt
 L["Guide me"] = "Me guider" -- mt
 L["Guidelime"] = "Guidelime" -- mt
 L["Horde"] = "Horde" -- mt
@@ -157,6 +156,8 @@ L["This menu needs mouse and keyboard."] = "Ce menu nécessite la souris et le c
 L["Open these settings from the minimap."] = "Ouvrir ces réglages depuis la minicarte." -- mt
 L["Other Faction's Routes"] = "Routes de l'autre faction" -- mt
 L["Plan journey"] = "Planifier un trajet" -- mt
+L["Plan journeys to Dugi's current guide step. Dugi keeps its own arrow."] =
+	"Planifier des trajets vers l'étape actuelle du guide Dugi. Dugi conserve sa propre flèche." -- mt
 L["Plan journeys to Guidelime's current guide step. Guidelime's arrow steps aside while ours draws."] =
 	"Planifier des trajets vers l'étape actuelle du guide Guidelime. Sa flèche s'efface pendant que la nôtre s'affiche." -- mt
 L["Plan journeys to RestedXP guide targets and hide its arrow. No TomTom needed."] =
@@ -170,6 +171,7 @@ L["Portals"] = "Portails" -- mt
 L["Reagents"] = "Composants" -- mt
 L["Repair"] = "Réparations" -- mt
 L["RestedXP guide"] = "Guide RestedXP" -- mt
+L["Resume Dugi guide"] = "Reprendre le guide Dugi" -- mt
 L["Resume Guidelime guide"] = "Reprendre le guide Guidelime" -- mt
 L["Resume RestedXP guide"] = "Reprendre le guide RestedXP" -- mt
 L["Resume guide"] = "Reprendre le guide" -- mt
@@ -228,6 +230,9 @@ L["The objective tracker is unavailable."] = "Le suivi des objectifs est indispo
 L["Through %s transport, there is a way"] = "Par les transports de la faction %s, un chemin existe" -- mt
 L["Through %s transport: about %d min faster"] = "Par les transports de la faction %s : environ %d min plus vite" -- mt
 L["Tracker scale"] = "Taille du suivi" -- mt
+L["Journey tracker height"] = "Hauteur du suivi du voyage" -- mt
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"Limite la section Voyage à cette hauteur ; les longs voyages défilent à l'intérieur." -- mt
 L["Trade supplies"] = "Artisanat"
 L["Trainers"] = "Maîtres"
 L["Tram to %s"] = "Tram pour %s" -- mt
@@ -248,8 +253,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "Armes et armures"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"Et maintenant ? Adventure Guide Forever suggère des quêtes de votre niveau." -- mt
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"Ce que la flèche de direction affiche en dessous : la distance à parcourir, le temps restant du trajet, ou les deux." -- mt
 L["What's new after an update"] = "Nouveautés après une mise à jour"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"Quand le guidage est actif : vos prochains virages, le prochain arrêt et votre destination en haut de l'écran." -- mt
@@ -415,6 +418,7 @@ L["How close you must get to a journey's destination for it to count as reached.
 	"À quelle distance de la destination d'un trajet vous devez arriver pour qu'il compte comme terminé." -- mt
 L["Stops before the last on a multi-stop route keep 15 yards."] =
 	"Les étapes avant la dernière d'un trajet à plusieurs étapes conservent 15 mètres." -- mt
+L["Dugi Guides"] = "Dugi Guides" -- mt
 L["Dungeons and raids"] = "Donjons et raids" -- mt
 L["Town services"] = "Services de la ville" -- mt
 L["Town services on the world map"] = "Services de la ville sur la carte du monde" -- mt
@@ -423,6 +427,17 @@ L["Capitals and important services"] = "Capitales et services importants" -- mt
 L["All towns"] = "Toutes les villes" -- mt
 L["Books and recipes"] = "Livres et recettes" -- mt
 L["One icon per town, or one per service as you zoom in."] = "Une icône par ville, ou une par service en zoomant." -- mt
+L["Click to save it."] = "Cliquez pour la garder pour plus tard." -- mt
+L["Click to use it."] = "Cliquez pour l'utiliser." -- mt
+L["Destination pin size"] = "Taille de l'épingle de destination" -- mt
+L["Hearthstone"] = "Pierre de foyer" -- mt
+L["Saved for later."] = "Gardée pour plus tard." -- mt
+L["Scales the pin over the destination on the world map."] =
+	"Ajuste la taille de l'épingle au-dessus de la destination sur la carte du monde." -- mt
+L["This journey uses it: %s faster."] = "Ce trajet l'utilise : %s plus rapide." -- mt
+L["Use Hearthstone"] = "Utiliser la pierre de foyer" -- mt
+L["Journeys can start with your Hearthstone. Turn it off to save it for later; class teleports are still offered."] =
+	"Les trajets peuvent commencer par votre pierre de foyer. Désactivez-la pour la garder pour plus tard ; les téléportations de classe restent proposées." -- mt
 L["Ammunition"] = "Munitions" -- mt
 L["Bags and trade supplies"] = "Sacs et artisanat" -- mt
 L["Food and drink"] = "Nourriture et boissons" -- mt
@@ -535,3 +550,12 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "Détour autorisé pour les routes" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Avec Suivre les routes activé, distance supplémentaire acceptable pour éviter la même distance hors route. 50% conserve la préférence habituelle ; 0% ne privilégie pas les routes. Ce n'est pas une limite pour le trajet complet." -- mt
+L["Point straight to the destination"] = "Pointer directement vers la destination" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"La flèche pointe directement vers la destination et affiche la distance à vol d'oiseau. Sur une autre carte, elle pointe vers l'étape de voyage actuelle. Les repères de carte et la durée du voyage suivent toujours l'itinéraire." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"Les repères de carte indiquent la fin de chaque étape, pas chaque virage du chemin. La direction de la flèche se règle séparément." -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"L'affichage sous la flèche : la distance selon le mode choisi, le temps de voyage restant ou les deux." -- mt
+
+L["Transmogrifier"] = "Transmogrifieur" -- mt

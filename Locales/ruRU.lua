@@ -88,6 +88,7 @@ L["Flight master icon size"] = "Размер значков распорядит
 L["Flight path known"] = "Маршрут полета известен"
 L["Flights from here"] = "Полеты отсюда"
 L["Fly to %s"] = "Лететь: %s"
+L["Follow Dugi guides"] = "Следовать гайдам Dugi" -- mt
 L["Follow Guidelime guides"] = "Следовать руководствам Guidelime"
 L["Follow RestedXP guides"] = "Следовать руководствам RestedXP"
 L["Follow TomTom's arrow"] = "Следовать стрелке TomTom"
@@ -97,8 +98,6 @@ L["Friendly nameplates must be on to see them."] =
 	"Чтобы их увидеть, включите таблички с именами дружественных существ."
 L["Go through to %s"] = "Пройти: %s"
 L["Guidance"] = "Навигация"
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"Навигация отмечает на карте, где заканчивается каждый шаг, а не каждый поворот пешего пути. Стрелка по-прежнему ведет по пешему пути."
 L["Guide me"] = "Вести меня"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "Орда"
@@ -164,6 +163,8 @@ L["This menu needs mouse and keyboard."] = "Для этого меню нужн�
 L["Open these settings from the minimap."] = "Открывать эти настройки с мини-карты."
 L["Other Faction's Routes"] = "Маршруты другой фракции"
 L["Plan journey"] = "Проложить маршрут"
+L["Plan journeys to Dugi's current guide step. Dugi keeps its own arrow."] =
+	"Планировать путешествия к текущему шагу гайда Dugi. Dugi сохраняет свою стрелку." -- mt
 L["Plan journeys to Guidelime's current guide step. Guidelime's arrow steps aside while ours draws."] =
 	"Планировать путешествия к текущему шагу руководства Guidelime. Его стрелка уступает место нашей."
 L["Plan journeys to RestedXP guide targets and hide its arrow. No TomTom needed."] =
@@ -177,6 +178,7 @@ L["Portals"] = "Порталы"
 L["Reagents"] = "Реагенты"
 L["Repair"] = "Ремонт"
 L["RestedXP guide"] = "Руководство RestedXP"
+L["Resume Dugi guide"] = "Продолжить гайд Dugi" -- mt
 L["Resume Guidelime guide"] = "Продолжить руководство Guidelime"
 L["Resume RestedXP guide"] = "Продолжить руководство RestedXP"
 L["Resume guide"] = "Продолжить руководство"
@@ -240,6 +242,9 @@ L["Through %s transport, there is a way"] = "Через транспорт фр�
 L["Through %s transport: about %d min faster"] =
 	"Через транспорт фракции «%s»: примерно на %d мин. быстрее"
 L["Tracker scale"] = "Размер панели отслеживания"
+L["Journey tracker height"] = "Высота панели пути"
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"Ограничивает высоту раздела пути; длинные пути прокручиваются внутри."
 L["Trade supplies"] = "Хозяйственные товары"
 L["Trainers"] = "Учителя"
 L["Tram to %s"] = "Поезд: %s"
@@ -260,8 +265,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "Оружие и доспехи"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"Что дальше? Adventure Guide Forever предлагает задания по вашему уровню."
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"Что показывает стрелка направления под собой: оставшееся расстояние, оставшееся время пути или и то и другое." -- mt
 L["What's new after an update"] = "Новое после обновления"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"Пока включена навигация: ближайшие повороты, следующая остановка и цель вверху экрана."
@@ -435,6 +438,7 @@ L["How close you must get to a journey's destination for it to count as reached.
 	"Насколько близко нужно подойти к месту назначения, чтобы путешествие считалось завершённым." -- mt
 L["Stops before the last on a multi-stop route keep 15 yards."] =
 	"Остановки перед последней на маршруте с несколькими остановками сохраняют 15 метров." -- mt
+L["Dugi Guides"] = "Dugi Guides" -- mt
 L["Dungeons and raids"] = "Подземелья и рейды" -- mt
 L["Town services"] = "Городские услуги" -- mt
 L["Town services on the world map"] = "Городские услуги на карте мира" -- mt
@@ -444,6 +448,17 @@ L["All towns"] = "Все города" -- mt
 L["Books and recipes"] = "Книги и рецепты" -- mt
 L["One icon per town, or one per service as you zoom in."] =
 	"Один значок на город или на услугу при приближении." -- mt
+L["Click to save it."] = "Нажмите, чтобы сохранить." -- mt
+L["Click to use it."] = "Нажмите, чтобы использовать." -- mt
+L["Destination pin size"] = "Размер метки пункта назначения" -- mt
+L["Hearthstone"] = "Камень возвращения" -- mt
+L["Saved for later."] = "Сохранено на потом." -- mt
+L["Scales the pin over the destination on the world map."] =
+	"Меняет размер метки над пунктом назначения на карте мира." -- mt
+L["This journey uses it: %s faster."] = "Этот маршрут использует его: на %s быстрее." -- mt
+L["Use Hearthstone"] = "Использовать камень возвращения" -- mt
+L["Journeys can start with your Hearthstone. Turn it off to save it for later; class teleports are still offered."] =
+	"Путешествие может начаться с камня возвращения. Отключите его, чтобы сохранить на потом; классовые телепорты по-прежнему доступны." -- mt
 L["Ammunition"] = "Боеприпасы" -- mt
 L["Bags and trade supplies"] = "Сумки и хозяйственные товары" -- mt
 L["Food and drink"] = "Еда и напитки" -- mt
@@ -563,3 +578,12 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "Допустимый обход по дорогам" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Когда включено следование дорогам, определяет, сколько дополнительного пути стоит пройти, чтобы избежать такого же расстояния вне дороги. 50% сохраняет обычное предпочтение; 0% не отдаёт предпочтения дорогам. Это не ограничение длины всего пути." -- mt
+L["Point straight to the destination"] = "Указывать прямо на цель" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"Стрелка указывает прямо на цель и показывает расстояние по прямой. На другой карте она указывает на текущий этап пути. Отметки на карте и время путешествия по-прежнему следуют маршруту." -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"Отметки на карте показывают конец каждого этапа, а не каждый поворот пути. Направление стрелки настраивается отдельно." -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"Что показано под стрелкой: расстояние в выбранном режиме, оставшееся время путешествия или оба значения." -- mt
+
+L["Transmogrifier"] = "Трансмогрификатор" -- mt

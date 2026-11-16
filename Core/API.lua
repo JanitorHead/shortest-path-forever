@@ -181,12 +181,14 @@ local MAX_STOPS = 64
 local ended = {}
 
 -- Subscribe's hub (ForeverCore.APIKit): told once per burst what happened to guidance, after every change in it has
--- landed. Each channel is a comparable key the hub reads when it dispatches. The five event channels count the notices
--- the old dispatcher queued, so a caller hears the same changes it used to, and "active" is the answer itself, so a
--- guide switched off and on again within one burst stays quiet.
-local notices = { started = 0, changed = 0, ended = 0, stop = 0, leg = 0 }
+-- landed. Each channel is a comparable key the hub reads when it dispatches. The event channels count the notices
+-- queued, so a caller hears the same changes it used to, and "active" is the answer itself, so a guide switched off and
+-- on again within one burst stays quiet. "guidance" counts the arrow's own progress: a bend passed, the source walk
+-- replaced, or the guideStops setting changing what the arrow draws. "replan" counts a plan worked out again: the first
+-- one is ready, a new route replaced the followed one, or its walks were redrawn.
+local notices = { started = 0, changed = 0, ended = 0, stop = 0, leg = 0, guidance = 0, replan = 0 }
 
----@param name "started"|"changed"|"ended"|"stop"|"leg"
+---@param name "started"|"changed"|"ended"|"stop"|"leg"|"guidance"|"replan"
 ---@return fun(): integer|false
 local function Counter(name)
 	return function()
@@ -200,6 +202,8 @@ local hub = APIKit.Hub("ShortestPathForever", {
 	ended = Counter("ended"),
 	stop = Counter("stop"),
 	leg = Counter("leg"),
+	guidance = Counter("guidance"),
+	replan = Counter("replan"),
 	active = function()
 		return ns.IsJourneyGuided() == true
 	end,
@@ -215,7 +219,7 @@ local stopOwner
 local stopIndex
 local active = false
 
----@param kind "started"|"changed"|"ended"|"stop"|"leg"
+---@param kind "started"|"changed"|"ended"|"stop"|"leg"|"guidance"|"replan"
 local function Notify(kind)
 	notices[kind] = notices[kind] + 1
 	hub.Queue()
@@ -250,6 +254,21 @@ end
 -- already says "changed"; this says the leg within the same stop is not the one a subscriber last read.
 function ns.JourneyLegChanged()
 	Notify("leg")
+	-- The leg under way is also what Guidance reports, even if its point happens not to move.
+	Notify("guidance")
+end
+
+-- UI/Arrow.lua: the bend under way moved on, the source walk was replaced, or guideStops changed what it draws. The
+-- stop and leg are unchanged, so the public guidance read is the one that now answers differently.
+function ns.GuideGuidanceChanged()
+	Notify("guidance")
+end
+
+-- Journey.lua: the search settled a plan for the journey under way. The first plan is ready, a new route replaced the
+-- followed one, or its walks were redrawn, so the legs Journey() reports, and where each starts and ends, may have
+-- changed. The goal and the leg under way need not have.
+function ns.JourneyReplanned()
+	Notify("replan")
 end
 
 ---@param point SPFPoint?
@@ -341,7 +360,7 @@ function ns.JourneyStops()
 end
 
 ---@class SPFPublicAPI
-local API = { version = 2, minor = 0 }
+local API = { version = 2, minor = 2 }
 
 local function Differs(a, b)
 	for key, value in pairs(a) do
@@ -712,47 +731,13 @@ function API.Cancel(owner)
 	return true
 end
 
--- A place with the goal's name: the title its caller gave the stop, else the name the tracker's header gives it. The
--- header's own line also counts the stops ("Stop 1 of 2: ..."), which a caller reads from index instead.
----@param point SPFPoint
----@return SPFAPIJourneyGoal?
-local function JourneyPlace(point)
-	local place = Place(point)
-	if not place then
-		return nil
-	end
-	return { map = place.map, x = place.x, y = place.y, title = point.label or ns.JourneyTitle(point) }
-end
-
-local function Whole(ms)
-	return math.max(0, math.ceil(ms / 1000))
-end
-
--- The planner's legs from the one under way on, as fresh copies: the tracker's plain action words, the mode's own
--- name and the leg's whole seconds including its wait, which is how JourneyTime adds the header up.
----@param plan SPFPlan
----@param index integer
----@return SPFAPIJourneyLeg[]
-local function JourneyLegs(plan, index)
-	local legs = {}
-	for legIndex = index, #plan.legs do
-		local leg = plan.legs[legIndex]
-		legs[#legs + 1] = {
-			mode = leg.mode,
-			text = ns.StepText(leg),
-			seconds = Whole(ns.LegSpan(leg)) + Whole(leg.wait or 0),
-		}
-	end
-	return legs
-end
-
 -- A corpse run is the journey under way while you are a ghost. Corpse.Info already names it, its one plan and the
 -- step under way, so the run is read as the tracker draws it; the journey waiting behind it keeps its goal.
 ---@return SPFAPIJourney?
 local function CorpseJourney()
 	local title, _, plan, index = ns.Corpse.Info()
 	local point = ns.Corpse.Point()
-	local goal = point and JourneyPlace(point)
+	local goal = point and ns.JourneyGoalDetails(Place, point)
 	if not (title and plan and goal and index) then
 		return nil
 	end
@@ -760,15 +745,14 @@ local function CorpseJourney()
 	return {
 		owner = nil,
 		goal = goal,
-		legs = JourneyLegs(plan, index),
+		legs = ns.JourneyLegDetails(plan, index, Place),
 		index = index,
 		guided = ns.IsJourneyGuided() == true,
 		secondsLeft = ns.JourneyTime(plan.legs, index) / 1000,
 	}
 end
 
--- The journey under way, whoever owns it. Every table is new, and a search still working on its first plan has
--- nothing to read yet, exactly as the tracker shows a spinner.
+-- Copy the journey under way; its first plan has nothing to read until ready.
 ---@return SPFAPIJourney?, SPFAPINotReady?
 function API.Journey()
 	if not Loaded() then
@@ -791,18 +775,26 @@ function API.Journey()
 	if not plan and select(4, ns.JourneyStatus()) then
 		return Loading()
 	end
-	local place = JourneyPlace(goal)
+	local place = ns.JourneyGoalDetails(Place, goal)
 	if not place then
 		return None()
 	end
 	return {
 		owner = ns.JourneyOwner(),
 		goal = place,
-		legs = plan and JourneyLegs(plan, index) or {},
+		legs = plan and ns.JourneyLegDetails(plan, index, Place) or {},
 		index = index,
 		guided = ns.IsJourneyGuided() == true,
 		secondsLeft = plan and ns.JourneyTime(plan.legs, index) / 1000 or 0,
 	}
+end
+
+---@return SPFAPIGuidance?, SPFAPIGuidanceReason?
+function API.Guidance()
+	if not Loaded() then
+		return Loading()
+	end
+	return ns.JourneyGuidance(Place)
 end
 
 -- Only the owner may steer its journey, and only while the player is alive to be guided: a corpse run is the
@@ -817,8 +809,7 @@ local function Steerable(owner)
 		and not (ns.Corpse and ns.Corpse.Active())
 end
 
--- Stop guidance and keep the goal and route, the state the tracker's guidance switch leaves when turned off. The
--- goal's pin turns bronze and the route waits for Resume.
+-- Pause guidance while preserving the goal and route for Resume.
 ---@param owner string
 ---@return boolean
 function API.Pause(owner)
@@ -829,7 +820,6 @@ function API.Pause(owner)
 	return true
 end
 
--- Start guidance again on the same goal, as the tracker's Journeys switch does.
 ---@param owner string
 ---@return boolean
 function API.Resume(owner)
@@ -840,8 +830,7 @@ function API.Resume(owner)
 	return true
 end
 
--- Advance the leg under way, through the same step the tracker's leg menu takes. index is optional and, when given,
--- must name the current leg.
+-- Advance the current leg through the tracker menu action.
 ---@param owner string
 ---@param index? integer
 ---@return boolean
@@ -850,6 +839,21 @@ function API.SkipLeg(owner, index)
 		return false
 	end
 	return ns.SkipJourneyStep(index) == true
+end
+
+-- Resume the displayed RestedXP guide through the same action as its tracker menu.
+---@return true?, ("invalid"|"unavailable")?
+function API.ResumeRestedXP()
+	if not Loaded() then
+		return nil, "unavailable"
+	end
+	if InCombatLockdown() then
+		return nil, "invalid"
+	end
+	if ns.ResumeRestedXP() ~= true then
+		return nil, "unavailable"
+	end
+	return true
 end
 
 -- Relabel a running route's stop in place: a guide renames a step whose position did not move, which must not cost a

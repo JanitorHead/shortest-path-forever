@@ -38,6 +38,7 @@ local FILTERS = {
 	{ option = "townServiceStable", label = L["Stable master"], groups = { stable = true } },
 	{ option = "townServiceRepair", label = L["Repair"], groups = { repair = true } },
 	{ option = "townServiceBank", label = L["Bank"], groups = { bank = true } },
+	{ option = "townServiceTransmog", label = L["Transmogrifier"], groups = { transmog = true } },
 	{ option = "townServiceAuction", label = L["Auction house"], groups = { auction = true } },
 	{ option = "townServiceBattlemaster", label = L["Battlemaster"], groups = { battlemaster = true } },
 	{ option = "townServiceClass", label = L["Class trainer"], groups = { class = true, portal = true } },
@@ -681,16 +682,13 @@ function Services:RefreshAllData()
 	local mapID = map:GetMapID()
 	local level = ns.db and ns.db.townServices or "capitals"
 	local nearby = ns.NearbyServices
-	if
-		not (
-			mapID
-			and ServiceMap(mapID)
-			and map:IsVisible()
-			and level ~= "off"
-			and nearby
-			and nearby.State() == "ready"
-		)
-	then
+	if not (mapID and ServiceMap(mapID) and map:IsVisible() and level ~= "off" and nearby) then
+		self:RemoveAllData()
+		self.mapID = nil
+		return
+	end
+	nearby.Request()
+	if nearby.State() ~= "ready" then
 		self:RemoveAllData()
 		self.mapID = nil
 		return

@@ -23,6 +23,10 @@
 ---@field RoadEdges table<number, table<number, string>>
 ---@field SpawnHeights table<number, table<number, string>> spawns over or under another surface (Data/Heights.lua)
 ---@field TownAreas table<number, SPFTownArea> the client's town ground per flight master (Data/TownAreas.lua)
+---@field IdleSpawns table<number, table<number, string>> spawns an NPC stands still at, by creature ID (Data/IdleSpawns.lua)
+---@field SpellTargets table<number, boolean> friendly spells whose effects target another unit (Data/SpellTargets.lua)
+---@field HostileSpells table<number, boolean> hostile spells whose effects target another unit (Data/SpellTargets.lua)
+---@field BandItems table<number, SPFBandItem> usable items whose on-use spell targets another unit (Data/SpellTargets.lua)
 ---@field db SPFDatabase
 ---@field charDB SPFCharacterDatabase
 ---@field Defaults SPFDefaults
@@ -52,6 +56,15 @@
 ---@field FarmingCursor SPFFarmingCursorFactory
 ---@field NavigateFarmingRoute fun(owner: string, stops: SPFAPIStop[]): boolean
 ---@field JourneyRoutePolicy fun(): SPFRoutePolicy
+---@field DestinationPinScale fun(): number the world map journey goal pin's share of its stock size (UI/StopPin.lua)
+---@field RefreshDestinationPinSize fun() redraws the world map goal pins at the player's size (UI/Route.lua)
+---@field HearthstoneEnabled fun(): boolean whether journeys may use the Hearthstone (Journey/Journey.lua)
+---@field SetHearthstoneEnabled fun(enabled: boolean) flips the saved Hearthstone switch and replans (Journey/Journey.lua)
+---@field ToggleHearthstone fun() flips the saved Hearthstone switch (Journey/Journey.lua)
+---@field Hearthstone fun(now?: number): SPFHearthstone? the Hearthstone and its bind point, when it could be used (Transport/Teleports.lua)
+---@field HearthSaving fun(): number? ms the Hearthstone saves on the journey, nil when it cannot be told (UI/HearthPin.lua)
+---@field HearthPinTooltip fun(name: string, saving: number?, enabled: boolean): string, string[] (UI/HearthPin.lua)
+---@field RefreshHearthPin fun() redraws the Hearthstone's button on the world map (UI/HearthPin.lua)
 
 ---@class SPFDefaults: table<string, boolean|number|string>
 ---@field townServices string
@@ -60,7 +73,9 @@
 ---@field arrivalDistance number
 ---@field hearthMinimumSavings number
 ---@field roadDetour number
+---@field destinationPinSize number
 ---@field arrowScale number
+---@field arrowDirect boolean
 ---@field arrowLabel string
 ---@field compassScale number
 ---@field compassBackground number
@@ -92,6 +107,7 @@
 ---@field x number
 ---@field y number
 ---@field z? number
+---@field band? SPFBand -- the heights the player may be standing at, when a walk starts from where they stand (Band.lua)
 ---@field jump? number
 ---@field label? string
 ---@field details? string[] -- a stop's own detail lines, in the caller's order (API.lua)
@@ -133,6 +149,7 @@
 ---@field kind SPFMode
 ---@field site? string
 ---@field faction? string
+---@field guardedFaction? string -- landing guards favour this faction; distinct from physical ride eligibility
 ---@field period number
 ---@field stops SPFStop[]
 ---@field frames number[][]
@@ -171,6 +188,15 @@
 ---@field bind? boolean
 ---@field partyMage? string -- the party mage who opens this portal
 ---@field destination? string -- the capital it lands in, as the client names it
+-- The Hearthstone and the bind point it recalls to, when this character could use it (Transport/Teleports.lua).
+---@class SPFHearthstone
+---@field name string the bind location's name, as the client reports it
+---@field map number
+---@field x number
+---@field y number
+---@field z? number
+---@field place SPFTeleportPlace the planner's place for the Hearthstone
+---@field readyAt? number server ms when it can be cast again
 -- A capital portal a party mage can open, declared by the player (Transport/PartyPortals.lua).
 ---@class SPFPartyPortal : SPFTeleportPlace
 ---@field partyMage string
@@ -243,10 +269,12 @@
 ---@field errors? ForeverCaughtError[] ForeverCore's shared error journal: earlier sessions' errors, for the report
 ---@field log? ForeverDebugLogStore ForeverCore's shared debug log ring: recent lines, for the report
 ---@field destinationPin boolean an on-screen marker over the journey's destination
+---@field destinationPinSize? number percent, the world map journey goal pin's size (50 to 100, UI/StopPin.lua)
 ---@field arrivalPin? boolean a pin with the stop's objectives while in its area, instead of hiding the arrow
 ---@field arrivalDistance? number yards that count as arrived at a journey's final destination (Journey.lua)
 ---@field npcArrows? boolean arrows beside the nameplate of the NPC a Nearby services journey walks to (NpcArrows.lua)
 ---@field trackerHost? ForeverTrackerLegacySettings the old tracker table, offered to ForeverCore once
+---@field trackerHeight? number the Journey section viewport cap in Core UI units
 ---@field menuTest? string `/path menutest`: which world map filter menu entries to leave out ("map", "nearby", "both")
 ---@field pins? boolean
 ---@field transit? boolean
@@ -260,6 +288,7 @@
 ---@field townServiceStable? boolean whether stable master pins show
 ---@field townServiceRepair? boolean whether repair pins show; off by default
 ---@field townServiceBank? boolean whether bank pins show
+---@field townServiceTransmog? boolean whether transmogrifier pins show
 ---@field townServiceAuction? boolean whether auction house pins show
 ---@field townServiceBattlemaster? boolean whether battlemaster pins show
 ---@field townServiceClass? boolean whether class trainer pins show
@@ -284,12 +313,14 @@
 ---@field restedxp? boolean -- follow RestedXP guide targets
 ---@field restedxpHideArrow? boolean -- Shortest Path's arrow replaces the guide's while a guide target is followed (RestedXP.lua)
 ---@field guidelime? boolean -- follow Guidelime's current guide step (Guidelime.lua)
+---@field dugi? boolean -- follow Dugi Guides' current guide step (Dugi.lua)
 ---@field tomtom? boolean -- answer third-party guides' TomTom waypoints with a journey while TomTom is absent
 ---@field tomtomFollow? boolean -- with TomTom installed, a journey follows the waypoint its arrow points to
 ---@field taxiRoute? boolean
 ---@field useWaterWalking? boolean
 ---@field townServiceKinds? table<string, boolean>
 ---@field teleports? boolean
+---@field useHearthstone? boolean the Hearthstone may be used in journeys, while other teleports still are (Teleports.lua)
 ---@field partyMagePortals? boolean -- offer a party mage's capital portals
 ---@field partyMageStormwind? boolean
 ---@field partyMageIronforge? boolean
@@ -315,6 +346,7 @@
 ---@field minimapButton? boolean
 ---@field compassScale? number percent, 100 is the stock size
 ---@field arrowScale? number percent, 100 is the stock size (Arrow.lua)
+---@field arrowDirect? boolean point straight to the destination instead of following walking bends
 ---@field arrowLabel? string what the arrow's label shows: "distance", "time" or "both" (Arrow.lua)
 ---@field arrowObjectives? boolean the stop's live objectives under the arrow, the pin's own lines either way (Arrow.lua)
 ---@field arrowX? number the arrow's centre from the screen's bottom left in screen pixels, once dragged
@@ -379,6 +411,7 @@ ShortestPathForeverCharDB = nil
 ---@field zstep number
 ---@field format? number 2 for a step mask plus one-way link records; 1 (absent) for symmetric links
 ---@field steep? boolean graph cells spend flag 8 on steep ground; a step with a steep end goes downhill only
+---@field climbChecked? boolean the baker validated every cluster crossing against the stored-height climb limit
 ---@field grid string[]
 ---@field graph string[]
 ---@field height string[]
@@ -388,6 +421,11 @@ ShortestPathForeverCharDB = nil
 ---@type table<number, SPFNavData>
 ShortestPathForeverPathData = nil
 
+---@class SPFBandItem
+---@field range number the on-use spell's max range in yards, from the client's own spell data
+---@field friendly boolean? the spell targets an ally or any unit
+---@field hostile boolean? the spell targets an enemy or any unit
+
 ---@class SPFWalkPoints
 ---@field [integer] SPFPoint
 ---@field wet? number
@@ -395,6 +433,7 @@ ShortestPathForeverPathData = nil
 ---@field mode SPFMode
 ---@field points SPFWalkPoints
 ---@field preview? boolean
+---@field placeholder? boolean -- a straight stand-in for a walk no search has measured
 ---@field route? number
 ---@field stop? number -- the stop this path leads to, for a pointer hovering it (Itinerary.lua, Route.lua)
 ---@field color? ColorMixin
@@ -422,6 +461,7 @@ ShortestPathForeverPathData = nil
 ---@field walkCost? number -- the walk's running yards as searched, where water keeps its weight
 ---@field walkDeferred? boolean -- exact geometry waiting for arrival on its continent
 ---@field walkDrawn? boolean -- walkPoints came from a search, not a straight placeholder
+---@field walkPlaceholder? boolean -- walkPoints is still a straight stand-in, not a measured walk
 ---@field color? ColorMixin -- drawn in this colour rather than its mode's
 ---@field hazardNotes? string[] -- the hostile towns and high zones a measured walk meets or goes round (Hazards.lua)
 ---@field reachedAt? number -- when you reached a lift's shaft, whose landings share a spot (JourneySteps.lua)
@@ -457,10 +497,15 @@ ShortestPathForeverPathData = nil
 ---@field now number
 ---@field walkSpeed? number
 ---@field waterWalking? boolean
----@field ride? {route: number, dock: number, arrive: number}
+---@field ride? SPFCurrentRide
 ---@field unknownFlightNotice? boolean also report a walk caused by an undiscovered flight point
 -- [teleport index] = server ms when it can be cast; absent when it cannot.
 ---@field teleportReady? table<number, number>
+---@class SPFCurrentRide
+---@field route number
+---@field dock number
+---@field arrive number
+---@field data? SPFRoute -- current ride remains usable for alighting when new boarding is excluded
 ---@class SPFPlaceOptions
 ---@field faction? string
 ---@field docks? table<number, SPFDock>

@@ -82,6 +82,7 @@ L["Flight master icon size"] = "飞行管理员图标大小"
 L["Flight path known"] = "已知飞行路线"
 L["Flights from here"] = "从这里出发的航班"
 L["Fly to %s"] = "飞往%s"
+L["Follow Dugi guides"] = "跟随 Dugi 攻略" -- mt
 L["Follow Guidelime guides"] = "跟随 Guidelime 攻略"
 L["Follow RestedXP guides"] = "跟随RestedXP指南"
 L["Follow TomTom's arrow"] = "跟随TomTom的箭头"
@@ -90,8 +91,6 @@ L["Forever addons"] = "Forever插件"
 L["Friendly nameplates must be on to see them."] = "需要开启友方姓名板才能看到。"
 L["Go through to %s"] = "穿过前往%s"
 L["Guidance"] = "引导"
-L["Guide marks where each step ends on the map, not each turn of the walk. The arrow still follows the walk."] =
-	"引导会在地图上标记每一步的终点，而不是步行途中的每个转弯。箭头仍会沿着步行路线指引。"
 L["Guide me"] = "为我引路"
 L["Guidelime"] = "Guidelime"
 L["Horde"] = "部落"
@@ -152,6 +151,8 @@ L["This menu needs mouse and keyboard."] = "此菜单需要鼠标和键盘。" -
 L["Open these settings from the minimap."] = "从微缩地图打开这些设置。"
 L["Other Faction's Routes"] = "另一阵营的航线"
 L["Plan journey"] = "规划旅程"
+L["Plan journeys to Dugi's current guide step. Dugi keeps its own arrow."] =
+	"规划前往 Dugi 攻略当前步骤的旅程。Dugi 保留自己的箭头。" -- mt
 L["Plan journeys to Guidelime's current guide step. Guidelime's arrow steps aside while ours draws."] =
 	"规划前往 Guidelime 当前攻略步骤的旅程。在我们的箭头显示时，Guidelime 的箭头会移开。"
 L["Plan journeys to RestedXP guide targets and hide its arrow. No TomTom needed."] =
@@ -165,6 +166,7 @@ L["Portals"] = "传送门"
 L["Reagents"] = "材料"
 L["Repair"] = "修理"
 L["RestedXP guide"] = "RestedXP指南"
+L["Resume Dugi guide"] = "继续 Dugi 攻略" -- mt
 L["Resume Guidelime guide"] = "继续 Guidelime 攻略"
 L["Resume RestedXP guide"] = "继续RestedXP指南"
 L["Resume guide"] = "继续指南"
@@ -220,6 +222,9 @@ L["The objective tracker is unavailable."] = "目标追踪栏不可用。"
 L["Through %s transport, there is a way"] = "借助%s的交通工具可以到达"
 L["Through %s transport: about %d min faster"] = "借助%s的交通工具：约快%d分钟"
 L["Tracker scale"] = "追踪栏大小"
+L["Journey tracker height"] = "旅程追踪栏高度"
+L["Limits the Journey section to this height; longer journeys scroll inside it."] =
+	"将旅程区域限制为此高度，较长的旅程可在其中滚动。"
 L["Trade supplies"] = "贸易品"
 L["Trainers"] = "训练师"
 L["Tram to %s"] = "前往%s的地铁"
@@ -239,8 +244,6 @@ L["Walks go round zones whose lowest level is 4 or more above yours, but never t
 L["Weapons and armour"] = "武器和护甲"
 L["What next? Adventure Guide Forever suggests quests for your level."] =
 	"接下来做什么？Adventure Guide Forever会推荐适合你等级的任务。"
-L["What the direction arrow shows under it: the distance to walk, the time left in the journey, or both."] =
-	"方向箭头下方显示的内容：要走的距离、旅程剩余时间，或两者。" -- mt
 L["What's new after an update"] = "更新后的新内容"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
 	"引导开启时：在屏幕顶部显示你接下来的转弯、下一站和目的地。"
@@ -405,6 +408,7 @@ L["How close you must get to a journey's destination for it to count as reached.
 	"距离旅程目的地多近才算到达。" -- mt
 L["Stops before the last on a multi-stop route keep 15 yards."] =
 	"多站路线中，最后一站之前的站点仍保持 15 米。" -- mt
+L["Dugi Guides"] = "Dugi Guides" -- mt
 L["Dungeons and raids"] = "地下城与团队副本" -- mt
 L["Town services"] = "城镇服务" -- mt
 L["Town services on the world map"] = "世界地图上的城镇服务" -- mt
@@ -414,6 +418,16 @@ L["All towns"] = "所有城镇" -- mt
 L["Books and recipes"] = "书籍和配方" -- mt
 L["One icon per town, or one per service as you zoom in."] =
 	"缩小显示每个城镇一个图标，放大后每个服务一个图标。" -- mt
+L["Click to save it."] = "点击以留待后用。" -- mt
+L["Click to use it."] = "点击以使用。" -- mt
+L["Destination pin size"] = "目的地标记大小" -- mt
+L["Hearthstone"] = "炉石" -- mt
+L["Saved for later."] = "已留待后用。" -- mt
+L["Scales the pin over the destination on the world map."] = "调整世界地图上目的地标记的大小。" -- mt
+L["This journey uses it: %s faster."] = "此旅程使用它：快 %s。" -- mt
+L["Use Hearthstone"] = "使用炉石" -- mt
+L["Journeys can start with your Hearthstone. Turn it off to save it for later; class teleports are still offered."] =
+	"旅程可以从炉石开始。关闭后可留待后用；职业传送仍然可用。" -- mt
 L["Ammunition"] = "弹药" -- mt
 L["Bags and trade supplies"] = "背包和贸易品" -- mt
 L["Food and drink"] = "食物和饮水" -- mt
@@ -520,3 +534,12 @@ L["Prefer roads and paved streets. Roads painted with a zone's plain dirt are no
 L["Road detour allowance"] = "道路绕行余量" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"启用沿道路行走时，为避开等长的非道路路段，愿意多走的距离。50%保持通常的道路偏好；0%不优先选择道路。这不是整段步行距离的上限。" -- mt
+L["Point straight to the destination"] = "直接指向目的地" -- mt
+L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
+	"箭头直接指向目的地并显示直线距离。目的地在其他地图上时，箭头指向当前行程步骤。地图标记和行程时间仍按路线显示。" -- mt
+L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
+	"地图标记显示每个步骤的终点，而不是步行路线的每个转弯。箭头方向单独设置。" -- mt
+L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
+	"方向箭头下方显示的内容：所选箭头模式的距离、行程剩余时间或两者。" -- mt
+
+L["Transmogrifier"] = "幻化师" -- mt

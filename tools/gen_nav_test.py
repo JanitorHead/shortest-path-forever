@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from tools.baker import gen_nav
-from tools.baker.gen_nav import drop_cost, pick_surface, walkable
+from tools.baker.gen_nav import decode_road_runs, drop_cost, pick_surface, walkable
 from tools.baker.geometry import plane
 
 
@@ -171,7 +171,7 @@ class SteepStepTest(unittest.TestCase):
             i: [(236.0, 1, (0, (i * cs + 2.0, 2.0))), (240.4, 3, (1, (i * cs + 2.0, 2.0)))],
             j: [(250.0, 1, (2, (j * cs + 2.0, 2.0))), (250.0, 1, (3, (j * cs + 2.0, 2.0)))],
         }
-        ends = ((j * cs, 0.0), (j * cs, 8.0))
+        ends = ((11 * cs, 10 * cs), (11 * cs, 11 * cs))
         links, _ = self.tile(polys, {1: {3}, 3: {1}}, {(1, 3): ends, (3, 1): ends[::-1]}, layers)
         both = [(i, 240.4, j, 250.0, None), (j, 250.0, i, 240.4, None)]
         for edge in both:
@@ -252,6 +252,7 @@ class ClusterCrossingTest(unittest.TestCase):
             patch.object(gen_nav, "GW", 2 * c),
             patch.object(gen_nav, "GH", c),
             patch.object(gen_nav, "LINKS", links),
+            patch.object(gen_nav, "BASE_Z", array("f", [0.0]) * len(grid)),
             patch.object(gen_nav, "LINKED_OF", defaultdict(list, {0: [u]})),
             patch.object(gen_nav, "FLOOR_CELL", array("i")),
         ):
@@ -304,6 +305,61 @@ class GraphLegalityTest(unittest.TestCase):
         with self.world(heights, cuts, links, nx=2, ny=ny) as (grid, g):
             return gen_nav.grid_hpa(grid, set(cuts))[1], g, grid
 
+    def test_separate_doorways_in_the_same_components_keep_their_entrances(self):
+        # Each side joins the two doors behind the wall. Grouping by whole-cluster component alone kept only
+        # one door, so a short walk through the other took the long way round (Ironforge, #910).
+        c = gen_nav.CELLS
+        for transpose in (False, True):
+            with self.subTest(transpose=transpose):
+                nx, ny = (1, 2) if transpose else (2, 1)
+
+                def cell(x, y, ny=ny, transpose=transpose):
+                    return y * ny * c + x if transpose else x * ny * c + y
+
+                heights = {
+                    cell(x, y): (1, 0.0)
+                    for x in range(c - 2, c + 2)
+                    for y in range(10, 21)
+                    if x in (c - 2, c + 1) or y in (10, 20)
+                }
+                with self.world(heights, nx=nx, ny=ny) as (grid, _):
+                    edges = gen_nav.grid_hpa(grid, set())[1]
+                for y in (10, 20):
+                    u, v = cell(c - 1, y), cell(c, y)
+                    self.assertIn((u, v), edges)
+                    self.assertIn((v, u), edges)
+
+    def test_separate_floor_doorways_keep_each_layers_entrances(self):
+        c = gen_nav.CELLS
+        cells = {x * c + y for x in range(c - 2, c + 2) for y in range(10, 21) if x in (c - 2, c + 1) or y in (10, 20)}
+        # Two disconnected storeys occupy the same cells. Each storey's two doors belong to the same pair of
+        # cluster components, but neither the other door nor the other storey may replace one of its entrances.
+        with self.world({cell: (1, 0.0) for cell in cells}, nx=2) as (grid, _):
+            floors = {}
+            for cell in sorted(cells):
+                for layer, z in enumerate((30, 60), 1):
+                    node = len(grid) + len(gen_nav.FLOOR_CELL)
+                    floors[cell, layer] = node
+                    gen_nav.FLOOR_CELL.append(cell)
+                    gen_nav.FLOOR_VAL.append(1)
+                    gen_nav.FLOOR_Z.append(z)
+                    gen_nav.FLOOR_LAYER.append(layer)
+                    gen_nav.FLOORS_OF[gen_nav.cluster_of_cell(node)].append(node)
+                    gen_nav.FLOORS_AT.setdefault(cell, []).append(node)
+            for (cell, layer), node in floors.items():
+                x, y = divmod(cell, c)
+                for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                    other = floors.get(((x + dx) * c + y + dy, layer))
+                    if other is not None:
+                        gen_nav.LINKS[node][other] = None
+                gen_nav.LINKED_OF[gen_nav.cluster_of_cell(node)].append(node)
+            edges = gen_nav.grid_hpa(grid, set())[1]
+            for layer in (1, 2):
+                for y in (10, 20):
+                    u, v = floors[(c - 1) * c + y, layer], floors[c * c + y, layer]
+                    self.assertIn((u, v), edges)
+                    self.assertIn((v, u), edges)
+
     def test_clusters_that_meet_at_a_corner_keep_the_crossings_between_them(self):
         # Four clusters; the only walkable cells are the two corner cells of clusters 0 and 3, which touch diagonally.
         # The runtime walks the bake's explicit diagonal between them, and a drop record may land across the corner,
@@ -330,6 +386,16 @@ class GraphLegalityTest(unittest.TestCase):
         a, b = 10 * c + 10, 11 * c + 10
         self.assertIn(b, self.steps({a: (3, 20.4), b: (1, 18.0)}, a))  # 18 <= 20: downhill
         self.assertNotIn(a, self.steps({a: (3, 20.4), b: (1, 18.0)}, b))  # 20 > 18: not uphill
+
+    def test_an_unflagged_cliff_is_refused_by_grid_and_cluster_graph(self):
+        c = gen_nav.CELLS
+        a, b = 10 * c + 10, 11 * c + 10
+        self.assertNotIn(b, self.steps({a: (1, 10.0), b: (1, 30.0)}, a))
+        self.assertIn(a, self.steps({a: (1, 10.0), b: (1, 30.0)}, b))
+        u, v = (c - 1) * c + 10, c * c + 10
+        edges, _, _ = self.crossings({u: (1, 10.0), v: (1, 30.0)})
+        self.assertNotIn((u, v), edges)
+        self.assertIn((v, u), edges)
 
     def test_a_two_way_record_with_a_steep_end_is_one_way(self):
         # The bake writes a steep pair both ways as a record so the decoder can decide its direction by stored height;
@@ -376,7 +442,7 @@ class GraphLegalityTest(unittest.TestCase):
         heights = {(c - 1) * c + t: (3, 20.0) for t in shelf}
         heights.update({(c - 2) * c + t: (3, 20.0) for t in (8, 9, 10)})
         heights[low] = (1, 18.0)
-        heights.update({c * c + i * c + j: (1, 0.0) for i in range(c) for j in range(c)})
+        heights.update({c * c + i * c + j: (1, 18.0) for i in range(c) for j in range(c)})
         edges, _, _ = self.crossings(heights)
         self.assertIn((low, c * c + 9), edges, "the low side keeps a crossing of its own")
         self.assertIn((c * c + 9, low), edges, "and the grid walks it back")
@@ -451,6 +517,67 @@ class EmitDeltaTest(unittest.TestCase):
     def test_a_negative_delta_is_refused(self):
         with self.assertRaises(AssertionError):
             gen_nav.emit_delta([], -1)
+
+
+class RoadsTest(unittest.TestCase):
+    def test_a_run_string_names_its_road_cells(self):
+        # An off run of 10 then an on run of 3: cells 10, 11 and 12 are road.
+        self.assertEqual(decode_road_runs("AKAD"), {10, 11, 12})
+
+
+class RoadEntranceTest(unittest.TestCase):
+    def test_a_road_crossing_gets_an_entrance_between_grid_ones(self):
+        # One border, 67 crossings: the grid's runs put entrances near 9, 29, 49 and 63, but the road crosses at 10.
+        c = gen_nav.CELLS
+        grid = bytearray([1]) * (2 * c * c)
+        u, w = (c - 1) * c + 10, c * c + 10
+        with (
+            patch.object(gen_nav, "CELLS", c),
+            patch.object(gen_nav, "NX", 2),
+            patch.object(gen_nav, "NY", 1),
+            patch.object(gen_nav, "GW", 2 * c),
+            patch.object(gen_nav, "GH", c),
+            patch.object(gen_nav, "LINKS", defaultdict(dict)),
+            patch.object(gen_nav, "LINKED_OF", defaultdict(list)),
+            patch.object(gen_nav, "FLOOR_CELL", array("i")),
+            patch.object(gen_nav, "ROAD_CELLS", {u, w}),
+            patch.object(gen_nav, "BASE_Z", array("f", [0.0]) * len(grid)),
+        ):
+            nodes, edges = gen_nav.grid_hpa(grid, set())
+        self.assertIn((u, w), edges, "the road crossing is an entrance")
+        self.assertIn(u, nodes[0])
+        self.assertIn(w, nodes[1])
+
+
+class LinkedPortalBoxTest(unittest.TestCase):
+    def test_a_shared_edge_outside_the_cells_does_not_link_them(self):
+        # Two surfaces whose polygons meet only at a doorway far outside the two cells: the old early return counted
+        # that shared edge as a path between every facing pair of cells (#890).
+        c = gen_nav.CELLS
+        i, j = 10 * c + 10, 10 * c + 11
+        polys = {0: flat(10.0), 1: flat(10.0)}
+        layers = {i: [(10.0, 1, (0, (0.0, 0.0)))], j: [(10.0, 1, (1, (0.0, 0.0)))]}
+        portal = {
+            (0, 1): ((1000.0, 1000.0), (1000.0, 1008.0)),
+            (1, 0): ((1000.0, 1008.0), (1000.0, 1000.0)),
+        }
+        with (
+            patch.object(gen_nav, "TILES", {(0, 0): "tile"}),
+            patch.object(gen_nav, "NX", 1),
+            patch.object(gen_nav, "NY", 1),
+            patch.object(gen_nav, "CX0", 31),
+            patch.object(gen_nav, "CY0", 31),
+            patch.object(gen_nav, "GW", c),
+            patch.object(gen_nav, "GH", c),
+            patch.object(gen_nav, "X0", 0.0),
+            patch.object(gen_nav, "Y0", 0.0),
+            patch.object(gen_nav, "load_window", lambda window: (polys, {0: {1}, 1: {0}}, portal)),
+            patch.object(gen_nav, "rasterize_layers", lambda polys, adj, portal, bounds: layers),
+            patch.object(gen_nav, "read_tile", lambda rc: ([], [], [], [])),
+        ):
+            _, _, _, _, links, own, _ = gen_nav.rasterize_tile((0, 0))
+        self.assertEqual(links, [], "no step is written across the doorway")
+        self.assertIn(i * 4 + 1, own, "the +y step between the facing cells is cut")
 
 
 if __name__ == "__main__":

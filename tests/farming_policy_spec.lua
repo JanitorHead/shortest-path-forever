@@ -33,7 +33,8 @@ local function portal(ns)
 end
 -- Each transport is faster than the direct walk; the SAME retained topology must switch both ways.
 for _, mode in ipairs({ "portal", "flight", "boat", "lift", "tram", "teleport", "party", "ride" }) do
-	local d, ns = harness()
+	local _, ns, api = harness()
+	local version, minor = api.version, api.minor
 	local from, to = point(0), point(5000)
 	if mode == "portal" then
 		portal(ns)
@@ -81,6 +82,8 @@ for _, mode in ipairs({ "portal", "flight", "boat", "lift", "tram", "teleport", 
 	check(walking.arrive > normal.arrive, mode .. " restriction is effective even when transit is faster")
 	local _, again = plan("walking")
 	for _, key in ipairs({
+		"taxiKnown",
+		"anchors",
 		"docks",
 		"routes",
 		"taxiNodes",
@@ -89,6 +92,7 @@ for _, mode in ipairs({ "portal", "flight", "boat", "lift", "tram", "teleport", 
 		"portals",
 		"teleports",
 		"teleportReady",
+		"teleportState",
 		"partyPortals",
 	}) do
 		check(next(o[key]) == nil and o[key] == again[key], key .. " is stably empty")
@@ -103,7 +107,7 @@ for _, mode in ipairs({ "portal", "flight", "boat", "lift", "tram", "teleport", 
 		ns.db.journey == true and o.baked == ns.Walks and o.landmasses == ns.Landmasses,
 		"walking preserves terrain and preferences"
 	)
-	check(d.env.ShortestPathForever.API.minor == 0, "internal policy adds no public API version")
+	check(api.version == version and api.minor == minor, "internal policy preserves the public API version")
 end
 -- Route replacement, both same-owner resubmission and different-owner same-goal adoption.
 do

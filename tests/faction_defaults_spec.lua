@@ -60,8 +60,13 @@ assert(loadCore({ restedxp = false }).db.restedxp == false, "saved RestedXP opt-
 assert(fresh.db.guidelime == true, "new installs follow Guidelime when available")
 assert(loadCore({}).db.guidelime == true, "saves without a Guidelime preference acquire the default")
 assert(loadCore({ guidelime = false }).db.guidelime == false, "saved Guidelime opt-out survives reload")
+assert(fresh.db.dugi == false, "new installs leave Dugi opt-in")
+assert(loadCore({}).db.dugi == false, "saves without a Dugi preference keep it off")
+assert(loadCore({ dugi = true }).db.dugi == true, "saved Dugi opt-in survives reload")
 assert(fresh.db.otherFaction == false, "new installs avoid opposing-faction transport")
 assert(fresh.db.hearthMinimumSavings == 0, "new installs preserve the fastest Hearthstone routing")
+assert(fresh.db.followRoads == true, "new installs follow roads")
+assert(fresh.db.roadDetour == 50, "and keep the 50% road allowance")
 assert(loadCore({}).db.hearthMinimumSavings == 0, "old saves acquire the numeric default")
 assert(
 	loadCore({ hearthMinimumSavings = 300 }).db.hearthMinimumSavings == 300,

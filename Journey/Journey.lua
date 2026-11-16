@@ -15,7 +15,6 @@ local REPLAN_DUE = REPLAN_EVERY - 0.5 -- from here Itinerary.lua leaves the fram
 local DRAW_EVERY = 0.5
 -- A teleport step, by the item's or spell's own name in the game's language, after its own icon at the font's
 -- height: the one step you act on from your bags or spellbook stands out from the travel around it.
-local USE_ITEM, CAST_SPELL = L["Use %s"], L["Cast %s"]
 -- art-ok: a square item or spell icon, square at the font's height (size 0)
 local ICON = "|T%d:0|t "
 
@@ -67,38 +66,6 @@ end
 ---@return SPFPlan? plan, integer index
 function ns.JourneyPlan()
 	return result, progress.index
-end
-
----@param plan SPFPlan
----@param current integer
----@return SPFRow?
-function ns.NewFlightPathReminderRow(plan, current)
-	for index = current, #plan.legs do
-		local leg = plan.legs[index]
-		if leg.mode == "walk" and leg.to.undiscovered then
-			return {
-				key = "new-flight-path",
-				text = string.format(L["Step %d: discover flight master %s before flying."], index, ns.LegLabel(leg)),
-				grey = true,
-			}
-		end
-	end
-	if plan.unknownFlight then
-		local walk, flight = false, false
-		for index = current, #plan.legs do
-			local mode = plan.legs[index].mode
-			walk = walk or mode == "walk"
-			flight = flight or mode == "flight"
-		end
-		if walk and not flight then
-			return {
-				key = "unknown-flight-path",
-				text = L["A flight point you have not discovered yet would shorten this route: visit a flight master to learn it."],
-				grey = true,
-			}
-		end
-	end
-	return nil
 end
 
 local CONTINENTS = {
@@ -195,6 +162,34 @@ function ns.TravelPolicyChanged()
 		ns.ItineraryChanged(true)
 	end
 	ns.WakeTravel()
+end
+
+-- Whether journeys may use the Hearthstone. The saved switch, flipped from the tracker's journey menu and the map's
+-- innkeeper button (UI/HearthPin.lua); off, class teleports and bind items still apply (Transport/Teleports.lua).
+---@return boolean
+function ns.HearthstoneEnabled()
+	return ns.db == nil or ns.db.useHearthstone ~= false
+end
+
+---@param enabled boolean
+function ns.SetHearthstoneEnabled(enabled)
+	if not ns.db then
+		return
+	end
+	ns.db.useHearthstone = enabled == true
+	-- Turning it back on forgives a Hearthstone step skipped by hand earlier in this journey.
+	if ns.db.useHearthstone then
+		withoutHearth = false
+	end
+	ns.TravelPolicyChanged()
+	RefreshTracker()
+	if ns.RefreshHearthPin then
+		ns.RefreshHearthPin()
+	end
+end
+
+function ns.ToggleHearthstone()
+	ns.SetHearthstoneEnabled(not ns.HearthstoneEnabled())
 end
 
 -- Whether walks may cross water, and the spell to cast first when none is up.
@@ -444,27 +439,6 @@ function ns.ShowJourneyMap()
 	local place = CorpseRun() and ns.Corpse.Point() or goal
 	local location = place and ns.Locate(place)
 	ns.OpenWorldMap(location and location.uiMap)
-end
-
--- The tracker and screen prompt name the same item or spell in the client's language. `formatPlace`, when the
--- tracker asks for it, wraps the capital a party mage opens inside the same locale sentence.
----@param teleport SPFTeleportPlace
----@param formatPlace? fun(place: string): string
----@return string action, number? icon
-function ns.TeleportAction(teleport, formatPlace)
-	if teleport.partyMage then
-		local icon = C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(teleport.spell)
-		local place = teleport.destination or UNKNOWN
-		if formatPlace then
-			place = formatPlace(place)
-		end
-		return L["Ask %s for a portal to %s"]:format(teleport.partyMage, place), icon
-	end
-	local name = teleport.item and C_Item.GetItemNameByID(teleport.item)
-		or C_Spell.GetSpellName(teleport.spell)
-		or UNKNOWN
-	local icon = teleport.item and C_Item.GetItemIconByID(teleport.item) or (C_Spell.GetSpellTexture(teleport.spell))
-	return (teleport.item and USE_ITEM or CAST_SPELL):format(name), icon
 end
 
 -- The journey's name. `formatPlace` wraps the place this addon named inside the same locale sentence; a caller's
@@ -725,8 +699,17 @@ local function Follow(route, news)
 		if not result then
 			StopGuide()
 		end
+		-- The plan is ready or has been replaced: the legs Journey() reports, and where each starts and ends, may
+		-- differ from the last answer, whether or not the goal changed.
+		if ns.JourneyReplanned then
+			ns.JourneyReplanned()
+		end
 	elseif news == "walks" then
 		Guide.Retarget()
+		-- A redrawn walk can move the leg's own ends, which Journey() copies.
+		if ns.JourneyReplanned then
+			ns.JourneyReplanned()
+		end
 	end
 	if ns.FarmingJourneyProof then
 		ns.FarmingJourneyProof("settled", goal, result)
@@ -760,6 +743,11 @@ local function Update(self, elapsed)
 		self.progressElapsed = self.progressElapsed + elapsed
 		if self.progressElapsed >= 0.1 then
 			self.progressElapsed = 0
+			-- Progress is the guide's own, not planning or drawing: a bend passed in combat still moves the arrow
+			-- under way and tells guidance subscribers, which writes nothing.
+			if ns.AdvanceGuide then
+				ns.AdvanceGuide()
+			end
 			if goal and ns.StopInside(goal) then
 				Guide.Pause()
 			end
@@ -779,6 +767,11 @@ local function Update(self, elapsed)
 	local x, y, _, map = ns.JourneyPosition()
 	if not x then
 		return
+	end
+	-- The guide's bend under way advances from this existing progress tick too, so an arrow that is off still keeps
+	-- the compass and the public guidance read current. A read advances it as well; there is no poll of its own.
+	if ns.AdvanceGuide then
+		ns.AdvanceGuide()
 	end
 	if ns.Floor and y and map then
 		ns.Floor.Sample(map, x, y)
