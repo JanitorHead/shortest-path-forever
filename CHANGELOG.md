@@ -12,6 +12,7 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Town services appear soon after you log in.** The Nearby services list and the service pins on the world map no longer wait for a journey to finish planning after a login or reload, which could keep them empty for about a minute (#925).
 - **Nearby services load sooner after an update.** Reading town services from QuestieDB now continues while your journey is being planned, so the first read no longer waits for the planner to finish (#929).
 
 ## [1.40.0] - 2026-11-16
