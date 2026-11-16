@@ -13,6 +13,8 @@ L["%s (new flight path)"] = "%s (nova rota de voo)"
 L["%s (turn in)"] = "%s (entregar)"
 L["%s could be %s."] = "%s pode ser %s."
 L["%s could not start. Reinstall %s to fix this."] = "%s não pôde iniciar. Reinstale %s para corrigir isto." -- mt
+L["%s needs ForeverCore. Install it from CurseForge, or choose Reinstall on ForeverCore in the CurseForge app."] =
+	"%s precisa do ForeverCore. Instale-o pelo CurseForge ou escolha Reinstalar no ForeverCore no aplicativo CurseForge." -- mt
 L["%s landing"] = "plataforma %s"
 L["%s pier"] = "cais %s"
 L["%s station"] = "estação %s"
@@ -23,6 +25,10 @@ L["%s, %s"] = "%s, %s"
 L["%s, then %s"] = "%s, depois %s"
 L["%s: %s are out of date. Update them to fix this."] = "%s: %s estão desatualizados. Atualize-os para corrigir isto." -- mt
 L["%s: %s is out of date. Update it to fix this."] = "%s: %s está desatualizado. Atualize-o para corrigir isto." -- mt
+L["%s: ForeverCore is turned off. Enable it in the AddOns list to fix this."] =
+	"%s: o ForeverCore está desativado. Ative-o na lista de AddOns para corrigir isso." -- mt
+L["%s: the installed ForeverCore is another addon (%s). Remove it and install ForeverCore from CurseForge."] =
+	"%s: o ForeverCore instalado é outro AddOn (%s). Remova-o e instale o ForeverCore pelo CurseForge." -- mt
 L["/way [zone] x y [title], with x and y from 0 to 100."] = "/way [zona] x y [título], com x e y de 0 a 100."
 L["/way reset all, away, <zone> or not <zone>"] = "/way reset all, away, <zona> ou not <zona>"
 L["Adventure Guide couldn't start that just now. Choose it again from its guide."] =
@@ -50,8 +56,8 @@ L["Journeys, and other addons' estimates from here, can start with a mage's city
 L["Minimum teleport saving"] = "Economia mínima do teleporte"
 L["Only use a class teleport when it saves at least this much time."] =
 	"Usar um teleporte de classe só quando ele economizar pelo menos este tempo."
-L["The Hearthstone and class teleports have their own switches."] =
-	"A Pedra de Regresso e os teleportes de classe têm seus próprios interruptores." -- mt
+L["Nearby services can show only your professions."] =
+	"Os serviços próximos podem mostrar apenas as suas profissões." -- mt
 L["Boat and Zeppelin Routes"] = "Rotas de barcos e zepelins"
 L["Boat and zeppelin routes, drawn while you point at a dock."] =
 	"Rotas de barcos e zepelins, desenhadas enquanto você aponta para um cais."

@@ -13,6 +13,8 @@ L["%s (new flight path)"] = "%s（新飛行路線）"
 L["%s (turn in)"] = "%s（交任務）"
 L["%s could be %s."] = "%s可能是%s。"
 L["%s could not start. Reinstall %s to fix this."] = "%s 無法啟動。請重新安裝 %s 以解決此問題。" -- mt
+L["%s needs ForeverCore. Install it from CurseForge, or choose Reinstall on ForeverCore in the CurseForge app."] =
+	"%s需要ForeverCore。請從CurseForge安裝，或在CurseForge應用程式中為ForeverCore選擇重新安裝。" -- mt
 L["%s landing"] = "%s平台"
 L["%s pier"] = "%s碼頭"
 L["%s station"] = "%s車站"
@@ -23,6 +25,10 @@ L["%s, %s"] = "%s，%s"
 L["%s, then %s"] = "%s，然後%s"
 L["%s: %s are out of date. Update them to fix this."] = "%s：%s 已過期。請更新它們以解決此問題。" -- mt
 L["%s: %s is out of date. Update it to fix this."] = "%s：%s 已過期。請更新它以解決此問題。" -- mt
+L["%s: ForeverCore is turned off. Enable it in the AddOns list to fix this."] =
+	"%s：ForeverCore已停用。請在插件清單中啟用它以解決此問題。" -- mt
+L["%s: the installed ForeverCore is another addon (%s). Remove it and install ForeverCore from CurseForge."] =
+	"%s：已安裝的ForeverCore是另一個插件（%s）。請將其移除，並從CurseForge安裝ForeverCore。" -- mt
 L["/way [zone] x y [title], with x and y from 0 to 100."] = "/way [地區] x y [標題]，x和y為0到100。"
 L["/way reset all, away, <zone> or not <zone>"] = "/way reset all, away, <地區> 或 not <地區>"
 L["Adventure Guide couldn't start that just now. Choose it again from its guide."] =
@@ -50,8 +56,7 @@ L["Journeys, and other addons' estimates from here, can start with a mage's city
 L["Minimum teleport saving"] = "傳送最少節省時間"
 L["Only use a class teleport when it saves at least this much time."] =
 	"只在職業傳送至少節省這麼多時間時使用。"
-L["The Hearthstone and class teleports have their own switches."] =
-	"爐石和職業傳送現在各有自己的開關。" -- mt
+L["Nearby services can show only your professions."] = "附近服務可以只顯示你的專業。" -- mt
 L["Boat and Zeppelin Routes"] = "船隻與飛艇航線"
 L["Boat and zeppelin routes, drawn while you point at a dock."] =
 	"船隻與飛艇航線，在你指向碼頭時繪製。"
