@@ -1,10 +1,10 @@
 {
-  "input_digest": "8bdd39f16292d33085b166a037c008fd0849ebf4894edd187a289c66be3e790f",
-  "runtime_sha256": "8bdd39f16292d33085b166a037c008fd0849ebf4894edd187a289c66be3e790f",
-  "candidate": "2d8d2ff192e648434326626e1dadf2ce9d315ed482601ce4ca1e21554f45b4e1",
+  "input_digest": "83c73a1b62f253dba8f2298c7803a8d10d44ed3f976f54899f519d50c64bbf6d",
+  "runtime_sha256": "83c73a1b62f253dba8f2298c7803a8d10d44ed3f976f54899f519d50c64bbf6d",
+  "candidate": "a70ea35560a4baae93c9dcfbba70df2853658a01360a5bf6c09ac06d3760e07b",
   "client_build": "1.60.1.70938 (Interface 16001)",
   "tested_artifact": "source-tree",
-  "source_commit": "90f3f05271b1432b7fed25f4bd2c2968f86a5207",
+  "source_commit": "194eadc3900ccc5c5c19c87cc1235f09f0829f16",
   "flows": [
     {
       "name": "walk estimates",
@@ -16,8 +16,8 @@
   ],
   "images": [
     {
-      "url": "https://gist.githubusercontent.com/cjber/d1710f8411d1ce736f709395e4fb06d9/raw/7027b22d7448a94056371b3edf7dbef84bbbb037/1-walk-estimates.png",
-      "sha256": "80b8de555647fe6ebeb3af3a8cb82e64f16ed665477ba5637b031c8aee116df5"
+      "url": "https://gist.githubusercontent.com/cjber/19c5b6ffc7ad26640297da8708c7ea1a/raw/2f76dbb1b5c258db4e7a431a31be8af5e5ce9028/1-walk-estimates.png",
+      "sha256": "ad77a13d7541e4efbd45e6ea27467049c639a44d647485bb48009d107f4fada8"
     }
   ]
 }
