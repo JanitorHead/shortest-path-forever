@@ -65,6 +65,7 @@ env.ForeverCore = {
 	APIKit = { Hub = function() end, NotReady = function() end },
 	TrackerSection = { Create = function() end, UpdateText = function() end },
 	TrackerLine = { SetInteractive = function() end },
+	TrackerHost = { HandleBlockHeaderClick = function() end },
 	Art = { minor = 2, Marker = function() end, Ring = function() end, Diamond = function() end },
 }
 setfenv(assert(loadfile("Core/ForeverRequire.lua")), env)("ShortestPathForever", ns)
