@@ -1,45 +1,34 @@
 {
-  "input_digest": "fd46da7b5a045e481422e919146973b5d469136f4f09758b48fca11dc9d05b2f",
-  "runtime_sha256": "fd46da7b5a045e481422e919146973b5d469136f4f09758b48fca11dc9d05b2f",
-  "candidate": "cb69869c92c3b8f3356aff7389d9c79fab2b90c270974b10b36225ad96c076ea",
+  "input_digest": "a3aa83fc804e10b0bf8b2c2566b5d222dc76cdc2159b7a8c03cd743d42d0fe72",
+  "runtime_sha256": "a3aa83fc804e10b0bf8b2c2566b5d222dc76cdc2159b7a8c03cd743d42d0fe72",
+  "candidate": "65ef96baecf40d00cebd43d127cef72d4b50168aa6e83da08e2f9c201e07acba",
   "client_build": "1.60.1.70938 (Interface 16001)",
   "tested_artifact": "source-tree",
-  "source_commit": "5abf13e0cca7d8fcae96553c0ff3bff8d7571733",
+  "source_commit": "03abe50e5bf1b87ef63ea362fddc05fd02b150bf",
   "flows": [
     {
-      "name": "hearthstone on",
+      "name": "hearth-tooltip-unused",
       "steps": [
-        "sha256:536921a2abf3b3672c86fc9e1059c0efe16d7691582f06a1f65c9b05e9708553 spf951_on.lua"
+        "sha256:8e0149581fdf3702c0a513b31d859dd23e7c7b6fa43ebdf83736d8ebd33d6706 f960_walk.lua"
       ],
       "result": "pass"
     },
     {
-      "name": "hearthstone off",
+      "name": "guidance-settings",
       "steps": [
-        "sha256:52ac5a2fcf15991cb7bdd974dd3dec971a148b4c859f0d3566747857afe2e0dd spf951_off.lua"
-      ],
-      "result": "pass"
-    },
-    {
-      "name": "hearthstone back on",
-      "steps": [
-        "sha256:7684a79b93ba2206e2e5cd9decf8bddfb703644d163d6d6c684024fb5595cf0e spf951_back_on.lua"
+        "sha256:1d8984ac8b71180d9b5585204289b93641f53e021a38bcd5a3899bfd2bdbf2cb f943_guid.lua"
       ],
       "result": "pass"
     }
   ],
   "images": [
     {
-      "url": "https://gist.githubusercontent.com/cjber/85d19848f831ef8c198382f2b3033472/raw/2fcba1fd8f795edd9c74e91fe6b1aad7f11f5697/1-hearthstone-on.png",
-      "sha256": "561c8a24d9bba369cd1cb88c1002655c78296d50ee3ad0ec876efb6e09df19b1"
+      "url": "https://gist.githubusercontent.com/cjber/8ae10e9729f6e21bc4c55834e052b2f9/raw/77388709807659f486d8214967d53671e27650a3/1-hearth-tooltip-unused.png",
+      "sha256": "7c12164224d8662697c9bfa7561c435c0e711f87772fef4d97c77107eed1ef56"
     },
     {
-      "url": "https://gist.githubusercontent.com/cjber/85d19848f831ef8c198382f2b3033472/raw/2fcba1fd8f795edd9c74e91fe6b1aad7f11f5697/2-hearthstone-off.png",
-      "sha256": "08943a44d864595823a802f86c3adc6ae8f251f5647306dcaaa6c083143b4008"
-    },
-    {
-      "url": "https://gist.githubusercontent.com/cjber/85d19848f831ef8c198382f2b3033472/raw/2fcba1fd8f795edd9c74e91fe6b1aad7f11f5697/3-hearthstone-back-on.png",
-      "sha256": "15a6d7b4f7952394a17d442b22537d876ff512e4b4eb4816affaf69379249102"
+      "url": "https://gist.githubusercontent.com/cjber/8ae10e9729f6e21bc4c55834e052b2f9/raw/77388709807659f486d8214967d53671e27650a3/2-guidance-settings.png",
+      "sha256": "6d1189359f0f0f1e5ea4e9a2a86c49db4849f70eda01785f44b05c8616a439cb"
     }
   ]
 }
