@@ -1,34 +1,45 @@
 {
-  "input_digest": "f55795f1376e0f8342e09ec7f76fde12c30cb68392f3798d5689541c3d595486",
-  "runtime_sha256": "f55795f1376e0f8342e09ec7f76fde12c30cb68392f3798d5689541c3d595486",
-  "candidate": "e4084b857e8d8e350fc1396b9cfed23ee68d4c788f3cdfff1ab7a54eda89c07e",
+  "input_digest": "3f70d9411a1792ed8949fa28ff887425f9ce4b85c469173b73902976d340b5bc",
+  "runtime_sha256": "3f70d9411a1792ed8949fa28ff887425f9ce4b85c469173b73902976d340b5bc",
+  "candidate": "9b46560af32241e2a698471399ccb6028667bac83bbef2aa54299d3031de8588",
   "client_build": "1.60.1.70938 (Interface 16001)",
   "tested_artifact": "source-tree",
-  "source_commit": "74ebc560cb1755b71ac5678f52f79629334ef4de",
+  "source_commit": "19b12aa80c0643341e7131e3b80d01bf0528df41",
   "flows": [
     {
-      "name": "direct-stops-on",
+      "name": "direct stops on",
       "steps": [
-        "direct_stops_true.lua sha256:08c6b0fe8b13b399e845a20e3ad64e2fd3a1bc7b95b86ed35ca528f60acac69d"
+        "sha256:7058955879af061d2f536ff3d5d1096968de21bee57df8ea277e8f0ddc4a5c78 spf-direct-stops-on.lua"
       ],
       "result": "pass"
     },
     {
-      "name": "direct-stops-off",
+      "name": "direct stops off",
       "steps": [
-        "direct_stops_false.lua sha256:7a0a1d758e50a0a298249de9c1b671c3513f14774425e6034efc812214c369b3"
+        "sha256:f1d976977012b8840faf05b090e4078ee36c72a382ca5ec8a0d903911b921d38 spf-direct-stops-off.lua"
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "restore",
+      "steps": [
+        "sha256:f8049e3ad99c52ab4947050101ca5228053a4251634b43af6fd47585fa9921ba spf-restore.lua"
       ],
       "result": "pass"
     }
   ],
   "images": [
     {
-      "url": "https://gist.githubusercontent.com/cjber/2141f85ecfd0a6f60d3c48fab5febdf1/raw/79803e914d2ca16022a7de0a09021692fb5f5c31/1-direct-stops-on.png",
-      "sha256": "5ef918cf097c876eff80413b4d0a3c5d0ce78e90511ed5c783f93494b58e457d"
+      "url": "https://gist.githubusercontent.com/cjber/355984705b60c77d54fef7c0ebbad7f7/raw/80f5ab9681361dc46b707823a165b9e54dd1f0d0/1-direct-stops-on.png",
+      "sha256": "c61c411c83b7acc68acbdaad839043b577084a54b401957de92ce8cb551e9843"
     },
     {
-      "url": "https://gist.githubusercontent.com/cjber/2141f85ecfd0a6f60d3c48fab5febdf1/raw/79803e914d2ca16022a7de0a09021692fb5f5c31/2-direct-stops-off.png",
-      "sha256": "465ef5d41614ce57e4cf4fce980c1469a950b923bdd5fd0a2d5d4ade837837fa"
+      "url": "https://gist.githubusercontent.com/cjber/355984705b60c77d54fef7c0ebbad7f7/raw/80f5ab9681361dc46b707823a165b9e54dd1f0d0/2-direct-stops-off.png",
+      "sha256": "cbbbb2c1963e21bc9cb0f43203fda704858bf2adcc975fe42b74c62361f3d26a"
+    },
+    {
+      "url": "https://gist.githubusercontent.com/cjber/355984705b60c77d54fef7c0ebbad7f7/raw/80f5ab9681361dc46b707823a165b9e54dd1f0d0/3-restore.png",
+      "sha256": "730690cf935283cfec1a6751fcc92f7ff3ab5ce24d2729ee1d4cd1e5e90cdb13"
     }
   ]
 }
