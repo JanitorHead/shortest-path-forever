@@ -14,7 +14,7 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 - **Settings are easier to scan.** Section headings group related controls on the Guidance, Interface and Map marks pages.
 
-## [1.41.1] - 2026-11-16
+## [1.41.1] - 2026-11-17
 
 <!-- forever-core-sync -->
 
