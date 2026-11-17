@@ -117,6 +117,14 @@ local function samples(english)
 	end
 	return args
 end
+local function unchanged(actual, expected, message)
+	for key, value in pairs(actual) do
+		assert(rawget(expected, key) == value, message)
+	end
+	for key, value in pairs(expected) do
+		assert(rawget(actual, key) == value, message)
+	end
+end
 local translations = 0
 for position = 4, #shipped do
 	if shipped[position]:match("^Locales/") then
@@ -139,7 +147,9 @@ for _, file in ipairs(shipped) do
 			}, { __index = _G })
 			setfenv(assert(loadfile(file)), env)("ShortestPathForever", case[2])
 		end
-		assert(next(rawget(untouched, "L")) == nil, file .. " changes nothing in another client language")
+		local baseline = {}
+		assert(loadfile("Locales/enUS.lua"))("ShortestPathForever", baseline)
+		unchanged(untouched.L, baseline.L, file .. " changes nothing in another client language")
 		local lines = 0
 		for english, text in pairs(own.L) do
 			lines = lines + 1

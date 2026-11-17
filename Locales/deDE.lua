@@ -438,10 +438,8 @@ L["All towns"] = "Alle Städte" -- mt
 L["Books and recipes"] = "Bücher und Rezepte" -- mt
 L["One icon per town, or one per service as you zoom in."] = "Ein Symbol pro Stadt oder pro Dienst beim Hineinzoomen." -- mt
 L["Click to save it."] = "Klicken, um sie aufzusparen." -- mt
-L["Click to use it."] = "Klicken, um sie zu verwenden." -- mt
 L["Destination pin size"] = "Größe der Zielmarkierung" -- mt
 L["Hearthstone"] = "Ruhestein" -- mt
-L["Saved for later."] = "Für später aufgehoben." -- mt
 L["Scales the pin over the destination on the world map."] = "Skaliert die Markierung über dem Ziel auf der Weltkarte." -- mt
 L["This journey uses it: %s faster."] = "Diese Reise nutzt ihn: %s schneller." -- mt
 L["Use Hearthstone"] = "Ruhestein verwenden" -- mt
@@ -557,8 +555,8 @@ L["Road detour allowance"] = "Erlaubter Umweg für Straßen" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Bei aktivierter Option Straßen folgen: wie viel zusätzliche Strecke sich lohnt, um dieselbe Strecke abseits der Straße zu vermeiden. 50% behält die übliche Bevorzugung bei; 0% bevorzugt Straßen nicht. Dies begrenzt nicht die Länge des gesamten Wegs." -- mt
 L["Point straight to the destination"] = "Direkt zum Ziel zeigen" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"Der Pfeil zeigt direkt zum Ziel und zeigt die Luftlinie an. Auf einer anderen Karte zeigt er zum aktuellen Reiseschritt. Kartenmarkierungen und Reisezeit folgen weiterhin der Route." -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"Die Navigationsmarkierung des Spiels zeigt direkt zum Ziel oder zum aktuellen Reiseabschnitt auf einer anderen Karte; der Pfeil tut dasselbe, wenn diese Markierung ausgeschaltet ist. Kartenmarkierungen und Reisezeit folgen weiterhin der Route." -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"Die Kartenmarkierungen zeigen das Ende jedes Schritts statt jeder Wegbiegung. Die Pfeilrichtung wird separat eingestellt." -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
@@ -576,3 +574,10 @@ L["Compass"] = "Kompass"
 L["General"] = "Allgemein"
 L["Map icons"] = "Kartensymbole"
 L["Walking route"] = "Fußweg"
+
+L["stop guiding"] = "die Wegführung zu beenden" -- mt
+L["guide this journey"] = "diese Reise zu führen" -- mt
+L["show it on the map"] = "es auf der Karte anzuzeigen" -- mt
+L["show the Adventure Guide Forever link"] = "den Link zu Adventure Guide Forever anzuzeigen" -- mt
+L["Show link"] = "Link anzeigen" -- mt
+L["That guide has no step to follow."] = "Dieser Guide hat keinen Schritt zum Folgen." -- mt

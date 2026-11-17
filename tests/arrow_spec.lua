@@ -342,6 +342,14 @@ ns.JourneyGuide.To(nativeGoal, { nativeGoal }, nativeGoal)
 assert(driver.waypoint() and select(2, driver.waypoint()), "enabling restores native guidance")
 ns.JourneyGuide.Stop()
 -- Direct mode through the real JourneyGuide callback, including ownership and map projection.
+-- #940: the default stop-only map marks still allow native direct guidance.
+ns.db.guideStops = true
+cvars.showInGameNavigation = "1"
+env.C_Navigation = {
+	GetFrame = function()
+		return {}
+	end,
+}
 local saved = env.UiMapPoint.CreateFromCoordinates(1, 0.2, 0.3)
 env.C_Map.SetUserWaypoint(saved)
 env.C_SuperTrack.SetSuperTrackedUserWaypoint(true)
@@ -355,6 +363,14 @@ assert(
 	directMap == 1 and math.abs(directWorld.x - 300) < 1e-8 and math.abs(directWorld.y - 400) < 1e-8,
 	"real native placement projects the final direct destination"
 )
+assert(frame.hidden or frame.alpha == 0, "native direct guidance hides the addon arrow with stop-only marks")
+ns.db.arrowDirect = false
+ns.ArrowBearingChanged()
+assert(not driver.waypoint(), "route mode with stop-only marks clears the guide waypoint immediately")
+ns.db.arrowDirect = true
+ns.ArrowBearingChanged()
+assert(driver.waypoint(), "direct mode restores native guidance immediately with stop-only marks")
+assert(frame.hidden or frame.alpha == 0, "restored native direct guidance hides the addon arrow")
 ns.JourneyGuide.Stop()
 local restored = assert(driver.waypoint())
 assert(

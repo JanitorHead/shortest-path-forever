@@ -36,6 +36,7 @@ local ns = {
 	SetOption = noop,
 }
 local modules = {}
+local contract
 local env = setmetatable({
 	ObjectiveTrackerFrame = {},
 	ObjectiveTrackerManager = {},
@@ -58,14 +59,28 @@ local env = setmetatable({
 			target[key] = value
 		end
 	end,
-	EventUtil = { ContinueAfterAllEvents = noop },
-	C_Timer = { After = noop },
+	EventUtil = {
+		ContinueAfterAllEvents = function(fn)
+			fn()
+		end,
+	},
+	C_Timer = {
+		After = function(delay, fn)
+			if delay == 0 then
+				fn()
+			end
+		end,
+	},
 	hooksecurefunc = noop,
 	InCombatLockdown = function()
 		return true
 	end,
 	ForeverCore = {
-		TrackerHost = { Attach = noop },
+		TrackerHost = {
+			Attach = function(_, _, value)
+				contract = value
+			end,
+		},
 		ContextMenu = function(_, generator)
 			generator(owner, {
 				CreateButton = function(_, text, click)
@@ -88,7 +103,16 @@ module.GetContextMenuParent = function()
 end
 local function Open()
 	entries = {}
-	module:OnBlockHeaderClick({ id = "journey" }, "RightButton")
+	contract.menu({ kind = "block", id = "journey", module = module }, {
+		Primary = noop,
+		Action = function(_, text, click)
+			local entry = { click = click }
+			entries[text] = entry
+			return entry
+		end,
+		Open = noop,
+		End = noop,
+	})
 	return entries
 end
 
