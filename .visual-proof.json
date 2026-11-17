@@ -1,34 +1,23 @@
 {
-  "input_digest": "6846db34a365ee19de59a7425c08d5ca3bda20b4a46f213c51b8692e9387c29a",
-  "runtime_sha256": "6846db34a365ee19de59a7425c08d5ca3bda20b4a46f213c51b8692e9387c29a",
-  "candidate": "272765a132d697404076504ea021cc86f003968c282487024f45d788b46d2690",
+  "input_digest": "ac8d692e8d62928a80d4ea9befeee5d5a3508cebd05e6546a5b6b4c908dcdc90",
+  "runtime_sha256": "ac8d692e8d62928a80d4ea9befeee5d5a3508cebd05e6546a5b6b4c908dcdc90",
+  "candidate": "b78ef7488d0918efb1e93d63fce0323399f99762c6ef2e2098fcef1aa28a16ad",
   "client_build": "1.60.1.70938 (Interface 16001)",
   "tested_artifact": "source-tree",
-  "source_commit": "ba75b0be175eddcb1c696be0f92592630e265d48",
+  "source_commit": "196ca41980162528472a8c2388f44f177298bdbc",
   "flows": [
     {
-      "name": "only my professions on",
+      "name": "path window",
       "steps": [
-        "spf-map-true.lua sha256:b96cde2dd71e491a1922be6e14d7fa7ea8a44590b8cbb2927de8918ab225c815"
-      ],
-      "result": "pass"
-    },
-    {
-      "name": "town services on a first login",
-      "steps": [
-        "spf-services-login.lua sha256:d5acba3cd10141f499ddfc1b5b9d71bf825b721aef07396eaad6e4b5cd7afc1a"
+        "/path"
       ],
       "result": "pass"
     }
   ],
   "images": [
     {
-      "url": "https://gist.githubusercontent.com/cjber/f186f628567667f4d31384a5d8f03821/raw/02f9a1d0500ffb0c98a2316083ac964146ac265d/1-only-my-professions-on.png",
-      "sha256": "135efb305735b6dd91bfd308d3f1cbee17856aced3eec4b26523c1fe3d45ee6e"
-    },
-    {
-      "url": "https://gist.githubusercontent.com/cjber/f186f628567667f4d31384a5d8f03821/raw/02f9a1d0500ffb0c98a2316083ac964146ac265d/2-town-services-on-a-first-login.png",
-      "sha256": "d708eb1766931ff56b369b9c43f4e53eb044b0bdbc2f329fb0f7c2128691d7ad"
+      "url": "https://gist.githubusercontent.com/cjber/f180aa703083c13b7557da2b4f654d98/raw/d5d8cef8f9727d37eb08596331f9b260358abf56/1-path-window.png",
+      "sha256": "2758303fcafa7dd516fe927eb8437964f7eace66dfd8f6f4d205773b921a46a8"
     }
   ]
 }
