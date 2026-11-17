@@ -108,7 +108,7 @@ bold-lead bullets) before its `v*` tag, since the release publishes it as the no
 - `wow-forever-addon` — https://github.com/cjber/forever-core/tree/main/.agents/skills/wow-forever-addon (UI look,
   icon, README and store page, CI and release requirements shared by every WoW: Forever addon)
 - For UI design, mockups, asset selection and visual audits, also read the
-  `wow-retail-ui-style` skill on Forever Core `main`. Its asset registry and audit sheets
+  `wow-retail-ui-style` skill on ForeverCore `main`. Its asset registry and audit sheets
   distinguish approved native host art from conditional and blacklisted assets.
 - `repo-standards`: the RS-* requirements every cjber repo meets (repo, Actions and security settings, rulesets, CI hardening, community files), a skill in cjber/skills whose `audit.py` checks this repo
 

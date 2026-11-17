@@ -30,7 +30,7 @@ local function Addons()
 			core = TOC["X-Forever-Core"],
 			deps = { "ForeverCore" },
 		},
-		{ name = "ForeverCore", title = "Forever Core", core = pin, deps = {} },
+		{ name = "ForeverCore", title = "ForeverCore", core = pin, deps = {} },
 	}
 	local function At(index)
 		return entries[index]
