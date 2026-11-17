@@ -395,6 +395,7 @@ function ns.ResumeGuidelime()
 	targetTitle, targetQuests = nil, nil
 	ForgetTarget()
 	Sync()
+	return API.CurrentStop(OWNER) ~= nil
 end
 
 -- The setting, Guidelime loading and the addon's own load all call this.

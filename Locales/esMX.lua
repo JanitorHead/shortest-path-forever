@@ -439,10 +439,8 @@ L["All towns"] = "Todas las ciudades" -- mt
 L["Books and recipes"] = "Libros y recetas" -- mt
 L["One icon per town, or one per service as you zoom in."] = "Un icono por ciudad, o uno por servicio al acercar." -- mt
 L["Click to save it."] = "Haz clic para guardarla." -- mt
-L["Click to use it."] = "Haz clic para usarla." -- mt
 L["Destination pin size"] = "Tamaño del marcador de destino" -- mt
 L["Hearthstone"] = "Piedra de hogar" -- mt
-L["Saved for later."] = "Guardada para más tarde." -- mt
 L["Scales the pin over the destination on the world map."] = "Escala el marcador sobre el destino en el mapa del mundo." -- mt
 L["This journey uses it: %s faster."] = "Este viaje la usa: %s más rápido." -- mt
 L["Use Hearthstone"] = "Usar piedra de hogar" -- mt
@@ -557,11 +555,29 @@ L["Road detour allowance"] = "Desvío permitido por carretera" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Con Seguir carreteras activado, cuánta distancia adicional merece la pena para evitar la misma distancia fuera de la carretera. 50% mantiene la preferencia habitual; 0% no da preferencia a las carreteras. No es un límite para el trayecto completo." -- mt
 L["Point straight to the destination"] = "Apuntar directamente al destino" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"La flecha apunta directamente al destino y muestra la distancia en línea recta. En otro mapa, apunta al paso de viaje actual. Las marcas del mapa y el tiempo de viaje siguen la ruta." -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"El marcador de navegación del juego apunta directamente al destino o al paso actual del viaje en otro mapa; la flecha hace lo mismo cuando ese marcador está desactivado. Las marcas del mapa y el tiempo de viaje siguen la ruta." -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"Las marcas del mapa indican dónde termina cada paso, no cada giro del camino. La dirección de la flecha se configura por separado." -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
 	"Lo que aparece bajo la flecha: la distancia según el modo elegido, el tiempo restante del viaje o ambos." -- mt
 
 L["Transmogrifier"] = "Transfigurador" -- mt
+L["Tracker"] = "Seguimiento"
+L["Planning"] = "Planificación"
+L["Destination"] = "Destino"
+L["Guides"] = "Guías"
+L["Route choices"] = "Opciones de ruta"
+L["Map"] = "Mapa"
+L["Direction arrow"] = "Flecha de dirección"
+L["Compass"] = "Brújula"
+L["General"] = "General"
+L["Map icons"] = "Iconos del mapa"
+L["Walking route"] = "Ruta a pie"
+
+L["stop guiding"] = "dejar de guiar" -- mt
+L["guide this journey"] = "guiar este viaje" -- mt
+L["show it on the map"] = "mostrarlo en el mapa" -- mt
+L["show the Adventure Guide Forever link"] = "mostrar el enlace de Adventure Guide Forever" -- mt
+L["Show link"] = "Mostrar enlace" -- mt
+L["That guide has no step to follow."] = "Esa guía no tiene ningún paso que seguir." -- mt

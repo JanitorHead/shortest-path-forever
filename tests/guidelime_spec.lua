@@ -278,13 +278,14 @@ tick()
 assert(alpha == 0.8 and mouse, "with our arrow off, Guidelime's arrow returns while RestedXP leads")
 ns.db.arrow = true
 API.Cancel("RestedXP")
-ns.ResumeGuidelime()
+assert(ns.ResumeGuidelime() == true, "resume reports a followed step")
 driver.path.settle()
 assert(API.CurrentStop("Guidelime") == 1, "resume takes the current step back")
 
 -- Turning the setting off cancels the journey, restores the arrow and stops the ticker.
 local before = cancels
 ns.db.guidelime = false
+assert(ns.ResumeGuidelime() == false, "resume reports when following is disabled")
 ns.RefreshGuidelime()
 assert(not API.CurrentStop("Guidelime") and alpha == 0.8 and mouse, "disabling restores Guidelime's arrow")
 assert(cancels == before + 1 and tick == nil, "disabling stops following the arrow")

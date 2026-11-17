@@ -4,6 +4,7 @@ local _, ns = ...
 
 ns.Credits = {
 	players = {
+		{ name = "user_g496wu46adiwjuc5", what = "Hearthstone map button respects Use Hearthstone" },
 		{ name = "zhega", what = "Nearby services can show only learned professions" },
 		{ name = "catubba", what = "Journey legs name where they start and end" },
 		{ name = "Hatemost", what = "Resume the RestedXP guide from a macro" },
@@ -131,6 +132,7 @@ ns.Credits = {
 		{ name = "ubrider", what = "Hovering the minimap map pin no longer errors" },
 		{ name = "ubrider", what = "Manual destinations keep priority over RestedXP updates" },
 		{ name = "Drusangus", what = "An arrow pointing straight to the destination" },
+		{ name = "Drusangus", what = "Native navigation for direct destination guidance" },
 		{ name = "cwebbx", what = "Journeys start from a focused quest or map pin" },
 		{ name = "lone_viking1921", what = "Journeys start from a focused quest or map pin" },
 		{ name = "Nivlemoth_Nathrezim", what = "Horde walks stay out of Southshore" },

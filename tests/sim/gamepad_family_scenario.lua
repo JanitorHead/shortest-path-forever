@@ -51,3 +51,62 @@ scenario(
 		sim:expectNoErrors(ADDON)
 	end
 )
+
+scenario("Guidance renders its native groups in order", { addons = ForeverCore.addons() }, function(sim)
+	local G = sim.G
+	sim:login()
+	local ns
+	for _, entry in ipairs(sim.loader.addons) do
+		if entry.name == ADDON then
+			ns = entry.ns
+		end
+	end
+	local category
+	for _, entry in ipairs(G.SettingsPanel:GetAllCategories()) do
+		if entry:GetName() == "Shortest Path Forever" then
+			category = entry
+		end
+	end
+	assert(category and ns)
+	-- Scroll each heading and control of the dense native list into view.
+	local guidance
+	for _, child in ipairs(category:GetSubcategories()) do
+		if child:GetName() == ns.L["Guidance"] then
+			guidance = child
+		end
+	end
+	assert(guidance, "Guidance is a native subpage")
+	sim:input(function()
+		G.SettingsPanel:OpenToCategory(guidance:GetID())
+	end)
+	sim:advance(0.1)
+	local box = G.SettingsPanel:GetSettingsList().ScrollBox
+	local headings = { "Tracker", "Planning", "Destination", "Guides", "Route choices", "Map" }
+	local heading = 0
+	assert(box:GetDataProvider():GetSize() == 38, "all six headings and 32 controls render")
+	for index = 1, box:GetDataProvider():GetSize() do
+		local row
+		sim:input(function()
+			box:ScrollToElementDataIndex(index, nil, nil, true)
+			row = box:FindFrame(box:GetDataProvider():Find(index))
+			assert(row, "the native row renders")
+		end)
+		sim:advance(0.05)
+		assert(row:GetHeight() > 0, "native rows reserve layout height")
+		local nextRow = box:FindFrame(box:GetDataProvider():Find(index + 1))
+		if nextRow and nextRow:IsVisible() then
+			assert(row:GetBottom() >= nextRow:GetTop(), "adjacent native rows do not overlap")
+		end
+		if row.Title and row.Title:GetText() == ns.L[headings[heading + 1]] then
+			heading = heading + 1
+		end
+	end
+	assert(heading == #headings, "all localized headings render in order")
+	sim:input(function()
+		G.SettingsPanel:Close()
+	end)
+	sim:advance(0.1)
+	-- Selecting this page's rows with gamepad navigation taints the binding stack through the journey key dropdown,
+	-- with or without the headings (#943); its fix adds that walk and sim:expectNoGamepadTaint(ADDON).
+	sim:expectNoErrors(ADDON)
+end)

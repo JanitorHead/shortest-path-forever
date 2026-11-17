@@ -6,11 +6,11 @@ if ns.broken then
 end
 local L = ns.L
 
--- Guide follows the map's walking path bend by bend, whatever the map marks. Journey places Blizzard's native
--- navigation marker at that bend; with "Mark only where steps end" on it places none, since one marker cannot lead
--- round the walk's bends, and this arrow leads instead. The arrow is also the fallback when the marker is unavailable
--- or the player owns tracking. Camelot omits the navigation setting, but its native super-tracked marker does work
--- while its CVar is on.
+-- Guide follows the walking path's bends, or points straight to the destination in direct mode. Journey places
+-- Blizzard's native navigation marker at that target. Stop-only map marks suppress the native marker in route
+-- mode, where this arrow leads the bends instead; direct mode always allows the native marker to lead.
+-- This arrow is also the fallback when the marker is unavailable or the player owns tracking. Camelot omits the
+-- navigation setting, but its native super-tracked marker does work while its CVar is on.
 
 -- Polled this often while still; every frame while you move or turn, and while the arrow eases round.
 local POLL_EVERY = 0.1

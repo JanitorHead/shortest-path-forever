@@ -277,7 +277,7 @@ API.Cancel("RestedXP")
 -- A guide that advances past its last step clears the title without a waypoint change; the guide clear is a signal.
 navigations = 0
 arrow.waypoints = { { map = 1, x = 57, y = 47, desc = "Step", guideIndex = 9, questId = 400 } }
-ns.ResumeDugi()
+assert(ns.ResumeDugi() == true, "resume reports a followed step")
 driver.path.settle()
 assert(API.CurrentStop("Dugi") == 1, "a valid step starts again before the guide clears")
 env.CurrentTitle = nil
@@ -289,7 +289,7 @@ env.CurrentTitle = "Dugi Guide"
 -- RestedXP, Adventure Guide and Guidelime lead while they run; when one stops leading, the step comes back.
 navigations = 0
 arrow.waypoints = { { map = 1, x = 57, y = 47, desc = "Step", guideIndex = 9, questId = 400 } }
-ns.ResumeDugi()
+assert(ns.ResumeDugi() == true, "resume reports a followed step")
 driver.path.settle()
 assert(API.CurrentStop("Dugi") == 1, "the guide takes its step after another owner ends")
 assert(API.NavigateRoute("Guidelime", { { map = 1, x = 0.4, y = 0.4, title = "Guidelime step" } }))
@@ -329,18 +329,18 @@ assert(not API.CurrentStop("Dugi") and not ns.JourneyOwner(), "the player's clea
 arrow:WaypointsChanged()
 flush()
 assert(not API.CurrentStop("Dugi"), "and Dugi stays off until Resume")
-ns.ResumeDugi()
+assert(ns.ResumeDugi() == true, "resume reports a followed step")
 driver.path.settle()
 assert(API.CurrentStop("Dugi") == 1, "Resume takes the step back")
 
 -- Resume takes the step back from another owner and after the player cancels it.
 assert(API.NavigateRoute("Other", { { map = 1, x = 0.4, y = 0.4, title = "Other" } }))
-ns.ResumeDugi()
+assert(ns.ResumeDugi() == true, "resume reports a followed step")
 driver.path.settle()
 assert(API.CurrentStop("Dugi") == 1, "resume takes the current step back")
 API.Cancel("Dugi")
 assert(not API.CurrentStop("Dugi"), "a cancelled guide journey stays cancelled")
-ns.ResumeDugi()
+assert(ns.ResumeDugi() == true, "resume reports a followed step")
 driver.path.settle()
 assert(API.CurrentStop("Dugi") == 1, "resume starts the same step again")
 
