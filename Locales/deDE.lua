@@ -565,3 +565,10 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"Die Anzeige unter dem Richtungspfeil: Entfernung im gewählten Pfeilmodus, verbleibende Reisezeit oder beides." -- mt
 
 L["Transmogrifier"] = "Transmogrifizierer" -- mt
+
+L["stop guiding"] = "die Wegführung zu beenden" -- mt
+L["guide this journey"] = "diese Reise zu führen" -- mt
+L["show it on the map"] = "es auf der Karte anzuzeigen" -- mt
+L["show the Adventure Guide Forever link"] = "den Link zu Adventure Guide Forever anzuzeigen" -- mt
+L["Show link"] = "Link anzeigen" -- mt
+L["That guide has no step to follow."] = "Dieser Guide hat keinen Schritt zum Folgen." -- mt

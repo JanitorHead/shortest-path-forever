@@ -600,3 +600,11 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"Что показано под стрелкой: расстояние в выбранном режиме, оставшееся время путешествия или оба значения." -- mt
 
 L["Transmogrifier"] = "Трансмогрификатор" -- mt
+
+L["stop guiding"] = "остановить сопровождение" -- mt
+L["guide this journey"] = "начать сопровождение в этом путешествии" -- mt
+L["show it on the map"] = "показать на карте" -- mt
+L["show the Adventure Guide Forever link"] = "показать ссылку на Adventure Guide Forever" -- mt
+L["Show link"] = "Показать ссылку" -- mt
+L["That guide has no step to follow."] =
+	"В этом руководстве нет шага для следования." -- mt

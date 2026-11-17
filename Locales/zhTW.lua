@@ -556,3 +556,10 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"方向箭頭下方顯示的內容：所選箭頭模式的距離、行程剩餘時間或兩者。" -- mt
 
 L["Transmogrifier"] = "塑形師" -- mt
+
+L["stop guiding"] = "停止引導" -- mt
+L["guide this journey"] = "引導此旅程" -- mt
+L["show it on the map"] = "在地圖上顯示" -- mt
+L["show the Adventure Guide Forever link"] = "顯示 Adventure Guide Forever 連結" -- mt
+L["Show link"] = "顯示連結" -- mt
+L["That guide has no step to follow."] = "此指南沒有可跟隨的步驟。" -- mt

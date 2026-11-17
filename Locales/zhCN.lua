@@ -556,3 +556,10 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"方向箭头下方显示的内容：所选箭头模式的距离、行程剩余时间或两者。" -- mt
 
 L["Transmogrifier"] = "幻化师" -- mt
+
+L["stop guiding"] = "停止引导" -- mt
+L["guide this journey"] = "引导此次旅程" -- mt
+L["show it on the map"] = "在地图上显示" -- mt
+L["show the Adventure Guide Forever link"] = "显示 Adventure Guide Forever 链接" -- mt
+L["Show link"] = "显示链接" -- mt
+L["That guide has no step to follow."] = "该指南没有可跟随的步骤。" -- mt

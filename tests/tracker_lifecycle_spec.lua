@@ -61,7 +61,9 @@ for _, readyAtLoad in ipairs({ false, true }) do
 		end,
 	}, { __index = _G })
 	local host = {
-		Attach = function(frame)
+		Attach = function(frame, _, contract)
+			frame.trackerMenu, frame.trackerClick, frame.trackerClickHint =
+				contract.menu, contract.click, contract.clickHint
 			owners[frame] = native
 		end,
 	}
@@ -116,68 +118,20 @@ for _, readyAtLoad in ipairs({ false, true }) do
 		"the absent Core setter path still clamps safely"
 	)
 	assert(ns.db.trackerHost == nil, "and cleared once it is offered")
-	-- The Journey's right-click menu lets the shared column go, to drag it anywhere, and takes it back.
-	local entries, attached = {}, true
-	env.MenuUtil = {
-		CreateContextMenu = function(_, build)
-			build(nil, {
-				CreateCheckbox = function(_, text, get, set)
-					entries[text] = { get = get, set = set }
-				end,
-				CreateButton = noop,
-			})
-		end,
-	}
-	ns.Corpse = { Active = noop }
-	-- ForeverCore's menu opener, drawn in its own frames.
-	env.ForeverCore.ContextMenu = function(owner, generator)
-		return env.MenuUtil.CreateContextMenu(owner, generator)
-	end
-	host.IsAttachedToQuestTracker = function()
-		return attached
-	end
-	host.SetAttached = function(value)
-		attached = value
-	end
-	local combat = false
-	env.InCombatLockdown = function()
-		return combat
-	end
-	module:OnBlockHeaderClick({ id = "journey" }, "RightButton")
-	local row = assert(entries["Attach to quest tracker"], "the Journey menu offers to move the tracker")
-	assert(row.get() == true)
-	row.set()
-	assert(attached == false and row.get() == false, "unticking lets the column be dragged")
-	row.set()
-	assert(attached == true, "ticking attaches it again")
-	-- In combat the host cannot switch, so the menu leaves the choice out.
-	entries, combat = {}, true
-	module:OnBlockHeaderClick({ id = "journey" }, "RightButton")
-	assert(entries["Attach to quest tracker"] == nil, "no attach choice in combat")
-	-- The grey footer after a journey arrives (UI/FamilyHints.lua) opens its link on a left click.
+	assert(module.AddHeaderMenuEntries == nil, "only the declarative menu is registered")
 	local opened = 0
 	ns.FamilyHints = {
 		OpenFooter = function()
 			opened = opened + 1
 		end,
-		Footer = noop,
-		Version = function()
-			return 0
-		end,
 	}
-	module:OnBlockHeaderClick({ id = "family" }, "RightButton")
-	assert(opened == 0, "a right click on the footer does nothing")
-	module:OnBlockHeaderClick({ id = "family" }, "LeftButton")
-	assert(opened == 1, "a left click on the footer's title opens its link")
-	-- A left click on the section's own header opens the same footer; the shared column owns the right-click menu.
-	ns.JourneyInfo = function()
-		return nil
-	end
+	ns.JourneyInfo = noop
 	module.mapDock, module.blocks = nil, { { key = "family" } }
-	module:OnHeaderClick("LeftButton")
-	assert(opened == 2, "a left click on the section header opens its footer")
-	module:OnHeaderClick("RightButton")
-	assert(opened == 2, "the right click stays with the shared column's menu")
+	module.trackerClick({ kind = "section", module = module }, "LeftButton")
+	module.trackerClick({ kind = "block", id = "family", module = module }, "LeftButton")
+	assert(opened == 2, "both footer titles retain their left click")
+	module.trackerClick({ kind = "section", module = module }, "RightButton")
+	assert(opened == 2, "right clicks stay with Core")
 	checks = checks + 1
 end
 print("tracker_lifecycle_spec: " .. checks .. " load-order cases passed")

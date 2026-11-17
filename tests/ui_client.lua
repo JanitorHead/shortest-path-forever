@@ -54,6 +54,10 @@ local cvars = { rotateMinimap = "0", questPOI = "1" }
 local function noop() end
 local mt = {
 	__index = function(t, k)
+		-- This optional addon hook is absent, not a native frame method. Core rejects it beside a menu contract.
+		if k == "AddHeaderMenuEntries" then
+			return nil
+		end
 		if k:match("^%u") then
 			return noop
 		end

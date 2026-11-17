@@ -23,6 +23,8 @@ local ready = ForeverCore ~= nil
 	and type(ForeverCore.APIKit) == "table"
 	and type(ForeverCore.APIKit.Hub) == "function"
 	and type(ForeverCore.APIKit.NotReady) == "function"
+	and type(ForeverCore.TrackerHost) == "table"
+	and type(ForeverCore.TrackerHost.HandleBlockHeaderClick) == "function"
 	and type(ForeverCore.TrackerSection) == "table"
 	and type(ForeverCore.TrackerSection.Create) == "function"
 	and type(ForeverCore.TrackerSection.UpdateText) == "function"

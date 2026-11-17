@@ -383,6 +383,7 @@ function ns.ResumeDugi()
 	yielded, leader = false, nil
 	Forget()
 	Sync()
+	return API.CurrentStop(OWNER) ~= nil
 end
 
 -- The setting, Dugi loading and the addon's own load all call this.

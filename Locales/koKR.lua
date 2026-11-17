@@ -577,3 +577,10 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"방향 화살표 아래에 표시할 정보: 선택한 화살표 모드의 거리, 남은 여정 시간 또는 둘 다." -- mt
 
 L["Transmogrifier"] = "형상변환사" -- mt
+
+L["stop guiding"] = "길 안내를 중지" -- mt
+L["guide this journey"] = "이 여정의 길을 안내" -- mt
+L["show it on the map"] = "지도에 표시" -- mt
+L["show the Adventure Guide Forever link"] = "Adventure Guide Forever 링크를 표시" -- mt
+L["Show link"] = "링크 표시" -- mt
+L["That guide has no step to follow."] = "해당 가이드에 따라갈 단계가 없습니다." -- mt

@@ -12,6 +12,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Tracker menus** put journey actions before the shared Tracker controls, keep Clear journey last, and offer Show on map on departure titles.
+
 ## [1.41.1] - 2026-11-16
 
 <!-- forever-core-sync -->

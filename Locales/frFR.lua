@@ -573,3 +573,10 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"L'affichage sous la flèche : la distance selon le mode choisi, le temps de voyage restant ou les deux." -- mt
 
 L["Transmogrifier"] = "Transmogrifieur" -- mt
+
+L["stop guiding"] = "arrêter le guidage" -- mt
+L["guide this journey"] = "guider ce trajet" -- mt
+L["show it on the map"] = "l’afficher sur la carte" -- mt
+L["show the Adventure Guide Forever link"] = "afficher le lien vers Adventure Guide Forever" -- mt
+L["Show link"] = "Afficher le lien" -- mt
+L["That guide has no step to follow."] = "Ce guide n’a aucune étape à suivre." -- mt
