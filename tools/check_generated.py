@@ -21,7 +21,6 @@ DATA = (
     "Data/TownAreas.lua",
     "Data/Services.lua",
     "Data/Walks.lua",
-    "Data/RoadCells.lua",
     "Data/RoadEdges.lua",
     "Data/Heights.lua",
     "Data/IdleSpawns.lua",
@@ -56,7 +55,6 @@ def regenerate(root, offline):
     run(root, sys.executable, "tools/gen_services.py", *mode)
     run(root, sys.executable, "tools/gen_targets.py", *mode)
     run(root, "luajit", "tools/bake_walks.lua", output="Data/Walks.lua")
-    run(root, sys.executable, "tools/gen_roads.py", *mode)
     run(root, "luajit", "tools/bake_roads.lua", output="Data/RoadEdges.lua")
     run(root, sys.executable, "tools/pack_nav.py")
     run(root, sys.executable, "tools/gen_heights.py", *mode)
