@@ -1,34 +1,34 @@
 {
-  "input_digest": "6846db34a365ee19de59a7425c08d5ca3bda20b4a46f213c51b8692e9387c29a",
-  "runtime_sha256": "6846db34a365ee19de59a7425c08d5ca3bda20b4a46f213c51b8692e9387c29a",
-  "candidate": "272765a132d697404076504ea021cc86f003968c282487024f45d788b46d2690",
+  "input_digest": "f55795f1376e0f8342e09ec7f76fde12c30cb68392f3798d5689541c3d595486",
+  "runtime_sha256": "f55795f1376e0f8342e09ec7f76fde12c30cb68392f3798d5689541c3d595486",
+  "candidate": "e4084b857e8d8e350fc1396b9cfed23ee68d4c788f3cdfff1ab7a54eda89c07e",
   "client_build": "1.60.1.70938 (Interface 16001)",
   "tested_artifact": "source-tree",
-  "source_commit": "ba75b0be175eddcb1c696be0f92592630e265d48",
+  "source_commit": "74ebc560cb1755b71ac5678f52f79629334ef4de",
   "flows": [
     {
-      "name": "only my professions on",
+      "name": "direct-stops-on",
       "steps": [
-        "spf-map-true.lua sha256:b96cde2dd71e491a1922be6e14d7fa7ea8a44590b8cbb2927de8918ab225c815"
+        "direct_stops_true.lua sha256:08c6b0fe8b13b399e845a20e3ad64e2fd3a1bc7b95b86ed35ca528f60acac69d"
       ],
       "result": "pass"
     },
     {
-      "name": "town services on a first login",
+      "name": "direct-stops-off",
       "steps": [
-        "spf-services-login.lua sha256:d5acba3cd10141f499ddfc1b5b9d71bf825b721aef07396eaad6e4b5cd7afc1a"
+        "direct_stops_false.lua sha256:7a0a1d758e50a0a298249de9c1b671c3513f14774425e6034efc812214c369b3"
       ],
       "result": "pass"
     }
   ],
   "images": [
     {
-      "url": "https://gist.githubusercontent.com/cjber/f186f628567667f4d31384a5d8f03821/raw/02f9a1d0500ffb0c98a2316083ac964146ac265d/1-only-my-professions-on.png",
-      "sha256": "135efb305735b6dd91bfd308d3f1cbee17856aced3eec4b26523c1fe3d45ee6e"
+      "url": "https://gist.githubusercontent.com/cjber/2141f85ecfd0a6f60d3c48fab5febdf1/raw/79803e914d2ca16022a7de0a09021692fb5f5c31/1-direct-stops-on.png",
+      "sha256": "5ef918cf097c876eff80413b4d0a3c5d0ce78e90511ed5c783f93494b58e457d"
     },
     {
-      "url": "https://gist.githubusercontent.com/cjber/f186f628567667f4d31384a5d8f03821/raw/02f9a1d0500ffb0c98a2316083ac964146ac265d/2-town-services-on-a-first-login.png",
-      "sha256": "d708eb1766931ff56b369b9c43f4e53eb044b0bdbc2f329fb0f7c2128691d7ad"
+      "url": "https://gist.githubusercontent.com/cjber/2141f85ecfd0a6f60d3c48fab5febdf1/raw/79803e914d2ca16022a7de0a09021692fb5f5c31/2-direct-stops-off.png",
+      "sha256": "465ef5d41614ce57e4cf4fce980c1469a950b923bdd5fd0a2d5d4ade837837fa"
     }
   ]
 }
