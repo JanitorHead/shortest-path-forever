@@ -12,6 +12,10 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Guidance settings keep gamepad navigation working.** Walking the settings list no longer taints the shared controller bindings (#943).
+
+- **The Hearthstone tooltip only says a journey uses it when that journey includes a bind teleport.** Its time saving no longer appears on journeys that leave it unused (#960).
+
 - **The Hearthstone button stays off the world map while Use Hearthstone is off.** Thanks to user_g496wu46adiwjuc5 for the report (#951).
 
 ## [1.41.1] - 2026-11-17
