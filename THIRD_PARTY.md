@@ -61,6 +61,7 @@ Credit for the reports and requests behind the addon.
 
 | Who | What | Notes |
 |---|---|---|
+| user\_g496wu46adiwjuc5 | Hearthstone map button respects Use Hearthstone | CurseForge thread 8732965; #951 |
 | emmiehbun | Walking routes over Westfall ridges | CurseForge thread 8733369; #950 |
 | VolomonBeddarm | Walking routes up impassable Barrens terrain | CurseForge thread 8724226; #897 |
 | zhega | Nearby services can show only learned professions | CurseForge thread 8727763, #914 |

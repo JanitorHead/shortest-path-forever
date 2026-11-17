@@ -13,8 +13,9 @@ optional `### For addon authors` subsection after a version's player bullets.
 ## [Unreleased]
 
 - **Walks stay off steep faces they cannot climb.** Walking routes in Westfall and the Barrens no longer climb a ridge whose only way up lies outside the next few yards (#950, #897), thanks to emmiehbun and VolomonBeddarm for the reports.
+- **The Hearthstone button stays off the world map while Use Hearthstone is off.** Thanks to user_g496wu46adiwjuc5 for the report (#951).
 
-## [1.41.1] - 2026-11-16
+## [1.41.1] - 2026-11-17
 
 <!-- forever-core-sync -->
 

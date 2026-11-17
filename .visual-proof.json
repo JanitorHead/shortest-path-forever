@@ -1,34 +1,45 @@
 {
-  "input_digest": "6846db34a365ee19de59a7425c08d5ca3bda20b4a46f213c51b8692e9387c29a",
-  "runtime_sha256": "6846db34a365ee19de59a7425c08d5ca3bda20b4a46f213c51b8692e9387c29a",
-  "candidate": "272765a132d697404076504ea021cc86f003968c282487024f45d788b46d2690",
+  "input_digest": "fd46da7b5a045e481422e919146973b5d469136f4f09758b48fca11dc9d05b2f",
+  "runtime_sha256": "fd46da7b5a045e481422e919146973b5d469136f4f09758b48fca11dc9d05b2f",
+  "candidate": "cb69869c92c3b8f3356aff7389d9c79fab2b90c270974b10b36225ad96c076ea",
   "client_build": "1.60.1.70938 (Interface 16001)",
   "tested_artifact": "source-tree",
-  "source_commit": "ba75b0be175eddcb1c696be0f92592630e265d48",
+  "source_commit": "5abf13e0cca7d8fcae96553c0ff3bff8d7571733",
   "flows": [
     {
-      "name": "only my professions on",
+      "name": "hearthstone on",
       "steps": [
-        "spf-map-true.lua sha256:b96cde2dd71e491a1922be6e14d7fa7ea8a44590b8cbb2927de8918ab225c815"
+        "sha256:536921a2abf3b3672c86fc9e1059c0efe16d7691582f06a1f65c9b05e9708553 spf951_on.lua"
       ],
       "result": "pass"
     },
     {
-      "name": "town services on a first login",
+      "name": "hearthstone off",
       "steps": [
-        "spf-services-login.lua sha256:d5acba3cd10141f499ddfc1b5b9d71bf825b721aef07396eaad6e4b5cd7afc1a"
+        "sha256:52ac5a2fcf15991cb7bdd974dd3dec971a148b4c859f0d3566747857afe2e0dd spf951_off.lua"
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "hearthstone back on",
+      "steps": [
+        "sha256:7684a79b93ba2206e2e5cd9decf8bddfb703644d163d6d6c684024fb5595cf0e spf951_back_on.lua"
       ],
       "result": "pass"
     }
   ],
   "images": [
     {
-      "url": "https://gist.githubusercontent.com/cjber/f186f628567667f4d31384a5d8f03821/raw/02f9a1d0500ffb0c98a2316083ac964146ac265d/1-only-my-professions-on.png",
-      "sha256": "135efb305735b6dd91bfd308d3f1cbee17856aced3eec4b26523c1fe3d45ee6e"
+      "url": "https://gist.githubusercontent.com/cjber/85d19848f831ef8c198382f2b3033472/raw/2fcba1fd8f795edd9c74e91fe6b1aad7f11f5697/1-hearthstone-on.png",
+      "sha256": "561c8a24d9bba369cd1cb88c1002655c78296d50ee3ad0ec876efb6e09df19b1"
     },
     {
-      "url": "https://gist.githubusercontent.com/cjber/f186f628567667f4d31384a5d8f03821/raw/02f9a1d0500ffb0c98a2316083ac964146ac265d/2-town-services-on-a-first-login.png",
-      "sha256": "d708eb1766931ff56b369b9c43f4e53eb044b0bdbc2f329fb0f7c2128691d7ad"
+      "url": "https://gist.githubusercontent.com/cjber/85d19848f831ef8c198382f2b3033472/raw/2fcba1fd8f795edd9c74e91fe6b1aad7f11f5697/2-hearthstone-off.png",
+      "sha256": "08943a44d864595823a802f86c3adc6ae8f251f5647306dcaaa6c083143b4008"
+    },
+    {
+      "url": "https://gist.githubusercontent.com/cjber/85d19848f831ef8c198382f2b3033472/raw/2fcba1fd8f795edd9c74e91fe6b1aad7f11f5697/3-hearthstone-back-on.png",
+      "sha256": "15a6d7b4f7952394a17d442b22537d876ff512e4b4eb4816affaf69379249102"
     }
   ]
 }
