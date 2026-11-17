@@ -480,7 +480,7 @@ ns.Init(function()
 	)
 	roadDetour:SetValueChangedCallback(ns.TravelPolicyChanged)
 	settings.roadDetour = roadDetour
-	local roadOptions = Settings.CreateSliderOptions(0, 200, 25)
+	local roadOptions = Settings.CreateSliderOptions(0, ns.Hazards.ROAD_DETOUR_MAX, 25)
 	roadOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
 		return value .. "%"
 	end)

@@ -57,6 +57,10 @@ SWIM = 3.0
 WATER_WALK = 1.0  # walking on water is running
 WEIGHTS = (SWIM, WATER_WALK)  # every edge carries one cost per weight, in this order
 ENTRANCE_RUN = 20  # longest border run (cells) served by one entrance
+# The runtime clamp and settings slider share this limit; do not maintain a separate baker range.
+ROAD_FACTOR_MAX = (
+    1 + int(re.search(r"^local ROAD_DETOUR_MAX = (\d+)$", (ROOT / "Journey/Hazards.lua").read_text(), re.M)[1]) / 100
+)
 PRUNE = 1.02  # drop an intra edge when a two-hop path is within 2%
 MIN_COMPONENT = 500
 DIRS = {(1, 0): 0, (-1, 0): 1, (0, 1): 2, (0, -1): 3, (1, 1): 4, (1, -1): 5, (-1, 1): 6, (-1, -1): 7}
@@ -908,8 +912,7 @@ def cluster_regions(k):
 
 
 def cluster_edges(k):
-    """Cluster k's intra-cluster edges between its entrances: Dijkstra under each of WEIGHTS, dropped when a
-    two-hop path is within PRUNE under every weight."""
+    """Prune only with a fixed two-hop path certified over the entire road-factor interval."""
     assert _HPA is not None
     grid, cuts, nodes = _HPA
     assert nodes is not None
@@ -917,46 +920,70 @@ def cluster_edges(k):
     found = {}
     cells = nodes[k]
     box = cluster_box(k)
-    dists = []
+    dists, slopes = [], []
     adjacency = {}
-    for mode in range(len(WEIGHTS)):
-        dist = {}
+    gx0, gx1, gy0, gy1 = box
+    has_roads = any(gx0 <= c // GH <= gx1 and gy0 <= c % GH <= gy1 for c in ROAD_CELLS)
+    modes = [(weight, 1.0) for weight in WEIGHTS]
+    if has_roads:
+        modes += [(weight, ROAD_FACTOR_MAX) for weight in WEIGHTS]
+    for mode, (_weight, factor) in enumerate(modes):
+        dist, slope = {}, {}
         for s in cells:
-            gd, pq, left = {s: 0.0}, [(0.0, s)], len(cells) - 1
+            gd, off, pq, left = {s: 0.0}, {s: 0.0}, [(0.0, s)], len(cells) - 1
             while pq and left:
                 du, u = heapq.heappop(pq)
                 if du > gd[u]:
                     continue
                 if u != s and u in cells:
                     left -= 1
-                    dist[(s, u)] = du
+                    dist[(s, u)], slope[(s, u)] = du, off[u]
                 if u not in adjacency:
                     adjacency[u] = tuple(
-                        (v, tuple(c * (weight if value_of(grid, v) == 2 else 1) for weight in WEIGHTS))
+                        (v, tuple(c * (w if value_of(grid, v) == 2 else 1) for w in WEIGHTS))
                         for v, c in moves(g, grid, cuts, u, box, 1)
                     )
                 for v, costs in adjacency[u]:
-                    c = costs[mode]
-                    if du + c < gd.get(v, 1e18):
-                        gd[v] = du + c
-                        heapq.heappush(pq, (du + c, v))
+                    base = costs[mode % len(WEIGHTS)]
+                    step_off = base if cell_of(v) not in ROAD_CELLS else 0.0
+                    candidate = du + base + (factor - 1) * step_off
+                    if candidate < gd.get(v, 1e18):
+                        gd[v], off[v] = candidate, off[u] + step_off
+                        heapq.heappush(pq, (candidate, v))
         dists.append(dist)
+        slopes.append(slope)
     el = sorted(cells)
+
+    def redundant(a, b, weight):
+        if not has_roads:
+            dist = dists[weight]
+            return any(
+                dist.get((a, x), 1e18) + dist.get((x, b), 1e18) <= dist[a, b] * PRUNE for x in el if x not in (a, b)
+            )
+        low, high = dists[weight][a, b], dists[weight + len(WEIGHTS)][a, b]
+        # Shortest costs are minima of affine path costs, hence concave and above their endpoint chord.
+        # Pick ONE concrete two-hop walk (from either endpoint search). Its affine cost below PRUNE times
+        # that chord at both ends stays below it everywhere, certifying all factors, including the default.
+        # Independently optimal two-hop walks at the endpoints would NOT provide that certificate (#892).
+        for mode in (weight, weight + len(WEIGHTS)):
+            dist, slope = dists[mode], slopes[mode]
+            factor = modes[mode][1]
+            for x in el:
+                if x in (a, b) or (a, x) not in dist or (x, b) not in dist:
+                    continue
+                cost, off = dist[a, x] + dist[x, b], slope[a, x] + slope[x, b]
+                if cost + (1 - factor) * off <= low * PRUNE and cost + (ROAD_FACTOR_MAX - factor) * off <= high * PRUNE:
+                    return True
+        return False
+
     for a in el:
         for b in el:
-            if a == b:
+            if a == b or (a, b) not in dists[0]:
                 continue
-            # Weights change costs, never reachability, so a pair is reached under all of them or none.
-            ds = [dist.get((a, b)) for dist in dists]
-            if ds[0] is None:
+            if all(redundant(a, b, weight) for weight in range(len(WEIGHTS))):
                 continue
-            ds = cast(list[float], ds)
-            if all(
-                any(dist.get((a, x), 1e18) + dist.get((x, b), 1e18) <= d * PRUNE for x in el if x not in (a, b))
-                for dist, d in zip(dists, ds, strict=False)
-            ):
-                continue
-            found[(a, b)] = tuple(ds)
+            # Runtime RoadEdges reweights these retained edges; stored travel costs stay physical.
+            found[(a, b)] = tuple(dist[a, b] for dist in dists[: len(WEIGHTS)])
     return found
 
 
@@ -1143,7 +1170,7 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
             rec, erec = [enc(len(cs), 2)], []
             for c in cs:
                 layer = FLOOR_LAYER[c - GW * GH] if c >= GW * GH else 0
-                rec.append(enc(lcell(cell_of(c)), 3) + enc(layer, 1) + enc(comp[c], 2) + enc(len(nbrs[c]), 1))
+                rec.append(enc(lcell(cell_of(c)), 3) + enc(layer, 1) + enc(comp[c], 2) + enc(len(nbrs[c]), 2))
                 for m, d in sorted(nbrs[c]):
                     km = cluster_of_cell(m)
                     dx, dy = km // NY - kx, km % NY - ky
@@ -1235,7 +1262,8 @@ def emit(nodes, edges, grid, cuts, out, name):
         "-- `steep` is the older format 2, whose flag 8 opens the -x-y diagonal and whose bits pick the surface",
         "-- nearest their height; without `format` it is format 1, whose links are symmetric.",
         "-- climbChecked: every cluster crossing passes the stored-height 50 degree climb rule at bake time.",
-        "-- graph[k + 1]: n(2) | n x [cell(3) layer(1) component(2) degree(1)] | n x degree edges in node order, each",
+        "-- graph[k + 1]: n(2) | n x [cell(3) layer(1) component(2) degree(degreeWidth or 1)] "
+        "| n x degree edges in node order, each",
         "--   [cluster offset(1): (dx + 1) * 3 + dy + 1, node(2), cost(2) swimming with water at swim, cost(2) walking",
         "--   on water, both in running yards]; the decoder builds each node's predecessors from them. grid[k + 1]:",
         "--   per cell value * 16 +",
@@ -1262,6 +1290,7 @@ def emit(nodes, edges, grid, cuts, out, name):
         f"\tswim = {SWIM:.6f},",
         f"\tzstep = {ZQ},",
         "\tformat = 3,",
+        "\tdegreeWidth = 2,",
         "\tsteep = true,",
         "\tclimbChecked = true,",
     ]

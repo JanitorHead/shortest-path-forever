@@ -56,6 +56,9 @@ end
 
 local function num(s, i, width)
 	local a, b, c = byte(s, i, i + width - 1)
+	if width == 1 then
+		return B64[a]
+	end
 	local value = B64[a] * 64 + B64[b]
 	return width == 2 and value or value * 64 + B64[c]
 end
@@ -815,8 +818,8 @@ local function decodeGraph(st, k)
 	for i = 0, n - 1 do
 		local id = k * 4096 + i
 		ids[i + 1] = id
-		degree[i + 1] = B64[byte(s, pos + 6)]
-		pos = pos + 7
+		degree[i + 1] = num(s, pos + 6, st.D.degreeWidth or 1)
+		pos = pos + 6 + (st.D.degreeWidth or 1)
 	end
 	for i = 1, n do
 		st.nadj[ids[i]] = pos
@@ -837,7 +840,8 @@ end
 local function metadata(st, id)
 	if st.ncell[id] == nil then
 		-- A packed map keeps its graph compressed until asked for: read the field, never the raw table (#897).
-		local field, pos = unpackField(st.D, "graph", floor(id / 4096) + 1), 3 + (id % 4096) * 7
+		local field, pos =
+			unpackField(st.D, "graph", floor(id / 4096) + 1), 3 + (id % 4096) * (6 + (st.D.degreeWidth or 1))
 		if not field then
 			return nil
 		end
@@ -908,8 +912,8 @@ local function buildInbound(st, k)
 				local n, pos = num(s, 1, 2), 3
 				local degrees, left = {}, 256
 				for i = 0, n - 1 do
-					degrees[i] = B64[byte(s, pos + 6)]
-					pos = pos + 7
+					degrees[i] = num(s, pos + 6, st.D.degreeWidth or 1)
+					pos = pos + 6 + (st.D.degreeWidth or 1)
 				end
 				for i = 0, n - 1 do
 					local source = (nx * ny + nyc) * 4096 + i

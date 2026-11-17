@@ -703,6 +703,13 @@ _G.GetQuestUiMapID = function()
 	return 0
 end
 _G.C_QuestLog = {
+	GetNumQuestWatches = function()
+		return 0
+	end,
+	GetNumQuestLogEntries = function()
+		return 0
+	end,
+	GetInfo = noop,
 	GetQuestsOnMap = function()
 		return {}
 	end,

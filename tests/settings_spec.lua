@@ -368,6 +368,11 @@ local ns = {
 }
 env.ForeverCore.TrackerHost = ns.TrackerHost
 assert(loadfile("Locales/enUS.lua"))("ShortestPathForever", ns)
+-- Read the road allowance from the real policy module; this UI harness does not run its world events.
+local init = ns.Init
+ns.Init = function() end
+setfenv(assert(loadfile("Journey/Hazards.lua")), env)("ShortestPathForever", ns)
+ns.Init = init
 -- The Map marks page lives in its own module, loaded before UI/Settings.lua in the TOC.
 setfenv(assert(loadfile("UI/SettingsMapMarks.lua")), env)("ShortestPathForever", ns)
 setfenv(assert(loadfile("UI/Settings.lua")), env)("ShortestPathForever", ns)

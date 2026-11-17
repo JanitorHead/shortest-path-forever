@@ -859,7 +859,7 @@ local function run(map, from, to, waterWalking, costOnly, hz)
 		P.factor = factorOf(st, hz)
 	end
 	if roadsOn then
-		P.roads, P.r, P.roadFactor = true, {}, hz.roadFactor
+		P.roads, P.r, P.roadFactor = true, {}, offroad
 	end
 	local seen = {}
 	local function add(k, node)

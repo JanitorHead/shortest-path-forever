@@ -27,11 +27,13 @@ for _, map in ipairs({ 0, 1, 2991 }) do
 	for cluster, chunks in pairs(data.graph) do
 		local s, k = chunks, cluster - 1
 		local n = number(s, 1, 2)
-		local at = 3 + n * 7
+		local width = data.degreeWidth or 1
+		local stride = 6 + width
+		local at = 3 + n * stride
 		for i = 0, n - 1 do
 			local id = k * 4096 + i
 			edges[id] = {}
-			for _ = 1, number(s, 3 + i * 7 + 6, 1) do
+			for _ = 1, number(s, 3 + i * stride + 6, width) do
 				local offset = number(s, at, 1)
 				local other = k + (math.floor(offset / 3) - 1) * data.ny + offset % 3 - 1
 				local target = other * 4096 + number(s, at + 1, 2)

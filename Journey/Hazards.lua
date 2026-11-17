@@ -11,6 +11,7 @@ local L = ns.L
 -- hazard count several times over while the route is chosen, but the walk's displayed time uses its real travel
 -- cost. The zones and towns the journey starts and ends in are never avoided, though a hostile town there is still
 -- named.
+local ROAD_DETOUR_MAX = 200
 local LEVEL_GAP = 4 -- a zone whose lowest level is this many above yours is avoided
 local ZONE_COST, TOWN_COST = 4, 6
 -- A hostile town: around one of the other faction's flight masters with none of your own this near (a town both
@@ -51,7 +52,7 @@ local KEEP = 50000
 ---@field y1 number
 
 ---@class SPFHazardsModule
-local Hazards = {}
+local Hazards = { ROAD_DETOUR_MAX = ROAD_DETOUR_MAX }
 ns.Hazards = Hazards
 
 -- The zone map under a world point, kept per CELL square: a search asks for thousands of points.
@@ -474,7 +475,7 @@ function Hazards.Profile(from, goal, here, landing)
 	if type(detour) ~= "number" or detour ~= detour then
 		detour = 50
 	end
-	local roadFactor = ns.db.followRoads and (1 + math.max(0, math.min(200, detour)) / 100) or nil
+	local roadFactor = ns.db.followRoads and (1 + math.max(0, math.min(ROAD_DETOUR_MAX, detour)) / 100) or nil
 	return {
 		-- What is avoided, not why: a level-up that crosses no zone's threshold keeps every search.
 		key = (faction or "") .. ":" .. table.concat(keys, ",") .. (roadFactor and ":roads:" .. roadFactor or ""),
