@@ -94,7 +94,7 @@
 ---@field key string
 ---@field label string
 ---@field icon integer|string an item whose icon stands for the goods, or the client's tracking atlas
----@field tracking string the client's minimap tracking atlas the world map's pins wear for the group
+---@field tracking? string the client's minimap tracking atlas the world map's pins wear, when that sheet has this exact service
 ---@class SPFServiceGroup
 ---@field key string
 ---@field flag string the QuestieDB NPC flag that puts an NPC in the group
@@ -314,6 +314,7 @@
 ---@field townServiceInnkeeper? boolean whether innkeeper pins show (TownServices.lua)
 ---@field townServiceStable? boolean whether stable master pins show
 ---@field townServiceRepair? boolean whether repair pins show; off by default
+---@field townServiceVendors? integer set once the vendor switches have moved to their hidden default (#978)
 ---@field townServiceBank? boolean whether bank pins show
 ---@field townServiceTransmog? boolean whether transmogrifier pins show
 ---@field townServiceAuction? boolean whether auction house pins show

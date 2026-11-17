@@ -696,6 +696,9 @@ _G.C_Item = {
 	GetItemCooldown = function()
 		return 0, 0, 1
 	end,
+	GetItemIconByID = function(id)
+		return 100000 + id
+	end,
 }
 _G.FlashClientIcon = noop
 _G.SOUNDKIT = {}

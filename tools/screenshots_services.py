@@ -149,6 +149,8 @@ BETTER_VENDORS = [
     *VENDORS[4:],
 ]
 BETTER_SECTIONS = (("Vendors", BETTER_VENDORS), ("Trainers", TRAINERS), ("Services", SERVICES))
+# The rows whose map pins start hidden (Core/Core.lua's defaults): Repair and every vendor group.
+DEFAULT_HIDDEN = {"Repair", *(entry[0] for entry in VENDORS)}
 
 # The class, portal and battlemaster rows on their own, so the roles added beside the existing services are visible
 # without scrolling past the vendors. Elissa Dumas is Darnassus's portal trainer and Aethalas its Warsong Gulch
@@ -158,7 +160,8 @@ ROLES = (
         "Trainers",
         TRAINERS[:2]
         + [
-            ("Weapon master", ("atlas", "Class"), "Ilyenia Moonfire", "Darnassus", None, None, "6:20"),
+            # UI/NearbyRoles.lua's WEAPON_MASTER_ICON, Interface/Icons/Ability_DualWield.
+            ("Weapon master", ("file", 132147), "Ilyenia Moonfire", "Darnassus", None, None, "6:20"),
         ],
     ),
     ("Services", [SERVICES[-1]]),
@@ -177,7 +180,10 @@ def time_of(entry):
 
 
 def icon(canvas, ref, x, y, size):
-    """An item's square file whole but for its edge, or an atlas fitted at its native aspect into the box."""
+    """An item's square file whole but for its edge, a content icon file, or an atlas fitted at its native aspect."""
+    if ref[0] == "file":
+        canvas.draw(canvas.ui.texture(ref[1]), x, y, size, size)
+        return
     if ref[0] == "item":
         image = canvas.ui.texture(canvas.ui.item(ref[1]).icon)
         trim = round(image.width * 0.08)
@@ -239,7 +245,7 @@ def row(canvas, x, y, width, entry, checked=None, entrance=False):
     if filterable:
         check_top = y + (ROW_HEIGHT - 32) / 2
         canvas.draw(canvas.ui.texture("interface/buttons/ui-checkbox-up.blp"), x, check_top, 32, 32)
-        shown = (checked or {}).get(label, label != "Repair")
+        shown = (checked or {}).get(label, label not in DEFAULT_HIDDEN)
         if shown:
             canvas.draw(canvas.ui.texture("interface/buttons/ui-checkbox-check.blp"), x, check_top, 32, 32)
     icon(canvas, ref, x + icon_left, icon_top, ICON)

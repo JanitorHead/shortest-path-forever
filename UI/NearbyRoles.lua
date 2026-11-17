@@ -5,6 +5,8 @@ if ns.broken then
 	return
 end
 local L = ns.L
+-- Interface/Icons/Ability_DualWield, the crossed swords: the weapon master's row and map pin.
+local WEAPON_MASTER_ICON = 132147
 
 -- The roles classic-db names for an NPC, beside the vendors and services QuestieDB's own flags carry: the class it
 -- trains, the mage portal trainers, and the battlemasters battlemaster_entry links to a battleground. Data/Services.lua
@@ -96,8 +98,9 @@ function Roles.AddWeaponGroup(Add, GroupNPCs)
 		section = "trainers",
 		key = "weapon",
 		label = L["Weapon master"],
-		icon = "Class",
-		tracking = "Class",
+		-- A weapon master teaches weapon skills, not a class: the row and pin wear Dual Wield's crossed swords
+		-- (Interface/Icons/Ability_DualWield), since the minimap tracking sheet has no weapon master.
+		iconFile = WEAPON_MASTER_ICON,
 		npcs = GroupNPCs("weapon"),
 	})
 end
@@ -114,8 +117,8 @@ function Roles.AddPortalGroup(Add, GroupNPCs)
 		key = "portal",
 		label = L["Portal trainer"],
 		icon = "TaxiNode_Continent_Neutral",
-		-- A portal trainer is a mage trainer, so its map pin wears the minimap's trainer icon.
-		tracking = "Class",
+		-- The pin wears the row's portal, not the class trainer's book: the class trainer has its own pin.
+		tracking = "TaxiNode_Continent_Neutral",
 		npcs = GroupNPCs("portal"),
 	})
 end

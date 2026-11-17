@@ -85,6 +85,8 @@ scenario(
 		sim:openWorldMap(1429)
 		sim:input(function()
 			ns.db.townServices = "all"
+			-- The vendors start hidden (#978); this player shows food.
+			ns.db.townServiceFood = true
 			ns.RefreshTownServices()
 		end)
 		sim:advance(0.2)
@@ -135,7 +137,9 @@ scenario(
 		groups[3].iconFile = ns.ProfessionIcons[164]
 		index = { bank = index.bank, innkeeper = index.innkeeper }
 		index["profession:164"] = { place(4, "Smith", -9449, 64) }
-		groups[4] = group("trainers", "weapon", "Weapon master", "Class")
+		-- The weapon master wears Dual Wield's crossed swords, not the class trainer's mark (#978).
+		groups[4] = group("trainers", "weapon", "Weapon master", nil)
+		groups[4].iconFile = 132147
 		index.weapon = { place(5, "Weapon teacher", -10000, 500) }
 		sim:input(function()
 			ns.RefreshTownServices()
@@ -148,11 +152,11 @@ scenario(
 			end
 			for _, point in ipairs(pin.cluster.services) do
 				if point.entry.id == 5 then
-					foundWeapon = true
+					foundWeapon = pin.Texture:GetTexture() == 132147
 				end
 			end
 		end
-		assert(foundIcon and foundWeapon, "profession file icon and weapon master are drawn")
+		assert(foundIcon and foundWeapon, "profession file icon and weapon master's crossed swords are drawn")
 		sim:input(function()
 			ns.SetTownServiceGroupShown(groups[4], false)
 		end)

@@ -128,14 +128,7 @@ local Refresh, Queue
 ---@field Badge? Texture on a better trip's row only, the upgrade arrow over its icon
 ---@class SPFServicesBetterRow : SPFServicesRow
 
--- An item's icon from the client's item data, which it holds for every item whether or not it is cached; the
--- question mark if the client has no such item.
-local QUESTION_MARK = 134400
----@param itemID integer
----@return integer
-local function ItemIcon(itemID)
-	return C_Item.GetItemIconByID(itemID) or QUESTION_MARK
-end
+local QUESTION_MARK, ItemIcon = Art.QUESTION_MARK, Art.ItemIcon
 
 ---@param row SPFServicesRow
 local function PaintRow(row)
@@ -156,7 +149,7 @@ local function PaintRow(row)
 		Art.Icon(row.Icon, group.iconFile, ICON)
 	elseif type(icon) == "number" then
 		Art.Icon(row.Icon, ItemIcon(icon), ICON)
-	else
+	elseif icon then
 		Art.Fit(row.Icon, icon, ICON, ICON)
 	end
 	row.Label:SetText(group.label)

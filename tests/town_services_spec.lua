@@ -36,9 +36,15 @@ end
 local function group(section, key, label, tracking)
 	return { section = section, key = key, label = label, icon = tracking, tracking = tracking, npcs = {} }
 end
+-- The tracking sheet has no trade goods, so that group's pin wears its goods' item icon, the same file as its row: the
+-- test client's GetItemIconByID gives item 2320 this one.
+local TRADE_ICON = 100000 + 2320
+local function itemGroup(key, label, item)
+	return { section = "vendors", key = key, label = label, icon = item, npcs = {} }
+end
 local groups = {
 	group("vendors", "food", "Food", "Food"),
-	group("vendors", "trade", "Trade supplies", "Reagents"),
+	itemGroup("trade", "Trade supplies", 2320),
 	group("services", "bank", "Bank", "Banker"),
 	group("services", "innkeeper", "Innkeeper", "Innkeeper"),
 	group("services", "repair", "Repair", "Repair"),
@@ -106,9 +112,13 @@ C_Map.GetMapInfo = function(id)
 end
 ns.db.journey = true
 ns.db.townServices = "all"
--- Repair starts hidden; the other services start shown, including for a saved table that predates the switches.
+-- Repair and the vendors start hidden; the other services start shown, including for a saved table that predates the
+-- switches (#978).
 check(ns.db.townServiceRepair == false, "a repairer is hidden by default")
-check(ns.db.townServiceBank == true and ns.db.townServiceFood == true, "the other services start shown")
+check(ns.db.townServiceFood == false and ns.db.townServiceBags == false, "and so are the vendors")
+check(ns.db.townServiceBank == true and ns.db.townServiceClass == true, "the other services start shown")
+-- The checks below are a player who shows food and trade supplies.
+ns.db.townServiceFood, ns.db.townServiceBags = true, true
 check(ns.Defaults.townServiceRepair == false, "the shipped defaults hide repair")
 local saved = { townServices = "all" }
 for key, value in pairs(ns.Defaults) do
@@ -282,7 +292,7 @@ local food = find(3)
 check(food and food.Texture.atlas == "Food", "a repairer hidden by default leaves the food seller's own icon")
 check(#linesOf(food) == 0, "the hidden repair is not listed in the tooltip")
 check(not find(5), "an NPC whose only service is hidden draws no pin")
-check(find(4).Texture.atlas == "Reagents", "the trade supplier keeps its own icon while repair is hidden")
+check(find(4).Texture.texture == TRADE_ICON, "the trade supplier keeps its own icon while repair is hidden")
 
 -- Showing repair at once brings its pins back, makes the shared NPC wear repair, and the mixed group keep its stall.
 ns.SetOption("townServiceRepair", true)
@@ -304,7 +314,7 @@ ns.SetOption("townServiceRepair", false)
 ns.RefreshTownServices()
 check(count() == 3 and not find(5), "hiding repair drops its pin again")
 check(
-	find(3).Texture.atlas == "Food" and find(4).Texture.atlas == "Reagents",
+	find(3).Texture.atlas == "Food" and find(4).Texture.texture == TRADE_ICON,
 	"the remaining services wear their own icons"
 )
 
@@ -426,6 +436,7 @@ local wander = {
 index = { books = wander }
 groups = { group("vendors", "books", "Books and recipes", "Books") }
 ns.db.townServices = "all"
+ns.db.townServiceBooks = true
 zoom = 0
 canvasScaled()
 ns.RefreshTownServices()
@@ -471,7 +482,7 @@ local trainer197 = group("trainers", "profession:197", "Tailoring", "Profession"
 trainer197.skill = 197
 local trainer164 = group("trainers", "profession:164", "Blacksmithing", "Profession")
 trainer164.skill = 164
-local tradeGroup = group("vendors", "trade", "Trade supplies", "Reagents")
+local tradeGroup = itemGroup("trade", "Trade supplies", 2320)
 local foodGroup = group("vendors", "food", "Food", "Food")
 local innGroup = group("services", "innkeeper", "Innkeeper", "Innkeeper")
 local tailor = place(30, "Tailor trainer", 2000, 0)

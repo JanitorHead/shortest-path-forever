@@ -40,7 +40,8 @@ local DEFAULTS = {
 	-- The town services' level of detail: "capitals", "important", "all" or "off" (UI/TownServices.lua).
 	townServices = "capitals",
 	-- Legacy grouped choices remain the fallback until a service has its own townServiceKinds override.
-	-- Repair starts hidden: most players do not want an anvil in every town.
+	-- Repair and the vendors start hidden: a player looks a town up for its services and trainers, and an anvil or a
+	-- vendor at every door buries them (#978). Each vendor kind is a checkbox under Town services in the map's filter.
 	townServiceInnkeeper = true,
 	townServiceStable = true,
 	townServiceRepair = false,
@@ -51,12 +52,12 @@ local DEFAULTS = {
 	townServiceClass = true,
 	townServiceWeapon = true,
 	townServiceProfessions = true,
-	townServiceFood = true,
-	townServiceAmmunition = true,
-	townServiceBags = true,
-	townServiceReagents = true,
-	townServiceBooks = true,
-	townServiceGear = true,
+	townServiceFood = false,
+	townServiceAmmunition = false,
+	townServiceBags = false,
+	townServiceReagents = false,
+	townServiceBooks = false,
+	townServiceGear = false,
 	-- Show only the profession trainers and profession supply vendors of professions this character has learned.
 	onlyMyProfessions = false,
 	mapPinScale = 100,
@@ -148,6 +149,15 @@ local DEFAULTS = {
 	whatsNew = true,
 }
 ns.Defaults = DEFAULTS
+-- The vendor kinds' grouped town service switches (UI/TownServices.lua).
+local VENDOR_SWITCHES = {
+	"townServiceFood",
+	"townServiceAmmunition",
+	"townServiceBags",
+	"townServiceReagents",
+	"townServiceBooks",
+	"townServiceGear",
+}
 
 -- Whether the game's gamepad interface is up. Under it, Forever's FrameControlsManager takes every menu and UI panel
 -- that shows into its focus, in the same call: it pushes a binding set, and the gamepad action bar's
@@ -391,6 +401,17 @@ frame:SetScript("OnEvent", function(self, _, name)
 			ns.db.useHearthstone = false
 		end
 		ns.db.teleportSplit = 1
+	end
+	-- The vendors once showed on every town map by default, and no setting page ever wrote their grouped switches, so a
+	-- save's switches are the old defaults: turn them off once. `townServiceVendors` records that this ran, and a
+	-- vendor kind turned back on in the map's filter (townServiceKinds) stands.
+	if ns.db.townServiceVendors == nil then
+		for _, key in ipairs(VENDOR_SWITCHES) do
+			if ns.db[key] ~= nil then
+				ns.db[key] = false
+			end
+		end
+		ns.db.townServiceVendors = 1
 	end
 	for key, value in pairs(DEFAULTS) do
 		if ns.db[key] == nil then

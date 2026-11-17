@@ -2,7 +2,9 @@
 
 UI/NearbyGroups.lua and UI/TownServices.lua supply the icons and the grouping: a pin for one NPC, or for several NPCs
 who all show the same service, wears the client's minimap tracking atlas for that service (the repairer's anvil, the
-banker's money bags, the baker's bread and milk), never a town or city mark and never an item's icon. Only a pin that
+banker's money bags, the baker's bread and milk), never a town or city mark. A vendor group the tracking sheet has no
+art for (trade supplies, weapons and armour) wears its goods' item icon, as its row does, and never another service's
+mark. The player here has turned the vendor pins on and left repairs hidden, as they start. Only a pin that
 stands for different services wears the addon's own market stall (media/TownGroup.tga). Pins of one service merge
 first, at a wider reach; pins of different services merge only when their own pins truly overlap, and full zoom
 spreads close NPCs around their shared centre so each keeps its own pin. A group's tooltip lists every shown service,
@@ -29,7 +31,7 @@ TOWN_CANVAS = (1002, 668)
 # The Nearby services list's groups, in its order: vendors first, then the trainers, then the services. Each entry is
 # the section that ranks it and the art the map wears for it (UI/NearbyGroups.lua): the client tracking atlas's name,
 # or, for a profession trainer, the ("profession", skill line) ref whose SkillLine icon file UI/TownServices.lua
-# paints in place of that atlas.
+# paints in place of that atlas, or for a vendor with no tracking art the ("item", id) ref its row shows.
 TOWN_GROUPS = {
     "Innkeeper": ("services", "Innkeeper"),
     "Flight master": ("services", "FlightMaster"),
@@ -40,8 +42,8 @@ TOWN_GROUPS = {
     "Class trainer": ("trainers", "Class"),
     "Engineering": ("trainers", ("profession", 202)),
     "Food": ("vendors", "Food"),
-    "Trade supplies": ("vendors", "Reagents"),
-    "Weapons and armour": ("vendors", "poi-transmogrifier"),
+    "Trade supplies": ("vendors", ("item", 2320)),
+    "Weapons and armour": ("vendors", ("item", 851)),
 }
 TOWN_GROUP_RANK = {"services": 1, "trainers": 2, "vendors": 3}
 # UI/Nearby.lua's group order: the vendor groups, the class trainer, the profession trainers, then the services.
@@ -58,6 +60,9 @@ TOWN_GROUP_ORDER = [
     "Bank",
     "Auction house",
 ]
+# The groups whose pins this player leaves hidden, as Core/Core.lua's defaults do; an NPC drops them and wears its
+# next service, as UI/TownServices.lua does.
+TOWN_HIDDEN = {"Repair"}
 # (NPC, title, map percent x and y, the groups it is in). The order is the read's, which decides a tie.
 TOWN_SERVICES = [
     ("Innkeeper Allison", "Innkeeper", 60.4, 75.3, ["Innkeeper", "Food"]),
@@ -86,7 +91,7 @@ def town_entries():
     by_name: dict[str, Any] = {}
     for group in TOWN_GROUP_ORDER:
         for name, title, x, y, groups in TOWN_SERVICES:
-            if group not in groups:
+            if group not in groups or group in TOWN_HIDDEN:
                 continue
             entry: dict[str, Any] | None = by_name.get(name)
             if entry is None:
@@ -184,9 +189,12 @@ def town_clusters(zoom):
 
 
 def group_icon(canvas, art, x, y, size=PIN_SIZE):
-    """A group's pin art centred on x, y: an atlas at its native shape, or a profession's skill line icon file."""
+    """A group's pin art centred on x, y: an atlas at its native shape, or a profession's or item's icon file."""
     if isinstance(art, str):
         icon(canvas, art, x, y, size=size)
+    elif art[0] == "item":
+        # Art.Icon: the pin wears the item's whole file, where its row trims the edge.
+        canvas.draw(canvas.ui.texture(canvas.ui.item(art[1]).icon), x - size / 2, y - size / 2, size, size)
     else:
         ref_icon(canvas, art, x - size / 2, y - size / 2, size)
 

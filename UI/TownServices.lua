@@ -529,8 +529,11 @@ local function PaintPin(texture, cluster)
 	local shared = SharedService(cluster)
 	if shared and shared.iconFile then
 		Art.Icon(texture, shared.iconFile, PIN_SIZE)
-	elseif shared then
+	elseif shared and shared.tracking then
 		Art.Fit(texture, shared.tracking, PIN_SIZE, PIN_SIZE)
+	elseif shared and type(shared.icon) == "number" then
+		-- A vendor the tracking sheet has no art for wears its goods' item icon, as its row does (#978).
+		Art.Icon(texture, Art.ItemIcon(shared.icon --[[@as integer]]), PIN_SIZE)
 	else
 		-- A pin for different services speaks for no one service, so it wears the addon's own stall, square as file
 		-- art is, with every service in its tooltip.

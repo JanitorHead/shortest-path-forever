@@ -767,9 +767,9 @@ end
 ---@field section "vendors"|"trainers"|"services"|"entrances"
 ---@field key string
 ---@field label string
----@field icon number|string
+---@field icon? number|string the row's item or atlas when it has no iconFile
 ---@field iconFile? integer a square client content icon, shared by the row and map pin
----@field tracking string the client's minimap tracking atlas the world map's service pins wear
+---@field tracking? string the minimap tracking atlas the service's map pins wear, when it has no iconFile
 ---@field npcs number[]
 ---@field skill? integer a profession group's skill line
 ---@field entrance? integer a dungeon or raid group's instance map ID

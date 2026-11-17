@@ -434,11 +434,29 @@ assert(
 menuEntry(minimap.children, "Class trainer").callback()
 assert(navigated[#navigated][5] == "Warrior trainer", "a service chosen from the minimap routes to the nearest")
 assert(mapOpens == opensBefore, "the minimap's menu routes without opening the world map")
+-- Every group's pin has art of its own: the tracking atlas, or with none on that sheet its own icon file or its goods'
+-- item (#978).
 for _, item in ipairs(groups) do
 	assert(
-		type(item.tracking) == "string" and item.tracking ~= "",
-		"every group carries the tracking atlas its world map pin wears: " .. item.key
+		(type(item.tracking) == "string" and item.tracking ~= "")
+			or type(item.iconFile) == "number"
+			or type(item.icon) == "number",
+		"every group carries the art its world map pin wears: " .. item.key
 	)
+end
+for _, key in ipairs({ "bags", "trade", "books", "gear" }) do
+	local vendor
+	for _, item in ipairs(groups) do
+		if item.key == key then
+			vendor = item
+		end
+	end
+	if vendor then
+		assert(
+			vendor.tracking == nil and type(vendor.icon) == "number",
+			"a vendor with no tracking art wears its own goods' icon, not another service's: " .. key
+		)
+	end
 end
 local places = ns.NearbyServices.Index()
 local function group(key)

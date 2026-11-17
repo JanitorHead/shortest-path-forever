@@ -11,12 +11,11 @@ local L = ns.L
 -- types/Addon.lua (SPFVendorGroup and SPFServiceGroup).
 --
 -- `icon` is what the Nearby services row shows: the goods' own item for a vendor, the tracking atlas for a service.
--- `tracking` is the client's minimap tracking icon the world map's service pins wear (the tracking menu's own art), so
--- the map never draws goods or a town mark. The tracking set has no bags, trade-goods, books or weapons icon: bags and
--- trade goods keep its reagents pouch and books and recipes its open class book, as the nearest of its own art. Weapons
--- and armour wear the transmogrifier's tunic from the same sheet: its `Gear` element is the treasure coin, not
--- equipment, so a weapons pin wearing it read as a plain gold dot (#816), and the battlemaster's shield belongs to the
--- battlemasters themselves.
+-- `tracking` is the client's minimap tracking icon the world map's service pins wear (the tracking menu's own art),
+-- when that sheet has one for exactly this service. It has none for bags, trade goods, books or weapons and armour
+-- (its `Gear` element is the treasure coin), so those groups leave `tracking` out and their pins wear the same item
+-- icon as their row (UI/Nearby.lua). A pin never borrows another service's art: a weapons pin in the transmogrifier's
+-- crystal read as a town full of transmogrifiers (#978).
 
 -- Vendors grouped by what they sell: QuestieDB's item class and subclass, and the food and drink item IDs in
 -- Data/Services.lua.
@@ -26,11 +25,11 @@ local VENDOR_GROUPS = {
 	{ key = "bullets", label = L["Bullets"], icon = 2516, tracking = "Ammunition" },
 	{ key = "food", label = L["Food"], icon = 4540, tracking = "Food" },
 	{ key = "drink", label = L["Drink"], icon = 159, tracking = "Food" },
-	{ key = "bags", label = L["Bags"], icon = 4498, tracking = "Reagents" },
-	{ key = "trade", label = L["Trade supplies"], icon = 2320, tracking = "Reagents" },
+	{ key = "bags", label = L["Bags"], icon = 4498 },
+	{ key = "trade", label = L["Trade supplies"], icon = 2320 },
 	{ key = "reagents", label = L["Reagents"], icon = 2928, tracking = "Reagents" },
-	{ key = "books", label = L["Books and recipes"], icon = 2555, tracking = "Class" },
-	{ key = "gear", label = L["Weapons and armour"], icon = 851, tracking = "poi-transmogrifier" },
+	{ key = "books", label = L["Books and recipes"], icon = 2555 },
+	{ key = "gear", label = L["Weapons and armour"], icon = 851 },
 }
 
 -- The other services keep their own keys and the client's tracking atlases; their tracking is the atlas itself.

@@ -95,6 +95,8 @@ C_Map.GetMapInfo = function(id)
 end
 ns.db.journey = true
 ns.db.townServices = "all"
+-- The vendors start hidden (#978); this player shows food and weapons and armour.
+ns.db.townServiceFood, ns.db.townServiceGear = true, true
 mapID, zoom = 1414, 0
 setMapShown(true)
 ns.RefreshTownServices()
@@ -184,14 +186,17 @@ check(navigated and navigated.key == "food" and navigated.spot.id == 7, "and so 
 -- A flight master is the flight point's own NPC (QuestieDB's FLIGHT_MASTER flag puts it in the flight group), so the
 -- town layer leaves it to the flight point pin: a flight master alone draws no town pin, and an NPC who is also a
 -- vendor keeps one vendor pin with no second "Flight master" mark (#816).
-local gearTracking
+local gear
 for _, vendor in ipairs(ns.NearbyGroups.vendors) do
 	if vendor.key == "gear" then
-		gearTracking = vendor.tracking
+		gear = vendor
 	end
 end
+-- The test client's GetItemIconByID file for the group's goods.
+local GEAR_ICON = 100000 + gear.icon
 groups[#groups + 1] = group("services", "flight", "Flight master", "FlightMaster")
-groups[#groups + 1] = group("vendors", "gear", "Weapons and armour", gearTracking)
+groups[#groups + 1] =
+	{ section = "vendors", key = "gear", label = "Weapons and armour", icon = gear.icon, npcs = {} }
 local rebuilt = {}
 for key, list in pairs(index) do
 	rebuilt[key] = list
@@ -230,11 +235,10 @@ vendorAndFlight.scripts.OnEnter(vendorAndFlight)
 GameTooltip_AddNormalLine = oldNormal
 check(not table.concat(flightLines, ", "):find("Flight master", 1, true), "and its tooltip lists no flight master")
 
--- The tracking set's `Gear` element is a treasure coin, not equipment: a weapons and armour pin must wear the
--- group's real mark, an atlas this client has, and never that plain gold dot (#816).
-check(gearTracking ~= nil and gearTracking ~= "Gear", "weapons and armour do not wear the tracking set's coin")
-check(ns.Art.Info(gearTracking) ~= nil, "and their mark is a client atlas")
-check(find(10).Texture.atlas == gearTracking, "a weapons and armour pin wears it")
+-- The tracking set has no weapons or armour (its `Gear` element is a treasure coin, #816), and a pin never borrows
+-- another service's mark (the transmogrifier's crystal, #978): the group wears its goods' item icon.
+check(gear.tracking == nil, "weapons and armour borrow no tracking atlas")
+check(find(10).Texture.texture == GEAR_ICON and find(10).Texture.atlas == nil, "a weapons and armour pin wears goods")
 
 local eleven, twelve = find(11), find(12)
 check(eleven and twelve and eleven ~= twelve, "the close pair has its own pins at full zoom")

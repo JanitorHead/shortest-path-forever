@@ -278,6 +278,10 @@ ns.Art = {
 	end,
 	RowArt = function() end,
 	Band = function() end,
+	QUESTION_MARK = 134400,
+	ItemIcon = function(itemID)
+		return "icon:" .. itemID
+	end,
 	CoverFrame = function() end,
 }
 local catalogueState, demandCalls, catalogueReads = "idle", 0, 0

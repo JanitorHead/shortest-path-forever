@@ -123,6 +123,15 @@ function Art.Icon(texture, file, size)
 	texture:SetSize(size, size)
 end
 
+-- An item's icon from the client's item data, which it holds for every item whether or not it is cached; the
+-- question mark if the client has no such item.
+Art.QUESTION_MARK = 134400
+---@param itemID integer
+---@return integer
+function Art.ItemIcon(itemID)
+	return C_Item.GetItemIconByID(itemID) or Art.QUESTION_MARK
+end
+
 -- `|A:atlas:height:width|a` at the atlas's native aspect: the inline form of Art.Fit. Markup takes whole pixels, so
 -- a caller picks a height whose width lands within 2% of the shape (WFA-27). nil when the client lacks the atlas.
 ---@param atlas string
