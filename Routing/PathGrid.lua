@@ -1803,7 +1803,7 @@ local pinned = {}
 ---@param clusters table<number, true>?
 local function Pin(map, clusters)
 	if not map and next(pinned) == nil then
-		return -- outdoors Floor.lua forgets on every tick: nothing pinned, no table to make
+		return -- Floor.lua forgets on every tick it follows nothing (a taxi, a lift): nothing pinned, no table to make
 	end
 	pinned = {}
 	if map and clusters then
