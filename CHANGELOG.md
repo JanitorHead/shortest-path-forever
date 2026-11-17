@@ -14,7 +14,7 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 - **Faint and narrow roads stay connected.** Follow roads now weighs each cell by its painted road coverage, keeping partial-alpha roads in the route and drawn line.
 
-## [1.41.1] - 2026-11-16
+## [1.41.1] - 2026-11-17
 
 <!-- forever-core-sync -->
 
