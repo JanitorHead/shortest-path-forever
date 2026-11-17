@@ -4,6 +4,8 @@ local _, ns = ...
 
 ns.Credits = {
 	players = {
+		{ name = "emmiehbun", what = "Walking routes over Westfall ridges" },
+		{ name = "VolomonBeddarm", what = "Walking routes up impassable Barrens terrain" },
 		{ name = "zhega", what = "Nearby services can show only learned professions" },
 		{ name = "catubba", what = "Journey legs name where they start and end" },
 		{ name = "Hatemost", what = "Resume the RestedXP guide from a macro" },

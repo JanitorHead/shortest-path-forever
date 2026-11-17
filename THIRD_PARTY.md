@@ -61,6 +61,8 @@ Credit for the reports and requests behind the addon.
 
 | Who | What | Notes |
 |---|---|---|
+| emmiehbun | Walking routes over Westfall ridges | CurseForge thread 8733369; #950 |
+| VolomonBeddarm | Walking routes up impassable Barrens terrain | CurseForge thread 8724226; #897 |
 | zhega | Nearby services can show only learned professions | CurseForge thread 8727763, #914 |
 | [catubba](https://github.com/catubba) | Journey legs name where they start and end | GitHub; #782 |
 | Hatemost | Resume the RestedXP guide from a macro | CurseForge thread 8697686; #786 |
