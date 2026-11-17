@@ -42,6 +42,11 @@ nodes = {
 }
 nav._HPA = grid, set(), nodes
 edges = nav.cluster_edges(2)
+nav.ROAD_CELLS = set()
+plain = nav.cluster_edges(2)
+nav.ROAD_CELLS = road
+assert {edge for edge, costs in edges.items() if costs[2]} == set(plain), "base edges must match plain pruning exactly"
+assert set(edges) - set(plain), "fixture must contain road-only edges"
 if deep:
 
     def distance(start, goal, factor):
@@ -88,7 +93,7 @@ for a, b in (
     (cell(100, 66), cell(100, 67)),
 ):
     edges[a, b] = edges[b, a] = (nav.CS, nav.CS)
-print("return {cell={")
+print("return {degreeWidth=2,baseDegreeWidth=2,cell={")
 for x in range(60, 141):
     print(f"[{x}]={{" + ",".join(f"[{y}]={{z=0}}" for y in range(low, 72)) + "},")
 print("},node={")
@@ -96,11 +101,12 @@ for cells in nodes.values():
     for u in sorted(cells):
         x, y = divmod(u, nav.GH)
         out = []
-        for (a, b), costs in sorted(edges.items()):
+        for (a, b), costs in sorted(edges.items(), key=lambda edge: (len(edge[1]) > 2 and not edge[1][2], edge[0])):
             if a == u:
                 bx, by = divmod(b, nav.GH)
                 out.append(f"{{{bx},{by},{round(costs[0])},{round(costs[1])}}}")
-        print(f"{{{x},{y},1,out={{" + ",".join(out) + "}},")
+        base = sum(a == u and (len(costs) == 2 or costs[2]) for (a, _b), costs in edges.items())
+        print(f"{{{x},{y},1,base={base},out={{" + ",".join(out) + "}},")
 print("},road={")
 for k in nodes:
     cells = [f"[{(u // nav.GH % 67) * 67 + u % nav.GH % 67}]=true" for u in sorted(road) if nav.cluster_of_cell(u) == k]

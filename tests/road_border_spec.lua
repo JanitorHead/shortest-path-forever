@@ -26,6 +26,18 @@ Grid.smooth = function(_, P)
 	end
 	return indices
 end
+local plainReads, roadReads = 0, 0
+for _, name in ipairs({ "adjacent", "preceding" }) do
+	local read = Grid[name]
+	Grid[name] = function(state, id, roads)
+		if roads == false then
+			plainReads = plainReads + 1
+		elseif roads == true then
+			roadReads = roadReads + 1
+		end
+		return read(state, id, roads)
+	end
+end
 for _, file in ipairs({ "Routing/Path.lua", "Routing/PathJobs.lua" }) do
 	assert(loadfile(file))("ShortestPathForever", ns)
 end
@@ -67,4 +79,5 @@ for _, ends in ipairs({ { 60, 140 }, { 140, 60 } }) do
 		assert(math.abs(batch[1] - cost) < 1e-9, "batch and drawn walk use the same retained road connection")
 	end
 end
+assert(plainReads > 0 and roadReads > 0, "search must explicitly select base or road adjacency")
 print("road_border_spec: ok")

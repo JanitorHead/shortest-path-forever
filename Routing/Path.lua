@@ -797,7 +797,7 @@ local function run(map, from, to, waterWalking, costOnly, hz)
 					relax(GOAL, gu + target[u], ru + targetReal[u], u)
 				end
 				nodesOf(st, floor(u / 4096))
-				local adj = adjacent(st, u)
+				local adj = adjacent(st, u, roadsOn == true)
 				local ratios = roadsOn and Grid.roadEdges(st, u) or nil
 				local custom, customReal
 				if roadsOn and offroad ~= OFFROAD then
@@ -1190,7 +1190,7 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 					relax(ends[i], dist[u] + ends[i + 1], real[u] + ends[i + 2])
 				end
 				nodesOf(st, k)
-				local adj = reverse and preceding(st, u) or adjacent(st, u)
+				local adj = reverse and preceding(st, u, roadsOn == true) or adjacent(st, u, roadsOn == true)
 				-- a reverse search over format 2 walks the edges into u, whose ratios are their sources' outbound ones;
 				-- format 1's symmetric graph keeps the outbound list as it shipped
 				local ratios = roadsOn

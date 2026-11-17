@@ -28,7 +28,7 @@ for _, map in ipairs({ 0, 1, 2991 }) do
 		local s, k = chunks, cluster - 1
 		local n = number(s, 1, 2)
 		local width = data.degreeWidth or 1
-		local stride = 6 + width
+		local stride = 6 + width + (data.baseDegreeWidth or 0)
 		local at = 3 + n * stride
 		for i = 0, n - 1 do
 			local id = k * 4096 + i

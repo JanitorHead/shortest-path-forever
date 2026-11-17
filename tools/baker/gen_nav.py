@@ -954,8 +954,8 @@ def cluster_edges(k):
         slopes.append(slope)
     el = sorted(cells)
 
-    def redundant(a, b, weight):
-        if not has_roads:
+    def redundant(a, b, weight, plain=False):
+        if plain or not has_roads:
             dist = dists[weight]
             return any(
                 dist.get((a, x), 1e18) + dist.get((x, b), 1e18) <= dist[a, b] * PRUNE for x in el if x not in (a, b)
@@ -983,7 +983,8 @@ def cluster_edges(k):
             if all(redundant(a, b, weight) for weight in range(len(WEIGHTS))):
                 continue
             # Runtime RoadEdges reweights these retained edges; stored travel costs stay physical.
-            found[(a, b)] = tuple(dist[a, b] for dist in dists[: len(WEIGHTS)])
+            base = not all(redundant(a, b, weight, plain=True) for weight in range(len(WEIGHTS)))
+            found[(a, b)] = (*tuple(dist[a, b] for dist in dists[: len(WEIGHTS)]), base)
     return found
 
 
@@ -1170,12 +1171,24 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
             rec, erec = [enc(len(cs), 2)], []
             for c in cs:
                 layer = FLOOR_LAYER[c - GW * GH] if c >= GW * GH else 0
-                rec.append(enc(lcell(cell_of(c)), 3) + enc(layer, 1) + enc(comp[c], 2) + enc(len(nbrs[c]), 2))
-                for m, d in sorted(nbrs[c]):
+                neighbours = sorted(
+                    nbrs[c], key=lambda edge: (len(edge[1]) > len(WEIGHTS) and not edge[1][-1], edge[0])
+                )
+                base_count = sum(len(d) == len(WEIGHTS) or d[-1] for _, d in neighbours)
+                rec.append(
+                    enc(lcell(cell_of(c)), 3)
+                    + enc(layer, 1)
+                    + enc(comp[c], 2)
+                    + enc(len(nbrs[c]), 2)
+                    + enc(base_count, 2)
+                )
+                for m, d in neighbours:
                     km = cluster_of_cell(m)
                     dx, dy = km // NY - kx, km % NY - ky
                     assert abs(dx) <= 1 and abs(dy) <= 1
-                    costs = "".join(enc(round(w), 2) for w in d)  # 4095 is ample: the longest baked is 2357
+                    costs = "".join(
+                        enc(round(w), 2) for w in d[: len(WEIGHTS)]
+                    )  # 4095 is ample: the longest baked is 2357
                     erec.append(enc((dx + 1) * 3 + dy + 1, 1) + enc(local[m], 2) + costs)
             graph[k] = "".join(rec) + "".join(erec)
         if not collision:
@@ -1262,7 +1275,8 @@ def emit(nodes, edges, grid, cuts, out, name):
         "-- `steep` is the older format 2, whose flag 8 opens the -x-y diagonal and whose bits pick the surface",
         "-- nearest their height; without `format` it is format 1, whose links are symmetric.",
         "-- climbChecked: every cluster crossing passes the stored-height 50 degree climb rule at bake time.",
-        "-- graph[k + 1]: n(2) | n x [cell(3) layer(1) component(2) degree(degreeWidth or 1)] "
+        "-- graph[k + 1]: n(2) | n x [cell(3) layer(1) component(2) degree(degreeWidth or 1) "
+        "baseDegree(baseDegreeWidth or 0)] "
         "| n x degree edges in node order, each",
         "--   [cluster offset(1): (dx + 1) * 3 + dy + 1, node(2), cost(2) swimming with water at swim, cost(2) walking",
         "--   on water, both in running yards]; the decoder builds each node's predecessors from them. grid[k + 1]:",
@@ -1291,6 +1305,7 @@ def emit(nodes, edges, grid, cuts, out, name):
         f"\tzstep = {ZQ},",
         "\tformat = 3,",
         "\tdegreeWidth = 2,",
+        "\tbaseDegreeWidth = 2,",
         "\tsteep = true,",
         "\tclimbChecked = true,",
     ]

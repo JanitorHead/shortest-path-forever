@@ -126,6 +126,7 @@ local function build(spec, format)
 	local map = { cx0 = 0, cy0 = 0, nx = nx, ny = ny, cells = CELLS, swim = 3, zstep = 2, format = format }
 	map.grid, map.height, map.floor, map.graph = {}, {}, {}, {}
 	map.degreeWidth = spec.degreeWidth
+	map.baseDegreeWidth = spec.baseDegreeWidth
 	for _, f in ipairs(spec.floor or {}) do
 		if f[4] == 3 then
 			map.steep = true
@@ -257,6 +258,7 @@ local function build(spec, format)
 					.. enc(0, 1)
 					.. enc(node[3], 2)
 					.. enc(#(node.out or {}), spec.degreeWidth or 1)
+					.. (spec.baseDegreeWidth and enc(node.base or #(node.out or {}), spec.baseDegreeWidth) or "")
 			end
 			for _, node in ipairs(nodes) do
 				for _, edge in ipairs(node.out or {}) do

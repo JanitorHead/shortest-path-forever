@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "generator": "5d1075def2b18cf2c2fc6b111a73ba261e5b8d3d9f49ba333d33be4818d11b57",
+  "generator": "adabeef8e26094a043ee4a03e448204926890c933c399cff1f3849f9e81974e3",
   "collision_generators": [
     "35d8a83e5bf1b7cde01f22c1b4baa7154b33c15aa07854ff731e8dcce96149ec"
   ],
-  "reason": "#892 certifies road pruning over the slider interval and widens graph degrees; collision generation is unchanged."
+  "reason": "#892 records the plain-pruned base-edge prefix separately from road-only edges; collision generation is unchanged."
 }
