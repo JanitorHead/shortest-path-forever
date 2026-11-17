@@ -49,7 +49,7 @@ local function roadAt(x, y)
 		return false
 	end
 	local cells = Grid.roads(st, k)
-	return cells and cells[lc] == true or false
+	return cells and cells[lc] ~= nil or false
 end
 local function share(points)
 	local total, on = 0, 0
@@ -117,8 +117,11 @@ print("roads_spec: ok")
 -- The explicit default must preserve both the old physical cost and every drawn point, bit for bit.
 local explicit, explicitCost = Path.FindSync(0, from, to, false, profile("default", true, 1.5))
 assert(explicitCost == roadCost, "50% preserves the default road cost")
--- The drawn line now obeys the same road preference as the walk it draws (#891), so its points may differ from the
--- pre-#891 default while its road share may not fall below the walked route's.
+-- Omitting the preference uses OFFROAD in both search and drawing, just like an explicit default.
+assert(#explicit == #road, "implicit and explicit default road preference draw the same line")
+for i = 1, #road do
+	assert(explicit[i].x == road[i].x and explicit[i].y == road[i].y, "default road drawing uses OFFROAD")
+end
 assert(share(explicit) >= roadShare, "the default walk's drawn line keeps its road share")
 local shortest, shortestCost = Path.FindSync(0, from, to, false, profile("zero", true, 1))
 assert(shortestCost == plainCost and #shortest == #plain, "0% removes all road preference")

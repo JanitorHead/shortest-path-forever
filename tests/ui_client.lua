@@ -703,6 +703,15 @@ _G.GetQuestUiMapID = function()
 	return 0
 end
 _G.C_QuestLog = {
+	-- No quests are logged or watched in this UI fixture.
+	GetNumQuestLogEntries = function()
+		return 0
+	end,
+	GetInfo = noop,
+	GetNumQuestWatches = function()
+		return 0
+	end,
+	GetQuestIDForQuestWatchIndex = noop,
 	GetQuestsOnMap = function()
 		return {}
 	end,
