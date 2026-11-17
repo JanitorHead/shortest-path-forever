@@ -548,8 +548,8 @@ L["Road detour allowance"] = "道路繞行餘量" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"啟用沿道路行走時，為避開等長的非道路路段，願意多走的距離。50%保留一般的道路偏好；0%不優先選擇道路。這不是整段步行距離的上限。" -- mt
 L["Point straight to the destination"] = "直接指向目的地" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"箭頭直接指向目的地並顯示直線距離。目的地在其他地圖上時，箭頭指向目前行程步驟。地圖標記和行程時間仍按路線顯示。" -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"遊戲的導航標記直接指向目的地，若目的地在另一張地圖上，則指向目前的旅程步驟；關閉該標記時，箭頭也會指向同一目標。地圖標記和旅程時間仍沿用路線。" -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"地圖標記顯示每個步驟的終點，而不是步行路線的每個轉彎。箭頭方向單獨設定。" -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =

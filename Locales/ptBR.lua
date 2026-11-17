@@ -558,8 +558,8 @@ L["Road detour allowance"] = "Desvio permitido por estradas" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Com Seguir estradas ativado, quanta distância extra vale a pena para evitar a mesma distância fora da estrada. 50% mantém a preferência habitual; 0% não dá preferência às estradas. Não é um limite para o trajeto inteiro." -- mt
 L["Point straight to the destination"] = "Apontar diretamente para o destino" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"A seta aponta diretamente para o destino e mostra a distância em linha reta. Em outro mapa, aponta para a etapa de viagem atual. As marcas do mapa e o tempo de viagem continuam seguindo a rota." -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"O marcador de navegação do jogo aponta diretamente para o destino ou para a etapa atual da viagem em outro mapa; a seta faz o mesmo quando esse marcador está desativado. As marcações do mapa e o tempo de viagem continuam seguindo a rota." -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"As marcas no mapa indicam onde cada etapa termina, não cada curva do caminho. A direção da seta é configurada separadamente." -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =

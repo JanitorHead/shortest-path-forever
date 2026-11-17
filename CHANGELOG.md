@@ -12,6 +12,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Point straight to the destination** turns the game's own navigation marker towards the destination again, as before 1.36.0, instead of adding a second arrow on screen. Thanks to Drusangus on CurseForge.
+
 ## [1.41.1] - 2026-11-16
 
 <!-- forever-core-sync -->

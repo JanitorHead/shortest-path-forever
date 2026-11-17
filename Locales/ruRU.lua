@@ -592,8 +592,8 @@ L["Road detour allowance"] = "Допустимый обход по дорога�
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Когда включено следование дорогам, определяет, сколько дополнительного пути стоит пройти, чтобы избежать такого же расстояния вне дороги. 50% сохраняет обычное предпочтение; 0% не отдаёт предпочтения дорогам. Это не ограничение длины всего пути." -- mt
 L["Point straight to the destination"] = "Указывать прямо на цель" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"Стрелка указывает прямо на цель и показывает расстояние по прямой. На другой карте она указывает на текущий этап пути. Отметки на карте и время путешествия по-прежнему следуют маршруту." -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"Навигационная метка игры указывает прямо на пункт назначения или на текущий этап путешествия на другой карте; стрелка делает то же самое, когда эта метка отключена. Метки на карте и время путешествия по-прежнему следуют маршруту." -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"Отметки на карте показывают конец каждого этапа, а не каждый поворот пути. Направление стрелки настраивается отдельно." -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =

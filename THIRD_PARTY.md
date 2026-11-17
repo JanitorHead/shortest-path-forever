@@ -182,6 +182,7 @@ Credit for the reports and requests behind the addon.
 | ubrider | Hovering the minimap map pin no longer errors | CurseForge; #824 |
 | ubrider | Manual destinations keep priority over RestedXP updates | CurseForge; #905 |
 | Drusangus | An arrow pointing straight to the destination | CurseForge; #904 |
+| Drusangus | Native navigation for direct destination guidance | CurseForge thread 8721920; #940 |
 | cwebbx | Journeys start from a focused quest or map pin | CurseForge; #687 |
 | lone\_viking1921 | Journeys start from a focused quest or map pin | CurseForge; #687 |
 | Nivlemoth\_Nathrezim | Horde walks stay out of Southshore | CurseForge; #719 |

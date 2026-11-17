@@ -569,8 +569,8 @@ L["Road detour allowance"] = "도로 우회 허용량" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"도로 따라가기가 켜져 있을 때 도로 밖의 같은 거리를 피하기 위해 허용할 추가 거리입니다. 50%는 기존 우선도를 유지하며, 0%는 도로를 우선하지 않습니다. 전체 도보 거리의 제한은 아닙니다." -- mt
 L["Point straight to the destination"] = "목적지를 바로 가리키기" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"화살표가 목적지를 바로 가리키고 직선 거리를 표시합니다. 다른 지도에 있으면 현재 이동 단계의 끝을 가리킵니다. 지도 표시와 여정 시간은 계속 경로를 따릅니다." -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"게임의 탐색 표식은 목적지를 곧바로 가리키며, 목적지가 다른 지도에 있으면 현재 이동 단계를 가리킵니다. 해당 표식이 꺼져 있으면 화살표가 같은 방향을 가리킵니다. 지도 표식과 여정 시간은 계속 경로를 따릅니다." -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"지도에는 걸어가는 길의 각 모퉁이 대신 각 단계가 끝나는 곳을 표시합니다. 화살표 방향은 별도로 설정합니다." -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =

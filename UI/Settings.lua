@@ -638,7 +638,7 @@ ns.Init(function()
 	Checkbox(
 		"arrowDirect",
 		L["Point straight to the destination"],
-		L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."], -- luacheck: ignore 631
+		L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."], -- luacheck: ignore 631
 		ns.ArrowBearingChanged
 	)
 	local arrowLabel = Settings.RegisterAddOnSetting(
