@@ -916,6 +916,29 @@ ns.Init(function()
 			ns.Print(L["/path report - show a report to copy into a bug report"])
 			ns.Print(L["/path issue - report a bug or request a feature with a ready-made GitHub issue link"])
 			return
+		elseif message == "band" then
+			-- What the height band sees where you stand (#737): the checks it asks and the band they measured.
+			local ladders = ns.Band.Ladder()
+			for _, side in ipairs({ "friendly", "hostile" }) do
+				local parts = {}
+				for _, check in ipairs(ladders[side]) do
+					parts[#parts + 1] = string.format("%s %d %dyd", check.kind, check.id, check.range)
+				end
+				ns.Print(side .. ": " .. (#parts > 0 and table.concat(parts, ", ") or "none"))
+			end
+			local x, y, _, map = ns.JourneyPosition()
+			local band = x and y and map and ns.Band.Measure(map, x, y)
+			if not band then
+				ns.Print("band: none")
+				return
+			end
+			ns.Print(string.format("band: %.1f to %.1f yd", band.lo, band.hi))
+			for _, anchor in ipairs(band.anchors) do
+				ns.Print(
+					string.format("anchor z %.1f, %dyd check, within %.1f yd", anchor.z, anchor.reach, anchor.inside)
+				)
+			end
+			return
 		elseif message == "debug" then
 			ns.db.debug = not ns.db.debug
 			ns.db.trace = ns.db.debug and {} or nil

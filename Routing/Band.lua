@@ -375,6 +375,9 @@ function Band.Measure(map, x, y)
 	return { map = map, lo = lo, hi = hi, anchors = anchors }
 end
 
+-- The checks a measurement would ask now, friendly and hostile, for `/path band`.
+Band.Ladder = Ladder
+
 -- Range answers and their height bounds belong to the current position, including vertical motion.
 -- Re-measure when planning asks; no timer or idle polling is needed.
 Band.At = Band.Measure
