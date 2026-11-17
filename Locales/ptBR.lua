@@ -556,11 +556,31 @@ L["Road detour allowance"] = "Desvio permitido por estradas" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Com Seguir estradas ativado, quanta distância extra vale a pena para evitar a mesma distância fora da estrada. 50% mantém a preferência habitual; 0% não dá preferência às estradas. Não é um limite para o trajeto inteiro." -- mt
 L["Point straight to the destination"] = "Apontar diretamente para o destino" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"A seta aponta diretamente para o destino e mostra a distância em linha reta. Em outro mapa, aponta para a etapa de viagem atual. As marcas do mapa e o tempo de viagem continuam seguindo a rota." -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"O marcador de navegação do jogo aponta diretamente para o destino ou para a etapa atual da viagem em outro mapa; a seta faz o mesmo quando esse marcador está desativado. As marcações do mapa e o tempo de viagem continuam seguindo a rota." -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"As marcas no mapa indicam onde cada etapa termina, não cada curva do caminho. A direção da seta é configurada separadamente." -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
 	"O que a seta mostra abaixo dela: a distância no modo selecionado, o tempo restante da viagem ou ambos." -- mt
 
 L["Transmogrifier"] = "Transmogrificador" -- mt
+L["Tracker"] = "Rastreador"
+L["Planning"] = "Planejamento"
+L["Destination"] = "Destino"
+L["Guides"] = "Guias"
+L["Route choices"] = "Opções de rota"
+L["Map"] = "Mapa"
+L["Direction arrow"] = "Seta de direção"
+L["Compass"] = "Bússola"
+L["General"] = "Geral"
+L["Map icons"] = "Ícones do mapa"
+L["Walking route"] = "Rota a pé"
+
+L["stop guiding"] = "parar de guiar" -- mt
+L["guide this journey"] = "guiar esta jornada" -- mt
+L["show it on the map"] = "mostrar no mapa" -- mt
+L["show the Adventure Guide Forever link"] = "mostrar o link do Adventure Guide Forever" -- mt
+L["Show link"] = "Mostrar link" -- mt
+L["That guide has no step to follow."] = "Esse guia não tem nenhuma etapa para seguir." -- mt
+
+L["Weapon master"] = "Mestre de armas"

@@ -4,6 +4,7 @@
 -- blamed on this addon. The index buttons go through RegisterInitializer too, and keep themselves out of search.
 local rows, buttons, settings = {}, {}, {}
 local opened = {}
+local registered = {}
 local familyPage
 
 local attachmentNotified, attachmentChanged
@@ -11,6 +12,14 @@ local trackerState = { attached = true }
 local trackerScale, compassScaled, compassBackdrop = 1, nil, nil
 local townRefreshed = 0
 local env = setmetatable({
+	CreateSecureDelegate = function(fn)
+		return fn
+	end,
+	GenerateClosure = function(fn, bound)
+		return function(...)
+			return fn(bound, ...)
+		end
+	end,
 	MinimalSliderWithSteppersMixin = { Label = { Right = 1 } },
 	OFF = "Off",
 	SecondsToTime = function(seconds)
@@ -119,6 +128,10 @@ local env = setmetatable({
 			return { kind = "dropdown", setting = setting, getData = getData, tooltip = tooltip }
 		end,
 		RegisterInitializer = function(target, initializer)
+			registered[#registered + 1] = { target = target, initializer = initializer }
+			if initializer.kind == "section" then
+				return
+			end
 			if initializer.kind == "button" then
 				if target.name == "Shortest Path Forever" then
 					buttons[#buttons + 1] = { target = target, initializer = initializer }
@@ -149,7 +162,9 @@ env.InCombatLockdown = function()
 	return false
 end
 env.securecallfunction = function(fn, ...)
-	secureCalls = secureCalls + 1
+	if fn == env.C_SettingsUtil.OpenSettingsPanel then
+		secureCalls = secureCalls + 1
+	end
 	return fn(...)
 end
 env.C_SettingsUtil = {
@@ -158,8 +173,13 @@ env.C_SettingsUtil = {
 	end,
 }
 local ForeverCore = dofile("tests/forever_core.lua")
-local coreNs = ForeverCore.load(env, "ForeverCore", { "Locales/enUS.lua", "Core/OpenSettings.lua" })
+local coreNs =
+	ForeverCore.load(env, "ForeverCore", { "Locales/enUS.lua", "Core/OpenSettings.lua", "UI/SettingsSections.lua" })
+env.CreateSettingsListSectionHeaderInitializer = function(name)
+	return { kind = "section", name = name }
+end
 env.ForeverCore = {
+	SettingsSections = coreNs.SettingsSections,
 	OpenSettingsPanel = coreNs.OpenSettingsPanel,
 	Family = {
 		Register = function(category, db, current, safeCall)
@@ -368,6 +388,11 @@ local ns = {
 }
 env.ForeverCore.TrackerHost = ns.TrackerHost
 assert(loadfile("Locales/enUS.lua"))("ShortestPathForever", ns)
+-- Read the road allowance from the real policy module; this UI harness does not run its world events.
+local init = ns.Init
+ns.Init = function() end
+setfenv(assert(loadfile("Journey/Hazards.lua")), env)("ShortestPathForever", ns)
+ns.Init = init
 -- The Map marks page lives in its own module, loaded before UI/Settings.lua in the TOC.
 setfenv(assert(loadfile("UI/SettingsMapMarks.lua")), env)("ShortestPathForever", ns)
 setfenv(assert(loadfile("UI/Settings.lua")), env)("ShortestPathForever", ns)
@@ -381,12 +406,12 @@ local groups = {
 		"transit",
 		"portals",
 		"mapFlightMasters",
-		"nearbyTab",
 		"minimapPins",
 		"hideQuestPins",
 		"mapPinScale",
 		"flightPinScale",
 		"minimapPinScale",
+		"nearbyTab",
 		"townServices",
 		"onlyMyProfessions",
 		"routeColor",
@@ -399,11 +424,11 @@ local groups = {
 	Guidance = {
 		"trackerAttached",
 		"trackerLocked",
+		"journeyTracker",
+		"resumeJourney",
 		"journey",
 		"journeyKey",
 		"focusedQuest",
-		"journeyTracker",
-		"resumeJourney",
 		"destinationPin",
 		"destinationPinSize",
 		"arrivalPin",
@@ -444,15 +469,15 @@ local groups = {
 		"arrowDirect",
 		"arrowLabel",
 		"arrowObjectives",
-		"metres",
-		"minimapButton",
 		"compass",
 		"compassTime",
 		"compassMove",
-		"trackerScale",
-		"trackerHeight",
 		"compassScale",
 		"compassBackground",
+		"trackerScale",
+		"trackerHeight",
+		"metres",
+		"minimapButton",
 		"whatsNew",
 	},
 }
@@ -918,3 +943,19 @@ assert(roadDetour.tooltip:find("not a limit on the whole walk", 1, true), "the p
 local roadPolicies = policyChanged
 roadDetour.setting:SetValue(200)
 assert(policyChanged == roadPolicies + 1, "changing the allowance replans the current journey")
+
+-- tests/settings_layout_spec.lua reuses this harness for the heading order and the reduced clients.
+return {
+	env = env,
+	ns = ns,
+	rows = rows,
+	buttons = buttons,
+	settings = settings,
+	registered = registered,
+	familyPage = function()
+		return familyPage
+	end,
+	clearFamilyPage = function()
+		familyPage = nil
+	end,
+}

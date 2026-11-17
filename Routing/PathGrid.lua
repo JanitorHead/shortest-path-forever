@@ -56,6 +56,9 @@ end
 
 local function num(s, i, width)
 	local a, b, c = byte(s, i, i + width - 1)
+	if width == 1 then
+		return B64[a]
+	end
 	local value = B64[a] * 64 + B64[b]
 	return width == 2 and value or value * 64 + B64[c]
 end
@@ -211,11 +214,15 @@ local function State(map)
 			ncomp = {},
 			nadj = {}, -- [id] = { target, cost swimming, cost walking on water, ... }
 			nadjIn = {}, -- [id] = the same for the edges that reach it, built when a reverse search needs them
+			baseBuilt = {},
 			inBuilt = {}, -- [k] = true once cluster k's inbound lists are built
 			outDeg = {},
+			baseDeg = {},
+			baseAdj = {},
+			baseIn = {},
 			ends = {}, -- bounded local connections, shared by successive endpoint batches
 			endCount = 0,
-			road = {}, -- [k] = road cells (local cell -> true), false when the cluster has none
+			road = {}, -- [k] = road cells (local cell -> coverage), false when the cluster has none
 			roadEdges = {}, -- [k] = baked entrance edge ratios (RoadEdges.lua)
 			roadIn = {}, -- [k] = the same for the edges that reach a node, aligned with preceding()
 			nodeZ = {}, -- [id] = an entrance's stored height, kept after its cluster is released
@@ -780,9 +787,9 @@ local function trimGraphs()
 		end
 		for _, id in ipairs(owner.nodes[oldest]) do
 			owner.ncell[id], owner.nlayer[id], owner.ncomp[id], owner.nadj[id] = nil, nil, nil, nil
-			owner.nadjIn[id] = nil
+			owner.nadjIn[id], owner.baseAdj[id], owner.baseIn[id], owner.baseDeg[id] = nil, nil, nil, nil
 		end
-		owner.outDeg[oldest], owner.inBuilt[oldest] = nil, nil
+		owner.outDeg[oldest], owner.inBuilt[oldest], owner.baseBuilt[oldest] = nil, nil, nil
 		if owner.D.packed then
 			owner.D.graph[oldest + 1] = nil
 		end
@@ -815,8 +822,8 @@ local function decodeGraph(st, k)
 	for i = 0, n - 1 do
 		local id = k * 4096 + i
 		ids[i + 1] = id
-		degree[i + 1] = B64[byte(s, pos + 6)]
-		pos = pos + 7
+		degree[i + 1] = num(s, pos + 6, st.D.degreeWidth or 1)
+		pos = pos + 6 + (st.D.degreeWidth or 1) + (st.D.baseDegreeWidth or 0)
 	end
 	for i = 1, n do
 		st.nadj[ids[i]] = pos
@@ -837,7 +844,9 @@ end
 local function metadata(st, id)
 	if st.ncell[id] == nil then
 		-- A packed map keeps its graph compressed until asked for: read the field, never the raw table (#897).
-		local field, pos = unpackField(st.D, "graph", floor(id / 4096) + 1), 3 + (id % 4096) * 7
+		local field, pos =
+			unpackField(st.D, "graph", floor(id / 4096) + 1),
+			3 + (id % 4096) * (6 + (st.D.degreeWidth or 1) + (st.D.baseDegreeWidth or 0))
 		if not field then
 			return nil
 		end
@@ -848,9 +857,13 @@ local function metadata(st, id)
 end
 
 -- Most entrances in a visited cluster are never expanded. Decode their edges only when needed.
+-- Search passes false for the plain-pruned prefix; road baking omits the flag to read the entire graph.
 local noEdges = {}
 
-local function edgesAt(st, id)
+local function edgesAt(st, id, roads)
+	if roads == false and st.baseAdj[id] then
+		return st.baseAdj[id]
+	end
 	local adj = st.nadj[id]
 	if adj == nil then
 		-- The records live in the node's own cluster, so decode it here: a caller holding an id from a neighbour's
@@ -864,12 +877,18 @@ local function edgesAt(st, id)
 			return noEdges
 		end
 	end
+	if roads == false and st.D.baseDegreeWidth and st.baseDeg[id] == nil then
+		local width = st.D.degreeWidth or 1
+		local pos = 3 + (id % 4096) * (6 + width + st.D.baseDegreeWidth) + 6 + width
+		st.baseDeg[id] = num(st.D.graph[floor(id / 4096) + 1], pos, st.D.baseDegreeWidth)
+	end
 	if type(adj) == "number" then
 		local k, pos = floor(id / 4096), adj
 		local s = st.D.graph[k + 1]
 		local degree = st.outDeg[k]
 		adj = {}
-		for e = 1, degree[id % 4096 + 1] do
+		local count = roads == false and st.baseDeg[id] or degree[id % 4096 + 1]
+		for e = 1, count do
 			local offset = B64[byte(s, pos)]
 			local target = k + (floor(offset / 3) - 1) * st.ny + offset % 3 - 1
 			adj[e * 3 - 2] = target * 4096 + num(s, pos + 1, 2)
@@ -877,7 +896,11 @@ local function edgesAt(st, id)
 			adj[e * 3] = num(s, pos + 5, 2)
 			pos = pos + 7
 		end
-		st.nadj[id] = adj
+		if roads == false and st.baseDeg[id] and count < degree[id % 4096 + 1] then
+			st.baseAdj[id] = adj
+		else
+			st.nadj[id] = adj
+		end
 		local capacity = 1
 		while capacity < #adj do
 			capacity = capacity * 2
@@ -892,7 +915,7 @@ end
 -- stores each edge once, from the node that leaves it, so a reverse search is handed the same edges the other way:
 -- a link costs the same walked backwards, and all it wants is the node that reaches it. A node's inbound list is
 -- the chart's outbound triples, so it reads exactly like adjacent.
-local function buildInbound(st, k)
+local function buildInbound(st, k, roads)
 	local ny = st.ny
 	local kx, ky = floor(k / ny), k % ny
 	local into = {}
@@ -906,14 +929,17 @@ local function buildInbound(st, k)
 				and unpackField(st.D, "graph", nx * ny + nyc + 1)
 			if s then
 				local n, pos = num(s, 1, 2), 3
-				local degrees, left = {}, 256
+				local degrees, bases, left = {}, {}, 256
 				for i = 0, n - 1 do
-					degrees[i] = B64[byte(s, pos + 6)]
-					pos = pos + 7
+					degrees[i] = num(s, pos + 6, st.D.degreeWidth or 1)
+					bases[i] = st.D.baseDegreeWidth and num(s, pos + 6 + (st.D.degreeWidth or 1), st.D.baseDegreeWidth)
+						or degrees[i]
+					pos = pos + 6 + (st.D.degreeWidth or 1) + (st.D.baseDegreeWidth or 0)
 				end
 				for i = 0, n - 1 do
 					local source = (nx * ny + nyc) * 4096 + i
-					for _ = 1, degrees[i] do
+					local count = roads == false and bases[i] or degrees[i]
+					for _ = 1, count do
 						local offset = B64[byte(s, pos)]
 						if floor(offset / 3) - 1 == -dx and offset % 3 - 1 == -dy then
 							local target = k * 4096 + num(s, pos + 1, 2)
@@ -933,41 +959,71 @@ local function buildInbound(st, k)
 							slice()
 						end
 					end
+					pos = pos + (degrees[i] - count) * 7
 				end
 			end
 		end
 	end
 	local bytes = 0
 	for id, list in pairs(into) do
-		st.nadjIn[id] = list
+		if roads == false then
+			st.baseIn[id] = list
+		else
+			st.nadjIn[id] = list
+		end
 		bytes = bytes + 64 + #list * 16
 	end
 	local size = bytes / 1024
 	st.graphSize[k] = (st.graphSize[k] or 0) + size
 	graphKB = graphKB + size
-	st.inBuilt[k] = true
+	if roads == false then
+		st.baseBuilt[k] = true
+	else
+		st.inBuilt[k] = true
+	end
 end
 
 -- The edges out of an entrance, then the edges into it: a reverse search walks the latter, never an edge backwards.
 -- Format 1's graph is symmetric, so both are the same list.
-local function adjacent(st, id)
-	return edgesAt(st, id)
+local function adjacent(st, id, roads)
+	local adj = edgesAt(st, id, roads)
+	local base = st.baseDeg[id]
+	if roads ~= false or not base or base * 3 == #adj then
+		return adj
+	end
+	if not st.baseAdj[id] then
+		local list = {}
+		for i = 1, base * 3 do
+			list[i] = adj[i]
+		end
+		st.baseAdj[id] = list
+		local k = floor(id / 4096)
+		local capacity = 1
+		while capacity < #list do
+			capacity = capacity * 2
+		end
+		local size = (64 + capacity * 16) / 1024
+		st.graphSize[k], graphKB = st.graphSize[k] + size, graphKB + size
+	end
+	return st.baseAdj[id]
 end
 
-local function preceding(st, id)
+local function preceding(st, id, roads)
 	if st.fmt < 2 then
-		return adjacent(st, id)
+		return adjacent(st, id, roads)
 	end
 	local k = floor(id / 4096)
-	if not st.inBuilt[k] then
+	local built = roads == false and st.baseBuilt or st.inBuilt
+	if not built[k] then
 		-- counting the cluster as used keeps its records reclaimable once the lists are built
 		nodesOf(st, k)
-		buildInbound(st, k)
+		buildInbound(st, k, roads)
 	end
-	return st.nadjIn[id] or noEdges
+	local lists = roads == false and st.baseIn or st.nadjIn
+	return lists[id] or noEdges
 end
 
--- Road cells of cluster k (RoadCells.lua), decoded once: a set of local cell -> true, or false when it has none.
+-- Road cells of cluster k (RoadCells.lua), decoded once: a set of local cell -> coverage, or false when it has none.
 -- Only read while Follow roads is on.
 local function decodeRoads(st, k)
 	local list = ns.RoadCells and ns.RoadCells[st.map]
@@ -975,19 +1031,19 @@ local function decodeRoads(st, k)
 	if not s then
 		return false
 	end
-	local set, lc, on, pos = {}, 0, false, 1
+	local set, lc, pos = {}, 0, 1
 	while pos <= #s do
 		local run = num(s, pos, 2)
-		pos = pos + 2
+		local coverage = B64[byte(s, pos + 2)] / 63
+		pos = pos + 3
 		if run > 0 then
-			if on then
+			if coverage > 0 then
 				for cell = lc, lc + run - 1 do
-					set[cell] = true
+					set[cell] = coverage
 				end
 			end
 			lc = lc + run
 		end
-		on = not on
 	end
 	return set
 end
@@ -1001,15 +1057,15 @@ local function roads(st, k)
 	return set or nil
 end
 
--- Is this node's base cell a road cell of its cluster?
+-- Painted road coverage of this node's base cell, zero without paint.
 local function roadNode(st, k, node)
 	local set = roads(st, k)
 	if not set then
-		return false
+		return 0
 	end
 	local C = st.C
 	local cell = node < C * C and node or st.at[k][node + 1]
-	return cell ~= nil and set[cell] == true
+	return cell ~= nil and set[cell] or 0
 end
 
 -- RoadEdges.lua's edge ratios for cluster k: a default run is "=" and its length in two base64 symbols, any other
@@ -1499,7 +1555,7 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 		if not nk or not nn then
 			return false
 		end
-		if road and not roadNode(st, nk, nn) then
+		if road and roadNode(st, nk, nn) == 0 then
 			return false
 		end
 		if factor and factor(nk, nn) > limit then
@@ -1508,7 +1564,7 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 		if budget then
 			-- A pulled segment that leaves the road is charged the off-road preference too: a straight cut across a
 			-- field must not beat the road bend the walk took just because its own time is shorter (#891).
-			local ratio = roadFactor and not roadNode(st, nk, nn) and roadFactor or 1
+			local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, nk, nn))) or 1
 			local paced = pace(swim, spent, (next2 - at) * span, st.val[nk][nn + 1] == 2, budget, ratio)
 			if not paced then
 				return false
@@ -1520,7 +1576,7 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 		ix, iy = ix + mx * sx, iy + my * sy
 	end
 	if budget and k == P.k[b] and node == P.n[b] then -- the rest of the segment, inside the far entry's own cell
-		local ratio = roadFactor and not roadNode(st, k, node) and roadFactor or 1
+		local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, k, node))) or 1
 		local paced = pace(swim, spent, (1 - at) * span, st.val[k][node + 1] == 2, budget, ratio)
 		if not paced then
 			return false
@@ -1615,7 +1671,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 				else
 					wet = value(st, x, y) == 2
 				end
-				local ratio = roadFactor and (not nk or not roadNode(st, nk, nn)) and roadFactor or 1
+				local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - (nk and roadNode(st, nk, nn) or 0))) or 1
 				local paced = pace(swim, spent, (reached - at) * span, wet, budget, ratio)
 				if not paced then
 					return nil, false
@@ -1633,7 +1689,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 	end
 	if at < 1 then -- the rest of the segment, inside the end's own cell
 		local wet = not closed and st.val[k][node + 1] == 2
-		local ratio = roadFactor and (closed or not roadNode(st, k, node)) and roadFactor or 1
+		local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - (not closed and roadNode(st, k, node) or 0))) or 1
 		local paced = pace(swim, spent, (1 - at) * span, wet, budget, ratio)
 		if not paced then
 			return nil, false

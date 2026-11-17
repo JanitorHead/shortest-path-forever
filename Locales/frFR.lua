@@ -563,11 +563,31 @@ L["Road detour allowance"] = "Détour autorisé pour les routes" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"Avec Suivre les routes activé, distance supplémentaire acceptable pour éviter la même distance hors route. 50% conserve la préférence habituelle ; 0% ne privilégie pas les routes. Ce n'est pas une limite pour le trajet complet." -- mt
 L["Point straight to the destination"] = "Pointer directement vers la destination" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"La flèche pointe directement vers la destination et affiche la distance à vol d'oiseau. Sur une autre carte, elle pointe vers l'étape de voyage actuelle. Les repères de carte et la durée du voyage suivent toujours l'itinéraire." -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"Le repère de navigation du jeu pointe directement vers la destination ou vers l’étape actuelle du voyage sur une autre carte ; la flèche fait de même lorsque ce repère est désactivé. Les repères sur la carte et le temps de trajet continuent de suivre l’itinéraire." -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"Les repères de carte indiquent la fin de chaque étape, pas chaque virage du chemin. La direction de la flèche se règle séparément." -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
 	"L'affichage sous la flèche : la distance selon le mode choisi, le temps de voyage restant ou les deux." -- mt
 
 L["Transmogrifier"] = "Transmogrifieur" -- mt
+L["Tracker"] = "Suivi" -- mt
+L["Planning"] = "Planification" -- mt
+L["Destination"] = "Destination" -- mt
+L["Guides"] = "Guides" -- mt
+L["Route choices"] = "Choix du trajet" -- mt
+L["Map"] = "Carte" -- mt
+L["Direction arrow"] = "Flèche de direction" -- mt
+L["Compass"] = "Boussole" -- mt
+L["General"] = "Général" -- mt
+L["Map icons"] = "Icônes de carte" -- mt
+L["Walking route"] = "Trajet à pied" -- mt
+
+L["stop guiding"] = "arrêter le guidage" -- mt
+L["guide this journey"] = "guider ce trajet" -- mt
+L["show it on the map"] = "l’afficher sur la carte" -- mt
+L["show the Adventure Guide Forever link"] = "afficher le lien vers Adventure Guide Forever" -- mt
+L["Show link"] = "Afficher le lien" -- mt
+L["That guide has no step to follow."] = "Ce guide n’a aucune étape à suivre." -- mt
+
+L["Weapon master"] = "Maître d’armes"

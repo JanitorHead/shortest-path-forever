@@ -205,7 +205,7 @@ def refresh_digest(root=nav.ROOT):
     return digest.hexdigest()
 
 
-def graph_nodes(fields):
+def graph_nodes(fields, degree_width=1, base_degree_width=0):
     """The existing graph's entrances, resolved against the unchanged floor order."""
     nodes = {}
     for key, text in fields["graph"].items():
@@ -217,7 +217,7 @@ def graph_nodes(fields):
             cell = (k // nav.NY * nav.CELLS + x) * nav.GH + k % nav.NY * nav.CELLS + y
             found.add(nav.FLOORS_AT[cell][layer - 1] if layer else cell)
             reader.take(2)
-            reader.take()
+            reader.take(degree_width + base_degree_width)
         nodes[k] = found
     return nodes
 
@@ -246,12 +246,19 @@ def main():
     if args.inspect:
         nodes, edges = nav.grid_entrances(grid, cuts, args.jobs)
         print(f"{len(nodes)} clusters, {sum(map(len, nodes.values()))} entrances, {len(edges)} crossings", flush=True)
-        old = graph_nodes(fields)
+        width = re.search(r"\tdegreeWidth = (\d+),", source)
+        base_width = re.search(r"\tbaseDegreeWidth = (\d+),", source)
+        old = graph_nodes(fields, int(width[1]) if width else 1, int(base_width[1]) if base_width else 0)
         changed = [k for k in nodes.keys() | old.keys() if nodes.get(k, set()) != old.get(k, set())]
         print(f"changed clusters {len(changed)}, entrances {sum(len(nodes.get(k, ())) for k in changed)}", flush=True)
         return
     nodes, edges = nav.grid_hpa(grid, cuts, args.jobs)
     fields["graph"] = {k + 1: text for k, text in nav.encode_map(nodes, edges, grid, cuts, collision=False)[0].items()}
+    source = source.replace("component(2) degree(1)", "component(2) degree(degreeWidth or 1)")
+    source = re.sub(r"^\tbaseDegreeWidth = \d+,\n", "", source, flags=re.MULTILINE)
+    source = source.replace("degree(degreeWidth or 1)]", "degree(degreeWidth or 1) baseDegree(baseDegreeWidth or 0)]")
+    source = re.sub(r"^\tdegreeWidth = \d+,\n", "", source, flags=re.MULTILINE)
+    source = source.replace("\tformat = 3,", "\tformat = 3,\n\tdegreeWidth = 2,\n\tbaseDegreeWidth = 2,", 1)
     source = re.sub(r"-- (?:Graph generator|Graph input): .*\n", "", source)
     source = source.replace(
         "-- Map ", f"-- Graph generator: {refresh_digest()}.\n-- Graph input: {collision_digest(fields)}.\n-- Map ", 1

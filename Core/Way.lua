@@ -12,7 +12,7 @@ local L = ns.L
 -- with the journey key held does. /way is registered only while TomTom has not loaded (nor is enabled to load after
 -- Shortest Path) and no other addon has taken it; `/path way` always works.
 
--- Zone names as the client spells them, folded: the suite's one fold from Forever Core's Core/Text.lua (lower case,
+-- Zone names as the client spells them, folded: the suite's one fold from ForeverCore's Core/Text.lua (lower case,
 -- accents gone), then without spaces or punctuation, so "dun garok" finds "Dûn Garok" and "dunmorogh" still finds
 -- "Dun Morogh". Dungeon and raid names fold the same way, but mean the outdoor zone holding their entrance.
 ---@param name string

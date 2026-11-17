@@ -546,11 +546,31 @@ L["Road detour allowance"] = "道路绕行余量" -- mt
 L["With Follow roads on, how much extra distance is worth taking to avoid the same distance off-road. 50% keeps the usual preference; 0% gives no road preference. This is not a limit on the whole walk."] =
 	"启用沿道路行走时，为避开等长的非道路路段，愿意多走的距离。50%保持通常的道路偏好；0%不优先选择道路。这不是整段步行距离的上限。" -- mt
 L["Point straight to the destination"] = "直接指向目的地" -- mt
-L["The arrow points straight to the destination and shows straight-line distance. On another map, it points to the current travel step. Map marks and journey time keep following the route."] =
-	"箭头直接指向目的地并显示直线距离。目的地在其他地图上时，箭头指向当前行程步骤。地图标记和行程时间仍按路线显示。" -- mt
+L["The game's navigation marker points straight to the destination, or to the current travel step on another map; the arrow does the same when that marker is off. Map marks and journey time keep following the route."] =
+	"游戏的导航标记直接指向目的地，若目的地在另一张地图上，则指向当前行程步骤；关闭该标记时，箭头也会指向同一目标。地图标记和行程时间仍沿用路线。" -- mt
 L["Guide marks where each step ends on the map, not each turn of the walk. Arrow bearing is set separately."] =
 	"地图标记显示每个步骤的终点，而不是步行路线的每个转弯。箭头方向单独设置。" -- mt
 L["What the direction arrow shows under it: the distance in the selected arrow mode, the time left in the journey, or both."] =
 	"方向箭头下方显示的内容：所选箭头模式的距离、行程剩余时间或两者。" -- mt
 
 L["Transmogrifier"] = "幻化师" -- mt
+L["Tracker"] = "追踪栏"
+L["Planning"] = "规划"
+L["Destination"] = "目的地"
+L["Guides"] = "指南"
+L["Route choices"] = "路线选择"
+L["Map"] = "地图"
+L["Direction arrow"] = "方向箭头"
+L["Compass"] = "罗盘"
+L["General"] = "常规"
+L["Map icons"] = "地图图标"
+L["Walking route"] = "步行路线"
+
+L["stop guiding"] = "停止引导" -- mt
+L["guide this journey"] = "引导此次旅程" -- mt
+L["show it on the map"] = "在地图上显示" -- mt
+L["show the Adventure Guide Forever link"] = "显示 Adventure Guide Forever 链接" -- mt
+L["Show link"] = "显示链接" -- mt
+L["That guide has no step to follow."] = "该指南没有可跟随的步骤。" -- mt
+
+L["Weapon master"] = "武器大师"

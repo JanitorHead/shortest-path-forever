@@ -30,7 +30,7 @@ local function Addons()
 			core = TOC["X-Forever-Core"],
 			deps = { "ForeverCore" },
 		},
-		{ name = "ForeverCore", title = "Forever Core", core = pin, deps = {} },
+		{ name = "ForeverCore", title = "ForeverCore", core = pin, deps = {} },
 	}
 	local function At(index)
 		return entries[index]
@@ -180,6 +180,7 @@ local ns, quiet, registered, attached = Load({
 	TrackerSection = { Create = function() end, UpdateText = function() end },
 	TrackerLine = { SetInteractive = function() end },
 	Art = { minor = 2, Marker = function() end, Ring = function() end, Diamond = function() end },
+	TrackerHost = {}, -- A foreign host has no menu contract.
 })
 assert(quiet and #quiet == 0, "a complete ForeverCore runs the addon and says nothing")
 assert(ns.core ~= nil, "the addon keeps its ForeverCore context")

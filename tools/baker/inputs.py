@@ -94,7 +94,7 @@ def generator_files() -> list[Path]:
                 parts = name.split(".")
                 if parts[0] == "baker" and len(parts) > 1:
                     todo.append(baker / f"{parts[1]}.py")
-    return sorted(seen)
+    return sorted(seen | {baker.parents[1] / "Journey/Hazards.lua"})
 
 
 def generator_digest() -> str:

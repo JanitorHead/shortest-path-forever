@@ -1,5 +1,4 @@
--- Right-clicking the section header while departures show offers to hide them through the module's
--- AddHeaderMenuEntries hook, below the shared column's own attach and lock entries.
+-- The section contract offers Hide departures only while departures show.
 local core = dofile("tests/forever_core.lua")
 local noop = function() end
 local entries = {}
@@ -28,11 +27,13 @@ local ns = {
 	OnTravelTick = noop,
 	NearestDock = noop,
 	RefreshTracker = noop,
+	JourneyInfo = noop,
 	SetOption = function(key, value)
 		entries.option = { key = key, value = value }
 	end,
 }
 local modules = {}
+local contract
 local env = setmetatable({
 	ObjectiveTrackerFrame = {},
 	ObjectiveTrackerManager = {},
@@ -55,14 +56,28 @@ local env = setmetatable({
 			target[key] = value
 		end
 	end,
-	EventUtil = { ContinueAfterAllEvents = noop },
-	C_Timer = { After = noop },
+	EventUtil = {
+		ContinueAfterAllEvents = function(fn)
+			fn()
+		end,
+	},
+	C_Timer = {
+		After = function(delay, fn)
+			if delay == 0 then
+				fn()
+			end
+		end,
+	},
 	hooksecurefunc = noop,
 	InCombatLockdown = function()
 		return true
 	end,
 	ForeverCore = {
-		TrackerHost = { Attach = noop },
+		TrackerHost = {
+			Attach = function(_, _, value)
+				contract = value
+			end,
+		},
 		ContextMenu = function(_, generator)
 			generator(owner, { CreateButton = noop, CreateCheckbox = noop })
 		end,
@@ -80,8 +95,9 @@ module.GetContextMenuParent = function()
 end
 local function Open()
 	entries = {}
-	module:AddHeaderMenuEntries({
-		CreateButton = function(_, text, click)
+	contract.menu({ kind = "section", module = module }, {
+		Open = noop,
+		Action = function(_, text, click)
 			entries[text] = { click = click }
 		end,
 	})

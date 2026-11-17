@@ -39,90 +39,154 @@ end
 local ModuleMixin = { headerText = L["Boats"] }
 local HEADER = { boat = L["Boats"], zeppelin = L["Boats"], lift = L["Lifts"], tram = L["Deeprun Tram"] }
 
--- The shared column builds every section header's menu and offers this addon's own entries through
--- AddHeaderMenuEntries, below. A section showing departures also offers to hide them.
 local function HasDepartures()
 	return not not (module and (module.dockID or module.riding))
 end
 
-local function HideDepartures()
-	ns.SetOption("tracker", false)
-end
-
 local function OpenDockMap(dockID)
 	local location = dockID and ns.DockLocation(dockID)
-	ns.OpenWorldMap(location and location.uiMap)
+	return ns.OpenWorldMap(location and location.uiMap)
 end
 
--- The shared column calls this while building a section header's menu: this addon's own entry is the departures
--- switch, offered only while the section shows departures.
----@param root table
-function ModuleMixin.AddHeaderMenuEntries(_, root)
-	if HasDepartures() then
-		root:CreateButton(L["Hide departures"], HideDepartures)
+---@param target ForeverTrackerTarget
+local function TargetKind(target)
+	if target.kind == "block" then
+		return target.id
 	end
-end
-
-function ModuleMixin:OnBlockHeaderClick(block, button)
-	if block.id == "journey" then
-		if button == "LeftButton" then
-			ns.ToggleJourneyGuide()
-		elseif button == "RightButton" then
-			ForeverCore.ContextMenu(block, function(_, root)
-				root:CreateCheckbox(L["Guide me"], ns.IsJourneyGuided, ns.ToggleJourneyGuide)
-				root:CreateCheckbox(L["Use Hearthstone"], ns.HearthstoneEnabled, ns.ToggleHearthstone)
-				root:CreateButton(L["Show on map"], ns.ShowJourneyMap)
-				root:CreateButton(L["Resume RestedXP guide"], function()
-					ns.ResumeRestedXP()
-				end)
-				if GuidelimeArrow then
-					root:CreateButton(L["Resume Guidelime guide"], function()
-						ns.ResumeGuidelime()
-					end)
-				end
-				local viewer = DugisGuideViewer
-				if type(viewer) == "table" and viewer.DugisArrow then
-					root:CreateButton(L["Resume Dugi guide"], function()
-						ns.ResumeDugi()
-					end)
-				end
-				-- A corpse run ends only when you live again.
-				if not ns.Corpse.Active() then
-					root:CreateButton(L["Clear journey"], ns.ClearJourney)
-				end
-				-- The shared column can be dragged anywhere once it is let go of the quest tracker (also in Settings). The
-				-- host switches only out of combat, so in combat the entry is left out rather than seeming to do nothing.
-				local host = ForeverCore.TrackerHost --[[@as ForeverTrackerHostAPI]]
-				if not InCombatLockdown() then
-					root:CreateCheckbox(L["Attach to quest tracker"], host.IsAttachedToQuestTracker, function()
-						host.SetAttached(not host.IsAttachedToQuestTracker())
-					end)
-				end
-			end)
-		end
-	elseif block.id == "family" then
-		if button == "LeftButton" then
-			ns.FamilyHints.OpenFooter()
-		end
-	elseif button == "LeftButton" then
-		OpenDockMap(self.mapDock)
+	if ns.JourneyInfo() then
+		return "journey"
 	end
+	if not module.mapDock and module.blocks[1] and module.blocks[1].key == "family" then
+		return "family"
+	end
+	return "dock"
 end
 
--- A left click on the section's own header opens what the section shows: the journey's guide, the family link, or
--- the dock on the map. The shared column calls this for every button but the right-click menu's.
----@param button string
-function ModuleMixin.OnHeaderClick(_, button)
+local function TrackerClick(target, button)
 	if button ~= "LeftButton" then
 		return
 	end
-	if ns.JourneyInfo() then
-		ns.ToggleJourneyGuide()
-	elseif not module.mapDock and module.blocks[1] and module.blocks[1].key == "family" then
-		ns.FamilyHints.OpenFooter()
-	else
-		OpenDockMap(module.mapDock)
+	local kind = TargetKind(target)
+	if kind == "journey" then
+		return ns.ToggleJourneyGuide()
+	elseif kind == "family" then
+		return ns.FamilyHints.OpenFooter()
 	end
+	return OpenDockMap(module.mapDock)
+end
+
+local function TrackerMenu(target, menu)
+	local kind = TargetKind(target)
+	if kind == "journey" then
+		menu:Primary(L["Guide me"], ns.ToggleJourneyGuide)
+		local hearth = menu:Action(L["Use Hearthstone"], ns.ToggleHearthstone)
+		-- Core returns its normal description, including the checkbox state used by its renderer.
+		hearth.kind, hearth.isSelected = "checkbox", ns.HearthstoneEnabled
+		menu:Action(L["Resume RestedXP guide"], function()
+			return ns.ResumeRestedXP(), L["That guide has no step to follow."]
+		end)
+		if GuidelimeArrow then
+			menu:Action(L["Resume Guidelime guide"], function()
+				return ns.ResumeGuidelime(), L["That guide has no step to follow."]
+			end)
+		end
+		local viewer = DugisGuideViewer
+		if type(viewer) == "table" and viewer.DugisArrow then
+			menu:Action(L["Resume Dugi guide"], function()
+				return ns.ResumeDugi(), L["That guide has no step to follow."]
+			end)
+		end
+		menu:Open(L["Show on map"], ns.ShowJourneyMap)
+		-- A corpse run ends only when you live again.
+		if not ns.Corpse.Active() then
+			menu:End(L["Clear journey"], ns.ClearJourney)
+		end
+	elseif kind == "family" then
+		menu:Open(L["Show link"], ns.FamilyHints.OpenFooter)
+	else
+		menu:Open(L["Show on map"], function()
+			return OpenDockMap(module.mapDock)
+		end)
+	end
+	if target.kind == "section" and HasDepartures() then
+		menu:Action(L["Hide departures"], function()
+			ns.SetOption("tracker", false)
+		end)
+	end
+end
+
+local function TrackerClickHint(target)
+	local kind = TargetKind(target)
+	if kind == "journey" then
+		return ns.IsJourneyGuided() and L["stop guiding"] or L["guide this journey"]
+	elseif kind == "family" then
+		return L["show the Adventure Guide Forever link"]
+	end
+	return L["show it on the map"]
+end
+
+-- Foreign hosts predate the menu contract, but still dispatch the native title clicks.
+local function LegacyTrackerMenu(root, target)
+	local slots = { actions = {} }
+	local menu = {}
+	local function Entry(text, callback)
+		return { text = text, callback = callback }
+	end
+	function menu.Title(_, text)
+		slots.title = text
+	end
+	function menu.Primary(_, text, callback)
+		slots.primary = Entry(text, callback)
+		return slots.primary
+	end
+	function menu.Action(_, text, callback)
+		local entry = Entry(text, callback)
+		slots.actions[#slots.actions + 1] = entry
+		return entry
+	end
+	menu.Submenu = menu.Action
+	function menu.Open(_, text, callback)
+		slots.open = Entry(text, callback)
+		return slots.open
+	end
+	function menu.End(_, text, callback)
+		slots.ending = Entry(text, callback)
+		return slots.ending
+	end
+	TrackerMenu(target, menu)
+	if slots.title then
+		root:CreateTitle(slots.title)
+	end
+	local function Append(entry)
+		if entry then
+			root:CreateButton(entry.text, entry.callback)
+		end
+	end
+	Append(slots.primary)
+	for _, entry in ipairs(slots.actions) do
+		Append(entry)
+	end
+	Append(slots.open)
+	Append(slots.ending)
+end
+
+function ModuleMixin:OnBlockHeaderClick(block, button)
+	local host = ForeverCore.TrackerHost
+	if host and host.HandleBlockHeaderClick then
+		return host.HandleBlockHeaderClick(self, block, button)
+	end
+	local target = { kind = "block", id = block.id, block = block }
+	if button == "RightButton" then
+		ForeverCore.ContextMenu(block, function(_, root)
+			LegacyTrackerMenu(root, target)
+		end)
+	else
+		return TrackerClick(target, button)
+	end
+end
+
+function ModuleMixin.OnHeaderClick(_, button)
+	return TrackerClick({ kind = "section" }, button)
 end
 
 local function DepartureText(departure)
@@ -546,6 +610,7 @@ ns.Init(function()
 	local tracker = Section.Create("ShortestPathForeverObjectiveTracker", ModuleMixin, {
 		-- Above quests, SkillUp Forever (-2) and Legacy Forever (0, -1): each needs its own slot.
 		order = -3,
+		contract = { menu = TrackerMenu, click = TrackerClick, clickHint = TrackerClickHint },
 		maxHeight = TrackerHeight((ns.db --[[@as any]]).trackerHeight),
 		lineTemplate = LINE_TEMPLATE,
 		header = ModuleMixin.headerText,

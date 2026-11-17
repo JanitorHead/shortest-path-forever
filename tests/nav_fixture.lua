@@ -125,6 +125,8 @@ local function build(spec, format)
 	local ny, nx = spec.ny, spec.nx
 	local map = { cx0 = 0, cy0 = 0, nx = nx, ny = ny, cells = CELLS, swim = 3, zstep = 2, format = format }
 	map.grid, map.height, map.floor, map.graph = {}, {}, {}, {}
+	map.degreeWidth = spec.degreeWidth
+	map.baseDegreeWidth = spec.baseDegreeWidth
 	for _, f in ipairs(spec.floor or {}) do
 		if f[4] == 3 then
 			map.steep = true
@@ -248,14 +250,15 @@ local function build(spec, format)
 			map.floor[k + 1] = table.concat(out)
 		end
 
-		local nodes = clusters[k + 1]
+		local nodes = clusters[k + 1] or {}
 		if #nodes > 0 then
 			local chunks = { enc(#nodes, 2) }
 			for _, node in ipairs(nodes) do
 				chunks[#chunks + 1] = enc(local_cell(node[1], node[2]), 3)
 					.. enc(0, 1)
 					.. enc(node[3], 2)
-					.. enc(#(node.out or {}), 1)
+					.. enc(#(node.out or {}), spec.degreeWidth or 1)
+					.. (spec.baseDegreeWidth and enc(node.base or #(node.out or {}), spec.baseDegreeWidth) or "")
 			end
 			for _, node in ipairs(nodes) do
 				for _, edge in ipairs(node.out or {}) do

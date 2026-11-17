@@ -13,6 +13,8 @@
 ---@field Zones table<number, SPFZone>
 ---@field Food number[] items whose use spell restores health (Data/Services.lua)
 ---@field Drink number[] items whose use spell restores mana (Data/Services.lua)
+---@field ProfessionIcons table<number, integer> profession skill line -> client icon file ID
+---@field WeaponMasters table<number, number[]> NPC -> taught weapon skill lines
 ---@field ProfessionTrainers table<number, number> trainer NPC -> its profession skill line (Data/Services.lua)
 ---@field ClassTrainers table<number, number> class trainer NPC -> its class (Data/Services.lua)
 ---@field PortalTrainers table<number, number> portal trainer NPC -> its class (Data/Services.lua)
@@ -116,6 +118,7 @@
 --- after it goes on that page: the same secure registration path ns.SetOption reads back.
 ---@class SPFSettingsRows
 ---@field Page fun(name: string)
+---@field Section fun(name: string)
 ---@field Checkbox fun(key: string, name: string, tooltip?: string, onChanged?: fun(setting: SPFSetting?, value: boolean|number|string?))
 ---@field Scale fun(key: string, name: string, tooltip: string|nil, refresh: fun(), minimum?: number, step?: number)
 ---@field Dropdown fun(key: string, name: string, tooltip: string|nil, choices: SPFSettingsChoice[], onChanged?: fun(setting: SPFSetting?, value: boolean|number|string?))
@@ -315,6 +318,7 @@
 ---@field townServiceTransmog? boolean whether transmogrifier pins show
 ---@field townServiceAuction? boolean whether auction house pins show
 ---@field townServiceBattlemaster? boolean whether battlemaster pins show
+---@field townServiceWeapon? boolean whether weapon master pins show
 ---@field townServiceClass? boolean whether class trainer pins show
 ---@field townServiceProfessions? boolean whether profession trainer pins show
 ---@field townServiceFood? boolean whether food and drink vendor pins show
@@ -437,6 +441,8 @@ ShortestPathForeverCharDB = nil
 ---@field swim number
 ---@field zstep number
 ---@field format? number 2 for a step mask plus one-way link records; 1 (absent) for symmetric links
+---@field baseDegreeWidth? number base64 symbols per base-edge prefix count; absent means all edges are base
+---@field degreeWidth? number base64 symbols per graph degree; absent for the original one-symbol maps
 ---@field steep? boolean graph cells spend flag 8 on steep ground; a step with a steep end goes downhill only
 ---@field climbChecked? boolean the baker validated every cluster crossing against the stored-height climb limit
 ---@field grid string[]
