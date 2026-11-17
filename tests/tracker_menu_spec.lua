@@ -225,3 +225,37 @@ t.setCombat(true)
 assert(not entry(menu(42), "Show on map"):IsEnabled(), "Open is disabled in combat")
 assert(entry(block, "Show on map").callback() == false, "an already open menu also refuses combat")
 print("tracker_menu_spec: contract menus and clicks passed")
+
+-- Reload Core against the existing column, just as another addon or an earlier UI boot leaves it.
+t.setCombat(false)
+env.ForeverTrackerHost = shared.TrackerHost
+setfenv(assert(loadfile(directory .. "/UI/TrackerHost.lua")), env)("ForeverCore", shared)
+assert(shared.TrackerHostForeign and not shared.TrackerHost.HandleBlockHeaderClick)
+env.ForeverCore.TrackerHost = shared.TrackerHost
+env.ForeverCore.ContextMenu = shared.ContextMenu
+env.ForeverCore.APIKit = { Hub = noop, NotReady = noop }
+env.ForeverCore.Art = { Marker = noop, Diamond = noop }
+env.C_AddOns = { GetAddOnMetadata = noop }
+ns.ForeverRequire = function(ready)
+	assert(ready, "the addon loads with a foreign host")
+end
+setfenv(assert(loadfile("Core/Require.lua")), env)("ShortestPathForever", ns)
+t.setCombat(true)
+setfenv(assert(loadfile("UI/Tracker.lua")), env)("ShortestPathForever", ns)
+t.setCombat(false)
+t.drain()
+journey, corpse = true, false
+local foreign = menu("journey")
+local labels = {}
+for _, item in ipairs(foreign.entries) do
+	labels[#labels + 1] = item.text
+end
+assert(table.concat(labels, ",") == expected:gsub(",divider,Tracker$", ""), "foreign menus preserve slot order")
+local previousGuide, previousCleared = guide, cleared
+entry(foreign, "Guide me").callback()
+entry(foreign, "Clear journey").callback()
+module:OnBlockHeaderClick({ id = "journey" }, "LeftButton")
+module:OnHeaderClick("LeftButton")
+assert(guide == previousGuide + 3 and cleared == previousCleared + 1)
+assert(not module.trackerMenu, "the foreign Attach wrapper drops the contract")
+print("tracker_menu_spec: foreign host loads and keeps journey clicks")

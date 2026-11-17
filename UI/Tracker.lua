@@ -125,9 +125,68 @@ local function TrackerClickHint(target)
 	return L["show it on the map"]
 end
 
--- The native block template dispatches to this method; Core owns both buttons through the contract.
+-- Foreign hosts predate the menu contract, but still dispatch the native title clicks.
+local function LegacyTrackerMenu(root, target)
+	local slots = { actions = {} }
+	local menu = {}
+	local function Entry(text, callback)
+		return { text = text, callback = callback }
+	end
+	function menu.Title(_, text)
+		slots.title = text
+	end
+	function menu.Primary(_, text, callback)
+		slots.primary = Entry(text, callback)
+		return slots.primary
+	end
+	function menu.Action(_, text, callback)
+		local entry = Entry(text, callback)
+		slots.actions[#slots.actions + 1] = entry
+		return entry
+	end
+	menu.Submenu = menu.Action
+	function menu.Open(_, text, callback)
+		slots.open = Entry(text, callback)
+		return slots.open
+	end
+	function menu.End(_, text, callback)
+		slots.ending = Entry(text, callback)
+		return slots.ending
+	end
+	TrackerMenu(target, menu)
+	if slots.title then
+		root:CreateTitle(slots.title)
+	end
+	local function Append(entry)
+		if entry then
+			root:CreateButton(entry.text, entry.callback)
+		end
+	end
+	Append(slots.primary)
+	for _, entry in ipairs(slots.actions) do
+		Append(entry)
+	end
+	Append(slots.open)
+	Append(slots.ending)
+end
+
 function ModuleMixin:OnBlockHeaderClick(block, button)
-	return ForeverCore.TrackerHost.HandleBlockHeaderClick(self, block, button)
+	local host = ForeverCore.TrackerHost
+	if host and host.HandleBlockHeaderClick then
+		return host.HandleBlockHeaderClick(self, block, button)
+	end
+	local target = { kind = "block", id = block.id, block = block }
+	if button == "RightButton" then
+		ForeverCore.ContextMenu(block, function(_, root)
+			LegacyTrackerMenu(root, target)
+		end)
+	else
+		return TrackerClick(target, button)
+	end
+end
+
+function ModuleMixin.OnHeaderClick(_, button)
+	return TrackerClick({ kind = "section" }, button)
 end
 
 local function DepartureText(departure)

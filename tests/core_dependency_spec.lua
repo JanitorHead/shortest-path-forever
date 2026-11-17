@@ -173,15 +173,6 @@ local noArt, noArtLines = Load({
 assert(noArt.broken == true, "a ForeverCore without the step markers stops the addon too")
 assert(#noArtLines == 1, "one line in the error frame")
 
-local noContract = Load({
-	APIKit = { Hub = function() end, NotReady = function() end },
-	TrackerSection = { Create = function() end, UpdateText = function() end },
-	TrackerLine = { SetInteractive = function() end },
-	Art = { Marker = function() end, Diamond = function() end },
-	TrackerHost = {},
-})
-assert(noContract.broken == true, "a Core without the tracker menu contract stops before titles can lose clicks")
-
 -- Every member this addon calls is there: the addon runs, says nothing, and registers its services once: the report
 -- title and its own report lines.
 local ns, quiet, registered, attached = Load({
@@ -189,7 +180,7 @@ local ns, quiet, registered, attached = Load({
 	TrackerSection = { Create = function() end, UpdateText = function() end },
 	TrackerLine = { SetInteractive = function() end },
 	Art = { minor = 2, Marker = function() end, Ring = function() end, Diamond = function() end },
-	TrackerHost = { HandleBlockHeaderClick = function() end },
+	TrackerHost = {}, -- A foreign host has no menu contract.
 })
 assert(quiet and #quiet == 0, "a complete ForeverCore runs the addon and says nothing")
 assert(ns.core ~= nil, "the addon keeps its ForeverCore context")
