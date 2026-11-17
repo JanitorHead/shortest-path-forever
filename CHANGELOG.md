@@ -10,7 +10,11 @@ Each version's entry is also its release notes on GitHub, CurseForge and Wago. O
 verbatim rather than rewritten as the addon moves. API changes other addons' authors need go under an
 optional `### For addon authors` subsection after a version's player bullets.
 
-## [Unreleased]
+## [1.42.1] - 2026-11-17
+
+<!-- forever-core-sync -->
+
+- Ships with the same shared code as your other Forever addons, so they keep working together.
 
 ## [1.42.0] - 2026-11-17
 
