@@ -538,11 +538,10 @@ local function GuideWaypoint(point, fading)
 	if guide.yielded then
 		return false
 	end
-	-- "Mark only where steps end" leaves the step's end to the map's own pins and lets the screen arrow lead the walk
-	-- bend by bend: the client's single marker cannot point at the step and follow the bends at once, so it is not
-	-- placed. A marker this guide placed before the setting changed is taken back, and the player's own waypoint,
-	-- saved at the start, is restored when the journey stops as it always was.
-	if ns.db.guideStops then
+	-- In route mode, "Mark only where steps end" leaves the step's end to the map's own pins and lets the screen
+	-- arrow lead the bends. Direct mode has one bearing, so the native marker leads at the supplied destination
+	-- or travel endpoint regardless of map mark density. Returning to route mode takes our marker back.
+	if ns.db.guideStops and not ns.db.arrowDirect then
 		if guide.waypoint then
 			ClearGuideWaypoint()
 			RefreshTracker()

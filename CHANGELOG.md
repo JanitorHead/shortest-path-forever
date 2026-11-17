@@ -13,6 +13,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 ## [Unreleased]
 
 - **Tracker menus** put journey actions before the shared Tracker controls, keep Clear journey last, and offer Show on map on departure titles.
+- **Point straight to the destination** turns the game's own navigation marker towards the destination again, as before 1.36.0, instead of adding a second arrow on screen. Thanks to Drusangus on CurseForge.
+- **The Hearthstone button stays off the world map while Use Hearthstone is off.** Thanks to user_g496wu46adiwjuc5 for the report (#951).
 
 ## [1.41.1] - 2026-11-17
 

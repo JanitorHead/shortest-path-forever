@@ -61,6 +61,7 @@ Credit for the reports and requests behind the addon.
 
 | Who | What | Notes |
 |---|---|---|
+| user\_g496wu46adiwjuc5 | Hearthstone map button respects Use Hearthstone | CurseForge thread 8732965; #951 |
 | zhega | Nearby services can show only learned professions | CurseForge thread 8727763, #914 |
 | [catubba](https://github.com/catubba) | Journey legs name where they start and end | GitHub; #782 |
 | Hatemost | Resume the RestedXP guide from a macro | CurseForge thread 8697686; #786 |
@@ -182,6 +183,7 @@ Credit for the reports and requests behind the addon.
 | ubrider | Hovering the minimap map pin no longer errors | CurseForge; #824 |
 | ubrider | Manual destinations keep priority over RestedXP updates | CurseForge; #905 |
 | Drusangus | An arrow pointing straight to the destination | CurseForge; #904 |
+| Drusangus | Native navigation for direct destination guidance | CurseForge thread 8721920; #940 |
 | cwebbx | Journeys start from a focused quest or map pin | CurseForge; #687 |
 | lone\_viking1921 | Journeys start from a focused quest or map pin | CurseForge; #687 |
 | Nivlemoth\_Nathrezim | Horde walks stay out of Southshore | CurseForge; #719 |
