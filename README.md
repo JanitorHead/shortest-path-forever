@@ -14,6 +14,13 @@ Click the world map or minimap with your journey key held (Shift by default), or
 
 Need a vendor, a trainer or an inn? The **Nearby services** tab on the world map finds the closest one, tells you how long it takes to get there, and takes you there in one click. Search for any item to see who sells it.
 
+## Known limitations
+
+- Walking maps are built ahead of time, so patched terrain can route wrongly until an update.
+- The game names your bind point but not where it is, so the Hearthstone counts once you bind or hearth with the addon on.
+- A boat, lift or tram shows "no sighting yet" until you have ridden that route once, because the game holds no timetables.
+- The game cannot show another player's spells, so you list a party mage's portals yourself in the settings (Party mage portals).
+
 ![Eight-second demo of a route settling, the countdown and the compass](docs/screenshots/demo.gif)
 
 Planning a journey from the map: the route settles, the next boat counts down in the tracker and the compass turns
@@ -57,8 +64,7 @@ More detail: [features](docs/features.md) and [API](docs/api.md).
 
 ## Install
 
-Install it from [CurseForge](https://www.curseforge.com/wow/addons/shortest-path-forever) or
-[Wago Addons](https://addons.wago.io/addons/shortest-path-forever), or download the zip from
+Install it from [CurseForge](https://www.curseforge.com/wow/addons/shortest-path-forever), or download the zip from
 [Releases](https://github.com/cjber/shortest-path-forever/releases). Everything it needs comes inside the download. To install the zip by hand, extract it into
 the WoW: Forever client's `Interface/AddOns/` folder (`_forever_` on the live client, `_classic_beta_` on the beta) so you end up with `AddOns/ShortestPathForever/ShortestPathForever.toc`.
 
