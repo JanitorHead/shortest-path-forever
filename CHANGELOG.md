@@ -14,7 +14,7 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 - **Follow roads keeps its route across tile borders.** Road connections remain available where a shorter off-road connection would otherwise pull the route away from the road (#892).
 
-## [1.41.1] - 2026-11-16
+## [1.41.1] - 2026-11-17
 
 <!-- forever-core-sync -->
 
