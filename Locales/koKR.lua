@@ -575,3 +575,5 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"방향 화살표 아래에 표시할 정보: 선택한 화살표 모드의 거리, 남은 여정 시간 또는 둘 다." -- mt
 
 L["Transmogrifier"] = "형상변환사" -- mt
+
+L["Weapon master"] = "무기 전문가"

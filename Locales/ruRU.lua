@@ -598,3 +598,5 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"Что показано под стрелкой: расстояние в выбранном режиме, оставшееся время путешествия или оба значения." -- mt
 
 L["Transmogrifier"] = "Трансмогрификатор" -- mt
+
+L["Weapon master"] = "Оружейный мастер"

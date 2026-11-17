@@ -563,3 +563,5 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"Die Anzeige unter dem Richtungspfeil: Entfernung im gewählten Pfeilmodus, verbleibende Reisezeit oder beides." -- mt
 
 L["Transmogrifier"] = "Transmogrifizierer" -- mt
+
+L["Weapon master"] = "Waffenmeister"

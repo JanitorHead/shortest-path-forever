@@ -564,3 +564,5 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"O que a seta mostra abaixo dela: a distância no modo selecionado, o tempo restante da viagem ou ambos." -- mt
 
 L["Transmogrifier"] = "Transmogrificador" -- mt
+
+L["Weapon master"] = "Mestre de armas"

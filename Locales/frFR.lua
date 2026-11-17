@@ -571,3 +571,5 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"L'affichage sous la flèche : la distance selon le mode choisi, le temps de voyage restant ou les deux." -- mt
 
 L["Transmogrifier"] = "Transmogrifieur" -- mt
+
+L["Weapon master"] = "Maître d’armes"

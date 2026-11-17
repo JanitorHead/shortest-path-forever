@@ -4,6 +4,7 @@ local _, ns = ...
 
 ns.Credits = {
 	players = {
+		{ name = "user_u3k9hweaatfhnjs0", what = "Profession trainer icons, weapon masters and service filters" },
 		{ name = "user_g496wu46adiwjuc5", what = "Hearthstone map button respects Use Hearthstone" },
 		{ name = "zhega", what = "Nearby services can show only learned professions" },
 		{ name = "catubba", what = "Journey legs name where they start and end" },

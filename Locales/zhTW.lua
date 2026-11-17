@@ -554,3 +554,5 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"方向箭頭下方顯示的內容：所選箭頭模式的距離、行程剩餘時間或兩者。" -- mt
 
 L["Transmogrifier"] = "塑形師" -- mt
+
+L["Weapon master"] = "武器大師"
