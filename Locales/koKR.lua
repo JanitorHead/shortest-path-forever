@@ -577,3 +577,14 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"방향 화살표 아래에 표시할 정보: 선택한 화살표 모드의 거리, 남은 여정 시간 또는 둘 다." -- mt
 
 L["Transmogrifier"] = "형상변환사" -- mt
+L["Tracker"] = "추적기"
+L["Planning"] = "경로 계획"
+L["Destination"] = "목적지"
+L["Guides"] = "가이드"
+L["Route choices"] = "경로 선택"
+L["Map"] = "지도"
+L["Direction arrow"] = "방향 화살표"
+L["Compass"] = "나침반"
+L["General"] = "일반"
+L["Map icons"] = "지도 아이콘"
+L["Walking route"] = "도보 경로"

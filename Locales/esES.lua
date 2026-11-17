@@ -565,3 +565,14 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"Lo que aparece bajo la flecha: la distancia según el modo elegido, el tiempo restante del viaje o ambos." -- mt
 
 L["Transmogrifier"] = "Transfigurador" -- mt
+L["Tracker"] = "Seguimiento"
+L["Planning"] = "Planificación"
+L["Destination"] = "Destino"
+L["Guides"] = "Guías"
+L["Route choices"] = "Opciones de ruta"
+L["Map"] = "Mapa"
+L["Direction arrow"] = "Flecha de dirección"
+L["Compass"] = "Brújula"
+L["General"] = "General"
+L["Map icons"] = "Iconos del mapa"
+L["Walking route"] = "Ruta a pie"

@@ -116,6 +116,7 @@
 --- after it goes on that page: the same secure registration path ns.SetOption reads back.
 ---@class SPFSettingsRows
 ---@field Page fun(name: string)
+---@field Section fun(name: string)
 ---@field Checkbox fun(key: string, name: string, tooltip?: string, onChanged?: fun(setting: SPFSetting?, value: boolean|number|string?))
 ---@field Scale fun(key: string, name: string, tooltip: string|nil, refresh: fun(), minimum?: number, step?: number)
 ---@field Dropdown fun(key: string, name: string, tooltip: string|nil, choices: SPFSettingsChoice[], onChanged?: fun(setting: SPFSetting?, value: boolean|number|string?))

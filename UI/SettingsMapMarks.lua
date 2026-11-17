@@ -17,6 +17,7 @@ ns.SettingsMapMarks = MapMarks
 ---@param rows SPFSettingsRows
 function MapMarks.Register(rows)
 	rows.Page(L["Map marks"])
+	rows.Section(L["Map icons"])
 	rows.Checkbox("pins", L["Show boats and zeppelins"], L["On the world map."], ns.RefreshMap)
 	rows.Checkbox(
 		"transit",
@@ -26,12 +27,6 @@ function MapMarks.Register(rows)
 	)
 	rows.Checkbox("portals", L["Show portals"], L["On the world map."], ns.RefreshMap)
 	rows.Checkbox("mapFlightMasters", L["Show flight masters"], L["On the world map."], ns.RefreshMap)
-	rows.Checkbox(
-		"nearbyTab",
-		L["Show the Nearby services tab"],
-		L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."],
-		ns.RefreshNearbyTab
-	)
 	rows.Checkbox(
 		"minimapPins",
 		L["Show marks on the minimap"],
@@ -66,6 +61,13 @@ function MapMarks.Register(rows)
 
 	-- Town services: one icon per town zoomed out, one per service zoomed in, filtered by how much of a town you want
 	-- on the map. Off and the three levels match the world map's own filter submenu.
+	rows.Section(L["Town services"])
+	rows.Checkbox(
+		"nearbyTab",
+		L["Show the Nearby services tab"],
+		L["The tab in the world map's quest log. Off, /spfnear and the tracking menu still open it."],
+		ns.RefreshNearbyTab
+	)
 	rows.Dropdown(
 		"townServices",
 		L["Town services on the world map"],
@@ -88,6 +90,7 @@ function MapMarks.Register(rows)
 	)
 
 	-- The walking line's colour, so it stays apart from the herbs and ore a player is gathering.
+	rows.Section(L["Walking route"])
 	rows.Dropdown(
 		"routeColor",
 		L["Walking route colour"],

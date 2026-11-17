@@ -4,6 +4,7 @@
 -- blamed on this addon. The index buttons go through RegisterInitializer too, and keep themselves out of search.
 local rows, buttons, settings = {}, {}, {}
 local opened = {}
+local registered = {}
 local familyPage
 
 local attachmentNotified, attachmentChanged
@@ -119,6 +120,10 @@ local env = setmetatable({
 			return { kind = "dropdown", setting = setting, getData = getData, tooltip = tooltip }
 		end,
 		RegisterInitializer = function(target, initializer)
+			registered[#registered + 1] = { target = target, initializer = initializer }
+			if initializer.kind == "section" then
+				return
+			end
 			if initializer.kind == "button" then
 				if target.name == "Shortest Path Forever" then
 					buttons[#buttons + 1] = { target = target, initializer = initializer }
@@ -158,8 +163,13 @@ env.C_SettingsUtil = {
 	end,
 }
 local ForeverCore = dofile("tests/forever_core.lua")
-local coreNs = ForeverCore.load(env, "ForeverCore", { "Locales/enUS.lua", "Core/OpenSettings.lua" })
+local coreNs =
+	ForeverCore.load(env, "ForeverCore", { "Locales/enUS.lua", "Core/OpenSettings.lua", "UI/SettingsSections.lua" })
+env.CreateSettingsListSectionHeaderInitializer = function(name)
+	return { kind = "section", name = name }
+end
 env.ForeverCore = {
+	SettingsSections = coreNs.SettingsSections,
 	OpenSettingsPanel = coreNs.OpenSettingsPanel,
 	Family = {
 		Register = function(category, db, current, safeCall)
@@ -373,6 +383,58 @@ setfenv(assert(loadfile("UI/SettingsMapMarks.lua")), env)("ShortestPathForever",
 setfenv(assert(loadfile("UI/Settings.lua")), env)("ShortestPathForever", ns)
 assert(type(ns.SettingsMapMarks.Register) == "function", "the Map marks page is its own module")
 
+-- Check every Guidance initializer, including the resume buttons, between the native headings.
+local expected = {
+	"#Tracker",
+	"trackerAttached",
+	"trackerLocked",
+	"journeyTracker",
+	"resumeJourney",
+	"#Planning",
+	"journey",
+	"journeyKey",
+	"focusedQuest",
+	"#Destination",
+	"destinationPin",
+	"destinationPinSize",
+	"arrivalPin",
+	"arrivalDistance",
+	"npcArrows",
+	"#Guides",
+	"tomtom",
+	"tomtomFollow",
+	"restedxp",
+	"restedxpHideArrow",
+	"guidelime",
+	"dugi",
+	"@RestedXP guide",
+	"@Guidelime",
+	"@Dugi Guides",
+	"#Route choices",
+	"avoidHighZones",
+	"followRoads",
+	"roadDetour",
+	"useWaterWalking",
+	"useHearthstone",
+	"hearthMinimumSavings",
+	"teleports",
+	"teleportMinimumSavings",
+	"#Map",
+	"guideStops",
+	"taxiRoute",
+	"corpse",
+}
+local actual = {}
+for _, entry in ipairs(registered) do
+	if entry.target.name == "Guidance" then
+		local row = entry.initializer
+		actual[#actual + 1] = row.kind == "section" and "#" .. row.name
+			or row.kind == "button" and "@" .. row.name
+			or row.setting.key
+	end
+end
+assert(table.concat(actual, ",") == table.concat(expected, ","), "Guidance headings and controls stay in order")
+
 -- The index page is one button per group; each opens that group's page. The groups divide the old flat list, and
 -- every row keeps its key, default, tooltip and callback.
 local groups = {
@@ -381,12 +443,12 @@ local groups = {
 		"transit",
 		"portals",
 		"mapFlightMasters",
-		"nearbyTab",
 		"minimapPins",
 		"hideQuestPins",
 		"mapPinScale",
 		"flightPinScale",
 		"minimapPinScale",
+		"nearbyTab",
 		"townServices",
 		"onlyMyProfessions",
 		"routeColor",
@@ -399,11 +461,11 @@ local groups = {
 	Guidance = {
 		"trackerAttached",
 		"trackerLocked",
+		"journeyTracker",
+		"resumeJourney",
 		"journey",
 		"journeyKey",
 		"focusedQuest",
-		"journeyTracker",
-		"resumeJourney",
 		"destinationPin",
 		"destinationPinSize",
 		"arrivalPin",
@@ -444,15 +506,15 @@ local groups = {
 		"arrowDirect",
 		"arrowLabel",
 		"arrowObjectives",
-		"metres",
-		"minimapButton",
 		"compass",
 		"compassTime",
 		"compassMove",
-		"trackerScale",
-		"trackerHeight",
 		"compassScale",
 		"compassBackground",
+		"trackerScale",
+		"trackerHeight",
+		"metres",
+		"minimapButton",
 		"whatsNew",
 	},
 }
@@ -918,3 +980,19 @@ assert(roadDetour.tooltip:find("not a limit on the whole walk", 1, true), "the p
 local roadPolicies = policyChanged
 roadDetour.setting:SetValue(200)
 assert(policyChanged == roadPolicies + 1, "changing the allowance replans the current journey")
+
+-- Rebuild with an older core: all controls still register and retain their declarations.
+local previousRows = rows
+rows, settings, buttons, registered = {}, {}, {}, {}
+env.ForeverCore.SettingsSections = nil
+setfenv(assert(loadfile("UI/Settings.lua")), env)("ShortestPathForever", ns)
+assert(#rows == #previousRows, "an older core keeps every control")
+for index, entry in ipairs(rows) do
+	local before, after = previousRows[index].initializer, entry.initializer
+	assert(after.setting.key == before.setting.key and after.setting.default == before.setting.default)
+	assert(after.kind == before.kind and after.tooltip == before.tooltip)
+end
+for _, entry in ipairs(registered) do
+	assert(entry.initializer.kind ~= "section", "an older core omits headings")
+end
+print("settings sections: ok")

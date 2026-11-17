@@ -556,3 +556,14 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"方向箭頭下方顯示的內容：所選箭頭模式的距離、行程剩餘時間或兩者。" -- mt
 
 L["Transmogrifier"] = "塑形師" -- mt
+L["Tracker"] = "追蹤欄"
+L["Planning"] = "規劃"
+L["Destination"] = "目的地"
+L["Guides"] = "指南"
+L["Route choices"] = "路線選擇"
+L["Map"] = "地圖"
+L["Direction arrow"] = "方向箭頭"
+L["Compass"] = "羅盤"
+L["General"] = "一般"
+L["Map icons"] = "地圖圖示"
+L["Walking route"] = "步行路線"

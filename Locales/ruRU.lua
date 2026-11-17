@@ -600,3 +600,14 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"Что показано под стрелкой: расстояние в выбранном режиме, оставшееся время путешествия или оба значения." -- mt
 
 L["Transmogrifier"] = "Трансмогрификатор" -- mt
+L["Tracker"] = "Отслеживание"
+L["Planning"] = "Планирование"
+L["Destination"] = "Место назначения"
+L["Guides"] = "Гайды"
+L["Route choices"] = "Выбор маршрута"
+L["Map"] = "Карта"
+L["Direction arrow"] = "Стрелка направления"
+L["Compass"] = "Компас"
+L["General"] = "Общее"
+L["Map icons"] = "Значки на карте"
+L["Walking route"] = "Пеший маршрут"

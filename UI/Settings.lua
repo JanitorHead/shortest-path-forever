@@ -100,6 +100,12 @@ ns.Init(function()
 			end, nil, false)
 		)
 	end
+	local function Section(name)
+		local sections = ForeverCore and ForeverCore.SettingsSections
+		if sections and sections.Register then
+			sections.Register(page, name)
+		end
+	end
 	local function Checkbox(key, name, tooltip, onChanged)
 		local setting = Settings.RegisterAddOnSetting(
 			page,
@@ -184,7 +190,7 @@ ns.Init(function()
 	-- Each page is its own module: UI/SettingsMapMarks.lua opens the Map marks page and adds its rows through these
 	-- builders, so every row registers through the same secure initializer and ns.SetOption finds it.
 	---@type SPFSettingsRows
-	local rows = { Page = Page, Checkbox = Checkbox, Scale = Scale, Dropdown = Dropdown }
+	local rows = { Page = Page, Section = Section, Checkbox = Checkbox, Scale = Scale, Dropdown = Dropdown }
 	ns.SettingsMapMarks.Register(rows)
 
 	-- Transport: routes and departure times.
@@ -220,6 +226,7 @@ ns.Init(function()
 
 	-- Guidance: how a journey is planned and led.
 	Page(L["Guidance"])
+	Section(L["Tracker"])
 	local host = ForeverCore.TrackerHost --[[@as ForeverTrackerHostAPI]]
 	local variable = "ShortestPathForever_trackerAttached"
 	local attachment = Settings.RegisterProxySetting(
@@ -270,6 +277,21 @@ ns.Init(function()
 		)
 	)
 	Checkbox(
+		"journeyTracker",
+		L["Show journey steps in the objective tracker"],
+		L["Off keeps the arrow, pin, map line and minimap route, with no journey block in the objective tracker."],
+		ns.RefreshTracker
+	)
+	Checkbox(
+		"resumeJourney",
+		L["Keep journeys after a reload"],
+		L["Your own journey starts again after a /reload, or logging back in within 30 minutes. Guides start theirs."],
+		function()
+			ns.KeepJourneyChanged()
+		end
+	)
+	Section(L["Planning"])
+	Checkbox(
 		"journey",
 		L["Click the map to plan journeys"],
 		L["Hold your journey key and click the world map or the minimap to plan a journey there."],
@@ -314,20 +336,7 @@ ns.Init(function()
 		L["Starts a journey when you super-track a quest or place the game's map pin, so a controller needs no map click. A guide addon's own journey is left alone."]
 		-- luacheck: pop
 	)
-	Checkbox(
-		"journeyTracker",
-		L["Show journey steps in the objective tracker"],
-		L["Off keeps the arrow, pin, map line and minimap route, with no journey block in the objective tracker."],
-		ns.RefreshTracker
-	)
-	Checkbox(
-		"resumeJourney",
-		L["Keep journeys after a reload"],
-		L["Your own journey starts again after a /reload, or logging back in within 30 minutes. Guides start theirs."],
-		function()
-			ns.KeepJourneyChanged()
-		end
-	)
+	Section(L["Destination"])
 	Checkbox(
 		"destinationPin",
 		L["Show a pin over the destination"],
@@ -407,6 +416,7 @@ ns.Init(function()
 			ns.RefreshNpcArrows()
 		end
 	)
+	Section(L["Guides"])
 	Checkbox(
 		"tomtom",
 		L["Let guides set TomTom waypoints"],
@@ -457,6 +467,26 @@ ns.Init(function()
 			ns.RefreshDugi()
 		end
 	)
+	Settings.RegisterInitializer(
+		page,
+		CreateSettingsButtonInitializer(L["RestedXP guide"], L["Resume guide"], function()
+			ns.ResumeRestedXP()
+		end, nil, false)
+	)
+	Settings.RegisterInitializer(
+		page,
+		CreateSettingsButtonInitializer(L["Guidelime"], L["Resume guide"], function()
+			ns.ResumeGuidelime()
+		end, nil, false)
+	)
+	Settings.RegisterInitializer(
+		page,
+		CreateSettingsButtonInitializer(L["Dugi Guides"], L["Resume guide"], function()
+			ns.ResumeDugi()
+		end, nil, false)
+	)
+
+	Section(L["Route choices"])
 	Checkbox(
 		"avoidHighZones",
 		L["Avoid zones far above my level"],
@@ -528,6 +558,7 @@ ns.Init(function()
 		L["Minimum teleport saving"],
 		L["Only use a class teleport when it saves at least this much time."]
 	)
+	Section(L["Map"])
 	Checkbox(
 		"guideStops",
 		L["Mark only where steps end"],
@@ -545,24 +576,6 @@ ns.Init(function()
 		L["Show the way to your corpse"],
 		L["While you are a ghost, a red dotted path leads to your body. Your journey waits until you are alive again."],
 		ns.RefreshCorpseRun
-	)
-	Settings.RegisterInitializer(
-		page,
-		CreateSettingsButtonInitializer(L["RestedXP guide"], L["Resume guide"], function()
-			ns.ResumeRestedXP()
-		end, nil, false)
-	)
-	Settings.RegisterInitializer(
-		page,
-		CreateSettingsButtonInitializer(L["Guidelime"], L["Resume guide"], function()
-			ns.ResumeGuidelime()
-		end, nil, false)
-	)
-	Settings.RegisterInitializer(
-		page,
-		CreateSettingsButtonInitializer(L["Dugi Guides"], L["Resume guide"], function()
-			ns.ResumeDugi()
-		end, nil, false)
 	)
 
 	-- Party portals: another player's mage portals, declared because the client cannot read their spellbook. The
@@ -604,6 +617,7 @@ ns.Init(function()
 
 	-- Interface: what the addon puts on screen.
 	Page(L["Interface"])
+	Section(L["Direction arrow"])
 	Checkbox(
 		"arrow",
 		L["Show direction arrow"],
@@ -675,22 +689,7 @@ ns.Init(function()
 			.. L["The pin shown when you reach a stop keeps its own lines."],
 		ns.ArrowObjectivesChanged
 	)
-	Checkbox(
-		"metres",
-		L["Distances in metres"],
-		L["Label distances in metres, as the game's metric-language clients do. The numbers stay the game's own."],
-		function()
-			ns.RefreshCompass()
-			ns.RefreshTracker()
-			ns.WakeTravel()
-		end
-	)
-	Checkbox(
-		"minimapButton",
-		L["Show options button on minimap"],
-		L["Open these settings from the minimap."],
-		ns.RefreshOptionsButton
-	)
+	Section(L["Compass"])
 	Checkbox(
 		"compass",
 		L["Show the compass"],
@@ -717,59 +716,6 @@ ns.Init(function()
 			),
 			nil,
 			L["Shows the compass to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."]
-		)
-	)
-	if host and host.GetScale and host.SetScale then
-		local scale = Settings.RegisterProxySetting(
-			page,
-			"ShortestPathForever_trackerScale",
-			Settings.VarType.Number,
-			L["Tracker scale"],
-			100,
-			function()
-				return math.floor(host.GetScale() * 100 + 0.5)
-			end,
-			function(value)
-				host.SetScale(value / 100)
-			end
-		)
-		local scaleOptions = Settings.CreateSliderOptions(50, 200, 10)
-		scaleOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
-			return value .. "%"
-		end)
-		Settings.RegisterInitializer(
-			page,
-			Settings.CreateSliderInitializer(
-				scale,
-				scaleOptions,
-				L["Scales the shared Forever tracker. 100% matches the game's own tracker."]
-			)
-		)
-	end
-	local trackerHeight = Settings.RegisterAddOnSetting(
-		page,
-		"ShortestPathForever_trackerHeight",
-		"trackerHeight",
-		ns.db,
-		Settings.VarType.Number,
-		L["Journey tracker height"],
-		(ns.Defaults --[[@as any]]).trackerHeight
-	)
-	trackerHeight:SetValueChangedCallback(function(_, value)
-		local db = ns.db --[[@as any]]
-		db.trackerHeight = value
-		ns.SetTrackerHeight(value)
-	end)
-	local trackerHeightOptions = Settings.CreateSliderOptions(100, 400, 20)
-	trackerHeightOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
-		return value .. " UI units"
-	end)
-	Settings.RegisterInitializer(
-		page,
-		Settings.CreateSliderInitializer(
-			trackerHeight,
-			trackerHeightOptions,
-			L["Limits the Journey section to this height; longer journeys scroll inside it."]
 		)
 	)
 	local compassScale = Settings.RegisterAddOnSetting(
@@ -825,6 +771,77 @@ ns.Init(function()
 			backgroundOptions,
 			L["Darkens the ground behind the compass so its marks stay readable on snow or sand. 0% shows none."]
 		)
+	)
+	Section(L["Tracker"])
+	if host and host.GetScale and host.SetScale then
+		local scale = Settings.RegisterProxySetting(
+			page,
+			"ShortestPathForever_trackerScale",
+			Settings.VarType.Number,
+			L["Tracker scale"],
+			100,
+			function()
+				return math.floor(host.GetScale() * 100 + 0.5)
+			end,
+			function(value)
+				host.SetScale(value / 100)
+			end
+		)
+		local scaleOptions = Settings.CreateSliderOptions(50, 200, 10)
+		scaleOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
+			return value .. "%"
+		end)
+		Settings.RegisterInitializer(
+			page,
+			Settings.CreateSliderInitializer(
+				scale,
+				scaleOptions,
+				L["Scales the shared Forever tracker. 100% matches the game's own tracker."]
+			)
+		)
+	end
+	local trackerHeight = Settings.RegisterAddOnSetting(
+		page,
+		"ShortestPathForever_trackerHeight",
+		"trackerHeight",
+		ns.db,
+		Settings.VarType.Number,
+		L["Journey tracker height"],
+		(ns.Defaults --[[@as any]]).trackerHeight
+	)
+	trackerHeight:SetValueChangedCallback(function(_, value)
+		local db = ns.db --[[@as any]]
+		db.trackerHeight = value
+		ns.SetTrackerHeight(value)
+	end)
+	local trackerHeightOptions = Settings.CreateSliderOptions(100, 400, 20)
+	trackerHeightOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
+		return value .. " UI units"
+	end)
+	Settings.RegisterInitializer(
+		page,
+		Settings.CreateSliderInitializer(
+			trackerHeight,
+			trackerHeightOptions,
+			L["Limits the Journey section to this height; longer journeys scroll inside it."]
+		)
+	)
+	Section(L["General"])
+	Checkbox(
+		"metres",
+		L["Distances in metres"],
+		L["Label distances in metres, as the game's metric-language clients do. The numbers stay the game's own."],
+		function()
+			ns.RefreshCompass()
+			ns.RefreshTracker()
+			ns.WakeTravel()
+		end
+	)
+	Checkbox(
+		"minimapButton",
+		L["Show options button on minimap"],
+		L["Open these settings from the minimap."],
+		ns.RefreshOptionsButton
 	)
 	Checkbox(
 		"whatsNew",

@@ -566,3 +566,14 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"O que a seta mostra abaixo dela: a distância no modo selecionado, o tempo restante da viagem ou ambos." -- mt
 
 L["Transmogrifier"] = "Transmogrificador" -- mt
+L["Tracker"] = "Rastreador"
+L["Planning"] = "Planejamento"
+L["Destination"] = "Destino"
+L["Guides"] = "Guias"
+L["Route choices"] = "Opções de rota"
+L["Map"] = "Mapa"
+L["Direction arrow"] = "Seta de direção"
+L["Compass"] = "Bússola"
+L["General"] = "Geral"
+L["Map icons"] = "Ícones do mapa"
+L["Walking route"] = "Rota a pé"

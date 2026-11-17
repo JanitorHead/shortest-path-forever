@@ -565,3 +565,14 @@ L["What the direction arrow shows under it: the distance in the selected arrow m
 	"Die Anzeige unter dem Richtungspfeil: Entfernung im gewählten Pfeilmodus, verbleibende Reisezeit oder beides." -- mt
 
 L["Transmogrifier"] = "Transmogrifizierer" -- mt
+L["Tracker"] = "Tracker"
+L["Planning"] = "Planung"
+L["Destination"] = "Ziel"
+L["Guides"] = "Guides"
+L["Route choices"] = "Routenwahl"
+L["Map"] = "Karte"
+L["Direction arrow"] = "Richtungspfeil"
+L["Compass"] = "Kompass"
+L["General"] = "Allgemein"
+L["Map icons"] = "Kartensymbole"
+L["Walking route"] = "Fußweg"
