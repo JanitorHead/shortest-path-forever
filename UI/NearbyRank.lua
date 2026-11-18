@@ -7,7 +7,9 @@ end
 
 -- One row's shortlist ranked by the planner's own journey cost, one Estimate per Step. The panel, the tracking menu and
 -- /spfnear drain it inside a path job, whose estimates pause at the frame budget. The best starts as the straight-line
--- nearest, so a row always has an NPC, and stays so when no estimate can be made.
+-- nearest, so a row always has an NPC, and stays so when no estimate can be made. A place whose walk is still being
+-- measured is estimated on a lower bound, so the ranking is decided (exact) once its cheapest place is not one of them:
+-- every other place is then exact or no faster.
 ---@class SPFNearbyRank
 ---@field key? string
 ---@field candidates SPFNearbyPlace[]
@@ -19,6 +21,8 @@ end
 ---@field best? SPFNearbyPlace
 ---@field seconds? number
 ---@field walks table<SPFNearbyPlace, number|false>
+---@field pending? SPFWalksPending
+---@field exact? boolean
 local Rank = {}
 Rank.__index = Rank
 
@@ -29,17 +33,20 @@ function Rank:Step()
 	end
 	self.at = self.at + 1
 	local seconds = self.estimate(self.fromMap, self.fromX, self.fromY, place.map, place.x, place.y, self.walks[place])
-	if seconds and (not self.seconds or seconds < self.seconds) then
-		self.best, self.seconds = place, seconds
+	local exact = not (self.pending and self.pending[place])
+	if seconds and (not self.seconds or seconds < self.seconds or seconds == self.seconds and exact) then
+		self.best, self.seconds, self.exact = place, seconds, exact
 	end
 	return self.best or self.candidates[1], self.seconds, self.at <= #self.candidates
 end
 
----@param walks? table<SPFNearbyPlace, number|false> MeasureWalks' answer
-local function NewRank(candidates, estimate, fromMap, fromX, fromY, walks)
+---@param walks? SPFWalks MeasureWalks' answer
+---@param pending? SPFWalksPending the places whose walks it is still measuring
+local function NewRank(candidates, estimate, fromMap, fromX, fromY, walks, pending)
 	return setmetatable({
 		candidates = candidates,
 		walks = walks or {},
+		pending = pending,
 		estimate = estimate,
 		fromMap = fromMap,
 		fromX = fromX,
@@ -104,11 +111,13 @@ end
 
 -- The walks the journey would take from where you stand to each place: its own search, from its own start (your floor,
 -- or your height band) to the spot it walks to (the NPC's own floor), under its own hazards. An estimate built on them
--- is the time the journey shows; the straight line under a shop's walls is not (#1032). Calls back with each place's
--- running yards, or false where the search found no walk; a place it could not search is left out, and its estimate
--- stays a lower bound. The work runs under the frame budget; Cancel stops all of it.
+-- is the time the journey shows; the straight line under a shop's walls is not (#1032). Calls back as walks settle,
+-- nearest first, with each settled place's running yards (false where no walk was found) and the places still
+-- pending, then once more with pending nil when done. A place it cannot search is never pending, and its estimate
+-- stays the planner's own. The work runs under the frame budget; Cancel stops it, as a caller does once its rankings
+-- are decided rather than walk to every far place.
 ---@param places SPFNearbyPlace[]
----@param callback fun(walks: SPFWalks)
+---@param callback SPFWalksSettled
 ---@return SPFPathJob?
 local function MeasureWalks(places, callback)
 	local here = ns.JourneySearch.Here()
@@ -121,12 +130,12 @@ local function MeasureWalks(places, callback)
 	handle = ns.Path.Run(function()
 		return Groups(here, places)
 	end, function(groups)
-		local walks, pending, last = {}, 1, measured
+		local walks, pending, open, last = {}, {}, 1, measured
 		measured = {}
 		local function Settled()
-			pending = pending - 1
-			if pending == 0 then
-				callback(walks)
+			open = open - 1
+			if open == 0 then
+				callback(walks, nil)
 			end
 		end
 		for key, group in pairs(groups) do
@@ -141,20 +150,42 @@ local function MeasureWalks(places, callback)
 					walks[place] = kept.walks[place]
 				end
 			else
-				pending = pending + 1
+				open = open + 1
+				for _, place in ipairs(group.of) do
+					pending[place] = true
+				end
 				local job
-				job = ns.Path.FindMany(here.map, here, group.targets, function(costs, reason)
-					handle.walking[job] = nil
-					if not reason then
+				job = ns.Path.FindMany(
+					here.map,
+					here,
+					group.targets,
+					function(costs, reason)
+						handle.walking[job] = nil
 						local found = {}
 						for at, place in ipairs(group.of) do
-							found[place] = costs[at] or false
-							walks[place] = found[place]
+							found[place] = not reason and (costs[at] or false) or nil
+							walks[place], pending[place] = found[place], nil
 						end
-						measured[key] = { job = job, water = water, walks = found }
-					end
-					Settled()
-				end, water, false, nil, group.hazards)
+						if not reason then
+							measured[key] = { job = job, water = water, walks = found }
+						end
+						Settled()
+					end,
+					water,
+					false,
+					function(costs)
+						local settled = false
+						for at, place in ipairs(group.of) do
+							if pending[place] and costs[at] ~= nil then
+								walks[place], pending[place], settled = costs[at], nil, true
+							end
+						end
+						if settled and open > 0 then
+							callback(walks, pending)
+						end
+					end,
+					group.hazards
+				)
 				handle.walking[job] = true
 			end
 		end
@@ -174,7 +205,9 @@ local function Cancel(job)
 end
 
 ---@alias SPFWalks table<SPFNearbyPlace, number|false> each place's measured walk; false where none was found
----@alias SPFMeasureWalks fun(places: SPFNearbyPlace[], callback: fun(walks: SPFWalks)): SPFPathJob?
+---@alias SPFWalksPending table<SPFNearbyPlace, true> the places whose walks are still being measured
+---@alias SPFWalksSettled fun(walks: SPFWalks, pending: SPFWalksPending?)
+---@alias SPFMeasureWalks fun(places: SPFNearbyPlace[], callback: SPFWalksSettled): SPFPathJob?
 ---@class SPFNearbyRankAPI
 ---@field New SPFRank
 ---@field MeasureWalks SPFMeasureWalks

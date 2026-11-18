@@ -163,4 +163,22 @@ ns.NearbyServices.MeasureWalks({ place }, function(walks)
 end)
 drain()
 assert(searched and again, "a new road setting searches again")
+-- A ranking decides on the walks measured so far: a place still measured counts at its lower bound, so the cheapest
+-- place is exact only when no pending place could beat it.
+local near, far = { name = "near" }, { name = "far" }
+local function Ranked(bounds, pending)
+	local rank = ns.NearbyServices.Rank({ near, far }, function(_, _, _, _, _, _, walk)
+		return walk
+	end, 1453, 0, 0, bounds, pending)
+	repeat
+		local _, _, more = rank:Step()
+	until not more
+	return rank
+end
+local decided = Ranked({ [near] = 40, [far] = 100 }, { [far] = true })
+assert(decided.best == near and decided.exact, "a far place's lower bound above the best leaves the row decided")
+local open = Ranked({ [near] = 40, [far] = 30 }, { [far] = true })
+assert(open.best == far and not open.exact, "a pending place that may be cheaper keeps the row open")
+local tie = Ranked({ [near] = 40, [far] = 40 }, { [near] = true })
+assert(tie.best == far and tie.exact, "on a tie the measured place decides the row")
 print("journey_shop_offer_spec: ok")
