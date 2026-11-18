@@ -719,8 +719,11 @@ local function Solve(options, cache, check, weigh)
 				local learned = state > LEARNED
 				-- A flight may only leave, land at or connect through flight points the character knows. Walking to
 				-- an unknown flight master learns that one point in person, so only its departure may fly; every
-				-- landing and connecting point still has to be known.
+				-- landing and connecting point still has to be known. A gossip flight lands beside its flight master
+				-- on the ground, which is the same in-person arrival.
 				local canLeaveNode = assumeKnown or not flying or not nodes[node].undiscovered
+				local arrived = labels.edge[current]
+				learned = learned or (arrived ~= nil and arrived.gossip == true)
 				for _, edge in ipairs(edges[node]) do
 					local canLeave = canLeaveNode
 					if edge.mode == "flight" and not assumeKnown then

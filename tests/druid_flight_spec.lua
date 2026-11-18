@@ -104,4 +104,13 @@ for _, goal in ipairs({ 26, 28, 41, 456 }) do
 	end
 end
 
+-- Landing at a flight master the druid has never visited is standing beside it: they may fly on from there, as
+-- they would after walking up to it.
+local CROSSROADS = 25
+local onward = assert(Plan(here, ns.TaxiNodes[CROSSROADS], "Horde", "DRUID", { [CROSSROADS] = true }))
+assert(
+	Flights(onward) == "63>22 gossip 22>25",
+	"the druid flies on from an unknown gossip landing: " .. Flights(onward)
+)
+
 print("druid flight: Nighthaven flies druids home with no flight point known: ok")
