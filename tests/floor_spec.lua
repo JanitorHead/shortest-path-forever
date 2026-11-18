@@ -183,10 +183,10 @@ local function surfaces(p)
 	end
 	return out
 end
-local function walkIn()
+local function walkIn(stop)
 	Floor.Forget()
 	local line = assert(Path.FindSync(0, SW_FM, ON_STREET))
-	line[#line + 1] = GAP
+	line[#line + 1] = stop or GAP
 	for i = 2, #line do
 		local a, b = line[i - 1], line[i]
 		local steps = math.max(1, math.ceil(math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2) / 7))
@@ -221,6 +221,21 @@ do
 	tick()
 	height = Floor.Height(0, GAP.x + 1, GAP.y)
 	assert(height and height < 80, "a fall there lands on the ground: " .. tostring(height))
+
+	-- Seen in the air over the street a tick before, the fall still counts where you land.
+	local STREET_CELL = { x = -8839.8, y = 593 } -- the street's last cell the walking map reaches before the gap
+	walkIn()
+	falling = true
+	journeyAt = STREET_CELL
+	tick()
+	assert((Floor.Height(0, STREET_CELL.x, STREET_CELL.y) or 0) > 85, "in the air over the street")
+	falling = false
+	journeyAt = { x = GAP.x + 1, y = GAP.y }
+	tick()
+	drain()
+	tick()
+	height = Floor.Height(0, GAP.x + 1, GAP.y)
+	assert(height and height < 80, "a fall seen a tick before the landing lands on the ground: " .. tostring(height))
 	journeyAt = nil
 	tick()
 end
@@ -241,6 +256,25 @@ do
 	swimming = false
 	local height = Floor.Height(0, CANAL.x, CANAL.y)
 	assert(height and height < 80, "swimming in the canal: " .. tostring(height))
+
+	-- Followed on the street in the canal's cell, then swimming there without moving cell.
+	Floor.Forget()
+	journeyAt = { x = CANAL.x, y = CANAL.y - 8 }
+	tick()
+	drain()
+	tick()
+	journeyAt = CANAL
+	tick()
+	drain()
+	tick()
+	height = Floor.Height(0, CANAL.x, CANAL.y)
+	assert(height and height > 85, "walking, the street over the canal: " .. tostring(height))
+	swimming = true
+	journeyAt = { x = CANAL.x + 0.5, y = CANAL.y }
+	tick()
+	swimming = false
+	height = Floor.Height(0, CANAL.x, CANAL.y)
+	assert(height and height < 80, "swimming in the same cell, the water: " .. tostring(height))
 	journeyAt = nil
 	tick()
 end

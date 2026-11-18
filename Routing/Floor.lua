@@ -42,6 +42,8 @@ local FIRST_LIFT = 1001 -- Data/Transports.lua numbers lift and tram landings fr
 ---@field nodes SPFFloorSurface[] the surfaces you may be on
 ---@field gapX number? the cell a held floor last failed to reach
 ---@field gapY number?
+---@field swam boolean whether you were swimming when the surfaces were weighed
+---@field fell true? whether you were seen falling since
 
 ---@type SPFFloorState?
 local here
@@ -150,19 +152,20 @@ function Floor.Sample(map, x, y)
 		return Floor.Forget()
 	end
 	local last = here
-	-- The same cell, or the gap cell a held floor already failed to reach: nothing new unless you fell.
+	-- Falling or swimming is the client's evidence of a floor change the walking map cannot show. A fall is kept until
+	-- the next cell is weighed, so one seen in the air still counts at the landing, a sample or a decode later.
+	local falling = IsFalling and IsFalling() and true or false
+	local swimming = IsSwimming and IsSwimming() and true or false
+	if last and falling then
+		last.fell = true
+	end
+	-- The same cell, or the gap cell a held floor already failed to reach: nothing new, unless you fell there or
+	-- started or stopped swimming.
 	if
 		last
 		and last.map == map
-		and (
-			(last.gx == gx and last.gy == gy)
-			or (
-				last.gapX == gx
-				and last.gapY == gy
-				and not (IsFalling and IsFalling())
-				and not (IsSwimming and IsSwimming())
-			)
-		)
+		and swimming == last.swam
+		and ((last.gx == gx and last.gy == gy) or (last.gapX == gx and last.gapY == gy and not last.fell))
 	then
 		last.x, last.y = x, y
 		return
@@ -201,7 +204,6 @@ function Floor.Sample(map, x, y)
 		return
 	end
 	-- Swimming, you are on a water surface: a fall into water, a swim under a pier.
-	local swimming = IsSwimming and IsSwimming()
 	local nodes
 	if last and #last.nodes > 0 and not swimming then
 		nodes = Step(st, last.nodes, ox, oy, gx, gy, steps + 1)
@@ -212,7 +214,7 @@ function Floor.Sample(map, x, y)
 		-- taken from the cell the floor was last seen on, so it settles again on the way out; past REACH cells from that
 		-- cell, or a JUMP between samples, the floor starts afresh. A jump in such a cell reads as a fall.
 		if #nodes == 0 then
-			if not (IsFalling and IsFalling()) then
+			if not last.fell then
 				last.x, last.y, last.gapX, last.gapY = x, y, gx, gy
 				return
 			end
@@ -232,7 +234,8 @@ function Floor.Sample(map, x, y)
 			nodes = wet
 		end
 	end
-	here = { map = map, gx = gx, gy = gy, x = x, y = y, nodes = nodes }
+	-- Still in the air, the fall is weighed again where you land; landed on a floor the map reaches, it was a jump.
+	here = { map = map, gx = gx, gy = gy, x = x, y = y, nodes = nodes, swam = swimming, fell = falling or nil }
 end
 
 ---The height of the floor you are on at (x, y) on map, when it is known: nil while the surfaces you may be on lie on
@@ -256,7 +259,7 @@ end
 -- The floor is followed whenever you move, indoors or out, so a journey planned where floors stack starts on yours:
 -- Stormwind's streets over the open ground beneath the city, a pier over the water (#737). Outdoors floors stack on
 -- nearly every walking-map tile, so there is no cheaper test than following. It keeps the one to four tiles around
--- you decoded, about 1.3 MB each, which a journey's own frame (Journey.lua) keeps anyway.
+-- you decoded, about 3 MB each in a city, as a journey's own frame (Journey.lua) does.
 if ns.OnTravelTick then
 	ns.OnTravelTick(function()
 		if ns.HasJourney and ns.HasJourney() then

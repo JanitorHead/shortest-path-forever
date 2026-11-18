@@ -501,6 +501,10 @@ ns.Init(function()
 			moving = false
 		elseif event == "PLAYER_ENTERING_WORLD" then
 			moving = IsPlayerMoving()
+			-- A loading screen or a portal: the floor followed before it is not yours after (Routing/Floor.lua).
+			if ns.Floor then
+				ns.Floor.Forget()
+			end
 		end
 		ns.WakeTravel()
 	end)
