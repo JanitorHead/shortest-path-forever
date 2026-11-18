@@ -183,6 +183,7 @@ read_globals[#read_globals + 1] = "C_SpellBook"
 read_globals[#read_globals + 1] = "GetBindLocation"
 -- Floor.lua: swimming, you are on water.
 read_globals[#read_globals + 1] = "IsSwimming"
+read_globals[#read_globals + 1] = "IsFalling"
 -- tests/ui_client.lua and tests/ui_map.lua are one chunk defining the client for the UI checks, which append code
 -- reading their locals. 2xx: locals and arguments only the appended checks use; 43x: stub methods named like the
 -- client's.
