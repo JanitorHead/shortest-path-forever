@@ -65,7 +65,9 @@ function FlightPin:ShouldMouseButtonBePassthrough(button)
 end
 
 function FlightPin:OnMouseClickAction(button)
-	if button == "RightButton" then
+	-- A class flight master has no discovery to mark: its class always has it.
+	local node = ns.TaxiNodes[self.poiInfo.nodeID]
+	if button == "RightButton" and not (node and node.class) then
 		ForeverCore.ContextMenu(self, function(_, root)
 			root:CreateCheckbox(L["Flight path known"], function()
 				local known = ns.KnownTaxiNodes()
@@ -93,12 +95,11 @@ local FLIGHTS_SHOWN = 8
 ---@param nodeID number
 ---@param undiscovered? boolean the hovered point itself is not known yet: nothing flies from it for you
 local function AddFlights(nodeID, undiscovered)
-	local known, faction, class = ns.KnownTaxiNodes(), UnitFactionGroup("player"), select(2, UnitClass("player"))
-	-- The flight points the planner flies to (Planner.lua's Eligible): neutral ones and your faction's, whatever the
-	-- boat and zeppelin setting says, and a class flight master's only for its class.
+	local known = ns.KnownTaxiNodes()
+	-- The flight points the planner flies to, whatever the boat and zeppelin setting says.
 	local flights = ns.TaxiTimes.FlightsFrom(nodeID, function(to)
 		local node = ns.TaxiNodes[to]
-		return node ~= nil and (not node.faction or node.faction == faction) and (not node.class or node.class == class)
+		return node ~= nil and ns.TaxiNodeServes(node)
 	end)
 	if not flights[1] then
 		return
