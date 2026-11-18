@@ -12,8 +12,14 @@ end
 _G.IsSwimming = function()
 	return swimming
 end
-_G.IsIndoors = function()
-	return true
+local tick, journeyAt
+ns.OnTravelTick = function(fn)
+	tick = fn
+end
+ns.JourneyPosition = function()
+	if journeyAt then
+		return journeyAt.x, journeyAt.y, nil, 0
+	end
 end
 ns.NearestDock = function()
 	if nearDock then
@@ -118,6 +124,37 @@ do
 	Floor.Sample(0, UNDER_HALL.x, UNDER_HALL.y)
 	assert(Floor.Height(0, UNDER_HALL.x, UNDER_HALL.y) == nil, "after a jump the floor is unknown again")
 	assert(Floor.Height(0, UNDER_HALL.x + 20, UNDER_HALL.y) == nil, "and Height answers only near the last sample")
+end
+
+-- Outdoors too (#737): Stormwind's streets stand over open ground the walking map reaches, and with no height a walk
+-- from the street below the Keep starts down there. Walking in from the flight master, the travel tick follows the
+-- streets.
+do
+	local SW_FM = { x = -8832.77, y = 478.62, z = 109.6 } -- Data/Taxi.lua node 2
+	local STREET = { x = -8485, y = 446 } -- the street below the Keep, z 96
+	local guessed = assert(Path.FindSync(0, STREET, SW_FM))
+	assert(guessed[2].z < 80, "with no height the walk starts under the city: " .. guessed[2].z)
+	Floor.Forget()
+	local line = assert(Path.FindSync(0, SW_FM, { x = STREET.x, y = STREET.y, z = 96 }))
+	for i = 2, #line do
+		local a, b = line[i - 1], line[i]
+		local steps = math.max(1, math.ceil(math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2) / 5))
+		for j = 1, steps do
+			journeyAt = { x = a.x + j / steps * (b.x - a.x), y = a.y + j / steps * (b.y - a.y) }
+			tick()
+			drain()
+			tick()
+		end
+	end
+	local height = Floor.Height(0, STREET.x, STREET.y)
+	assert(height and height > 85, "the street is followed outdoors: " .. tostring(height))
+	local tracked = assert(Path.FindSync(0, { x = STREET.x, y = STREET.y, z = height }, SW_FM))
+	for _, p in ipairs(tracked) do
+		assert(not p.z or p.z > 85, "from the followed street the walk stays on the streets: " .. tostring(p.z))
+	end
+	journeyAt = nil
+	tick()
+	assert(Floor.Height(0, STREET.x, STREET.y) == nil, "with no position the floor is forgotten")
 end
 
 -- At a lift's landing the floor is unknown: the lift changes it without moving you.

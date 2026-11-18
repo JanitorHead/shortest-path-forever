@@ -25,7 +25,6 @@ local SAME = 3 -- surfaces this close in height (yd) are one floor: the baker ke
 local NEAR = 8 -- yd from the last sample within which Height still answers: a second's run, about one cell
 local JUMP = 30 -- yd since the last sample: a hearth, teleport, landing or loading screen; the floor is unknown again
 local REACH = 6 -- cells between samples beyond which the step is a jump too
-local RISE = 4 -- a fall lands on the highest surface at most this many yards above the floor it left
 local LIFT = 10 -- yd from a lift's landing: a lift changes floor without moving, so the floor is unknown there
 local FIRST_LIFT = 1001 -- Data/Transports.lua numbers lift and tram landings from here
 
@@ -111,22 +110,6 @@ local function Step(st, nodes, ox, oy, gx, gy, reach)
 	return found
 end
 
--- The walking map has no way down a ledge, so a step it does not allow is a fall (or a knockback): the highest
--- surface of the new cell not far above the floor you left. None: the floor is unknown.
-local function Fall(st, nodes, gx, gy)
-	local top = -huge
-	for _, s in ipairs(nodes) do
-		top = max(top, s.z)
-	end
-	local best
-	for _, s in ipairs(Surfaces(st, gx, gy)) do
-		if s.z <= top + RISE and (not best or s.z > best.z) then
-			best = s
-		end
-	end
-	return best and { best } or {}
-end
-
 -- A lift changes floor without moving you on the map.
 local function NearLift()
 	if not ns.NearestDock then
@@ -203,13 +186,18 @@ function Floor.Sample(map, x, y)
 		return
 	end
 	local nodes
-	if last then
+	if last and #last.nodes > 0 then
 		nodes = Step(st, last.nodes, ox, oy, gx, gy, steps + 1)
+		-- No way on the walking map from your floor to this cell: mostly a building or a street's edge the map has no
+		-- surface for at your height, sometimes a fall. Hold the floor you were last seen on rather than guess one here:
+		-- beside Stormwind's streets the only surface such a cell holds is the ground under the city. The next step is
+		-- taken from the cell the floor was last seen on, so it settles again on the way out, and past REACH cells from
+		-- that cell, or a JUMP between samples, the floor starts afresh.
 		if #nodes == 0 then
-			nodes = Fall(st, last.nodes, gx, gy)
+			last.x, last.y = x, y
+			return
 		end
-	end
-	if not nodes or #nodes == 0 then
+	else
 		nodes = Surfaces(st, gx, gy)
 	end
 	-- Swimming, you are on a water surface.
@@ -245,15 +233,17 @@ function Floor.Height(map, x, y)
 	return high - low <= SAME and high or nil
 end
 
--- Indoors, where floors stack, the floor is followed whenever you move, so a journey planned there starts on it. A
--- journey's own frame follows it everywhere else (Journey.lua); outdoors with none, nothing is kept.
+-- The floor is followed whenever you move, indoors or out, so a journey planned where floors stack starts on yours:
+-- Stormwind's streets over the open ground beneath the city, a pier over the water (#737). Outdoors floors stack on
+-- nearly every walking-map tile, so there is no cheaper test than following. It keeps the one to four tiles around
+-- you decoded, about 1.3 MB each, which a journey's own frame (Journey.lua) keeps anyway.
 if ns.OnTravelTick then
 	ns.OnTravelTick(function()
 		if ns.HasJourney and ns.HasJourney() then
 			return
 		end
 		local x, y, _, map = ns.JourneyPosition()
-		if x and y and map and IsIndoors and IsIndoors() then
+		if x and y and map then
 			Floor.Sample(map, x, y)
 		else
 			Floor.Forget()
