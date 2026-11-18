@@ -609,7 +609,7 @@ local function PlayerWorld()
 		return ns.WorldPoint(map, x, y)
 	end
 end
-local NewRank, MeasureWalks = ns.NearbyRank.New, ns.NearbyRank.MeasureWalks
+local NewRank, MeasureWalks, CancelRank = ns.NearbyRank.New, ns.NearbyRank.MeasureWalks, ns.NearbyRank.Cancel
 
 -- The ranking a click started, while it runs: a later click replaces it.
 ---@type SPFPathJob?
@@ -621,7 +621,7 @@ local traveling
 -- clicking frame, the journey starting once the ranking lands. Returns the menu's response.
 local function Travel(key, world, query, tier)
 	if traveling then
-		ns.Path.Cancel(traveling)
+		CancelRank(traveling)
 		traveling = nil
 	end
 	local candidates = Shortlist(key, world, SHORTLIST, query, tier)
@@ -800,6 +800,7 @@ end
 ---@field Shortlist fun(key: string, world: SPFPoint, limit: integer, query?: string, tier?: integer): SPFNearbyPlace[]
 ---@field Rank SPFRank
 ---@field MeasureWalks SPFMeasureWalks
+---@field Cancel fun(job: SPFPathJob)
 ---@field Detail fun(key: string, place: SPFNearbyPlace, query?: string): string
 ---@field Goods fun(key: string, place: SPFNearbyPlace, query?: string): integer[]?
 ---@field ItemName fun(itemID: integer): string?
@@ -938,6 +939,7 @@ ns.NearbyServices = {
 	Shortlist = Shortlist,
 	Rank = NewRank,
 	MeasureWalks = MeasureWalks,
+	Cancel = CancelRank,
 	Detail = Detail,
 	Goods = Goods,
 	ItemName = function(itemID)

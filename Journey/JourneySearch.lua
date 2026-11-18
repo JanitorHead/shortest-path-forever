@@ -70,16 +70,6 @@ local function SamePlace(a, b)
 end
 Search.SamePlace = SamePlace
 
--- An offer is followed at once, before the proof ends. A first walk the proof refutes is only steps you retrace, but a
--- Hearthstone, portal or flight cannot be undone: an offer may start with one only when the best plan the lower bounds
--- still allow starts with that same step. Otherwise a cheaper walk still being searched could be thrown away for a
--- trip across the world (#1032).
-local function Undoable(offer, best)
-	local step, other = offer.legs[1], best.legs[1]
-	return step.mode == "walk"
-		or other ~= nil and step.mode == other.mode and step.route == other.route and SamePlace(step.to, other.to)
-end
-
 -- Where you stand, with the height of your floor when Floor.lua knows it: the walks then start on that floor rather
 -- than the cheapest surface near you. Where the floor is not known, the range checks to the NPCs around you bound the
 -- height instead, and the walks start on the surfaces inside that band (Band.lua, #737).
@@ -439,7 +429,8 @@ end
 ---@param incumbent SPFPlan?
 ---@param job SPFPathJob the path job planning, which pauses at the frame budget
 ---@return SPFPlan?
-local function Plan(feasible, incumbent, job)
+---@param opening? SPFLeg a first step to plan without
+local function Plan(feasible, incumbent, job, opening)
 	local here = Here()
 	if not (here and goal) then
 		return nil
@@ -465,6 +456,7 @@ local function Plan(feasible, incumbent, job)
 	ns.Path.Checkpoint()
 	options.cache, options.walks, options.waterWalking, options.hazards = plannerCache, walks, waterMode, hazards
 	options.feasibleOnly = feasible
+	options.withoutOpening = opening
 	options.incumbent, options.incumbentPlan = incumbent and incumbent.arrive, incumbent
 	options.ride = Context.Ride(options)
 	options.unknownFlightNotice = true
@@ -697,8 +689,7 @@ local function RefreshCosts(includeGoal, forced, replace)
 		if stale() then
 			return
 		end
-		if
-			feasible
+		local offer = feasible
 			and planned
 			and planned ~= feasible
 			and (planned.needsStart or planned.needsGoal)
@@ -706,8 +697,17 @@ local function RefreshCosts(includeGoal, forced, replace)
 			and (not startBatch.done or not goalBatch.done)
 			and not search.offer
 			and #feasible.legs > 0
-			and Undoable(feasible, planned)
-		then
+		-- An offer is followed at once, before the proof ends. A first walk the proof refutes is only steps you retrace,
+		-- but a Hearthstone, portal or flight cannot be undone: an offer opens with one only when no plan the lower
+		-- bounds still allow beats it without that step. Otherwise a walk still being searched could be thrown away for
+		-- a trip across the world (#1032).
+		if offer and feasible and feasible.legs[1].mode ~= "walk" then
+			offer = Plan(false, feasible, job, feasible.legs[1]) == feasible
+			if stale() then
+				return
+			end
+		end
+		if offer then
 			search.offer = feasible
 			PrepareWalks(feasible)
 		end

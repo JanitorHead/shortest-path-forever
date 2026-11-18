@@ -453,7 +453,7 @@ end
 -- job ends or the panel hides (AGENTS.md).
 local function StopRanking()
 	if ranking then
-		ns.Path.Cancel(ranking)
+		ns.NearbyServices.Cancel(ranking)
 		ranking = nil
 	end
 end
@@ -647,7 +647,10 @@ local function StartTicker(shown)
 			ticker = C_Timer.NewTicker(TICK, function()
 				if visible then
 					Refresh()
-					Queue()
+					-- A measure still running finishes first: restarting it every tick would rank nothing.
+					if not ranking then
+						Queue()
+					end
 				end
 			end)
 		end

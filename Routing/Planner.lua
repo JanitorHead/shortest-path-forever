@@ -650,6 +650,17 @@ local function Solve(options, cache, check, weigh)
 			discarded = {},
 		}
 	end
+	-- options.withoutOpening bars one first step: an edge like it leaving before anything has taken time.
+	local opening = options.withoutOpening
+	local function Opens(edge, step)
+		local to = nodes[edge.to]
+		return edge.mode == step.mode
+			and edge.route == step.route
+			and edge.teleport == step.teleport
+			and to.map == step.to.map
+			and to.x == step.to.x
+			and to.y == step.to.y
+	end
 	local function Search(withoutHearth, withoutTeleports, cutoff, ridden, assumeKnown, ownLabels)
 		local labels
 		if ownLabels then
@@ -728,6 +739,9 @@ local function Solve(options, cache, check, weigh)
 						canLeave = false
 					end
 					if withoutTeleports and edge.teleport and not edge.partyPortal and not edge.teleport.bind then
+						canLeave = false
+					end
+					if opening and earliest == options.now and Opens(edge, opening) then
 						canLeave = false
 					end
 					if walked and edge.mode == "walk" and edge.yards > 0 then
