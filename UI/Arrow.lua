@@ -62,9 +62,19 @@ local ARRIVAL_WIDTH, ARRIVAL_TITLE_LINES, ARRIVAL_LINE_LIMIT = 240, 2, 3
 ---@type SPFArrowFrame
 local frame
 local source, path, index, target, placeTarget, native
--- suffix[i] is the walking distance from path[i] to the last bend along the bends, built once per path so a
--- moving frame reads it instead of re-walking every remaining segment (WFA-13).
-local suffixPath, suffix
+-- suffix[i] is the walking distance from path[i] to the last bend along the bends, built when the guide's stops
+-- refresh so a moving frame reads it instead of re-walking every remaining segment (WFA-13).
+local suffix, suffixCount = {}, 0
+local function BuildSuffix()
+	suffix, suffixCount = {}, #(path or {})
+	local total = 0
+	suffix[suffixCount] = 0
+	for i = suffixCount, 2, -1 do
+		local a, b = path[i - 1], path[i]
+		total = total + math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2)
+		suffix[i - 1] = total
+	end
+end
 local stepEnd, destination
 local revision = 0
 local renderedRevision, renderedMetres, renderedMode, renderedSecond, renderedNative
@@ -238,7 +248,11 @@ local function Update(elapsed)
 	-- Direct mode measures the displayed bearing; route mode adds the remaining walking bends.
 	local distance = math.sqrt((pointing.x - x) ^ 2 + (pointing.y - y) ^ 2)
 	if not direct then
-		distance = distance + suffix[index]
+		-- A path that grew or shrank since the stops last refreshed gets its distances again rather than a nil.
+		if #path ~= suffixCount then
+			BuildSuffix()
+		end
+		distance = distance + (suffix[index] or 0)
 	end
 	local yards = math.floor(distance)
 	-- The time counts down every second while the distance may not move, so read it with the header's own tick. The
@@ -592,16 +606,7 @@ function ns.RefreshGuideStops()
 	revision = revision + 1
 	local previousPath, previousTarget = path, target
 	path = source
-	if path ~= suffixPath then
-		suffixPath, suffix = path, {}
-		local total = 0
-		suffix[#(path or {})] = 0
-		for i = #(path or {}), 2, -1 do
-			local a, b = path[i - 1], path[i]
-			total = total + math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2)
-			suffix[i - 1] = total
-		end
-	end
+	BuildSuffix()
 	index = 1
 	local x, y, _, map = ns.JourneyPosition()
 	local nearest
