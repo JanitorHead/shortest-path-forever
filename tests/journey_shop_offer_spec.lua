@@ -127,7 +127,10 @@ place.x, place.y = ui(ryback)
 local from = {}
 from.x, from.y = ui(shop)
 local listed
-ns.NearbyServices.MeasureWalks({ place }, function(walks)
+ns.NearbyServices.MeasureWalks({ place }, function(walks, pending)
+	if pending then
+		return
+	end
 	assert(walks[place], "the walk to the trainer is measured")
 	ns.Path.Run(function(job)
 		return ns.EstimateIn(job, 1453, from.x, from.y, place.map, place.x, place.y, walks[place])
@@ -163,22 +166,42 @@ ns.NearbyServices.MeasureWalks({ place }, function(walks)
 end)
 drain()
 assert(searched and again, "a new road setting searches again")
--- A ranking decides on the walks measured so far: a place still measured counts at its lower bound, so the cheapest
--- place is exact only when no pending place could beat it.
+-- A place no walk reaches is measured as such (false), not left to the straight line: the stub search finds none.
+ns.db.followRoads = not ns.db.followRoads
+ns.Path.FindMany = function(_, _, targets, callback)
+	local costs = {}
+	for at in ipairs(targets) do
+		costs[at] = false
+	end
+	callback(costs)
+	return {}
+end
+local unreachable
+ns.NearbyServices.MeasureWalks({ place }, function(walks, pending)
+	if not pending then
+		unreachable = walks[place]
+	end
+end)
+drain()
+assert(unreachable == false, "a place no walk reaches is measured as false")
+ns.Path.FindMany = many
+
+-- A ranking decides on the walks measured so far: a place still searched counts at its walk's lower bound, so the
+-- cheapest place is exact only when no pending place could beat it.
 local near, far = { name = "near" }, { name = "far" }
-local function Ranked(bounds, pending)
+local function Ranked(walks, pending)
 	local rank = ns.NearbyServices.Rank({ near, far }, function(_, _, _, _, _, _, walk)
 		return walk
-	end, 1453, 0, 0, bounds, pending)
+	end, 1453, 0, 0, walks, pending)
 	repeat
 		local _, _, more = rank:Step()
 	until not more
 	return rank
 end
-local decided = Ranked({ [near] = 40, [far] = 100 }, { [far] = true })
+local decided = Ranked({ [near] = 40 }, { [far] = 100 })
 assert(decided.best == near and decided.exact, "a far place's lower bound above the best leaves the row decided")
-local open = Ranked({ [near] = 40, [far] = 30 }, { [far] = true })
+local open = Ranked({ [near] = 40 }, { [far] = 30 })
 assert(open.best == far and not open.exact, "a pending place that may be cheaper keeps the row open")
-local tie = Ranked({ [near] = 40, [far] = 40 }, { [near] = true })
+local tie = Ranked({ [far] = 40 }, { [near] = 40 })
 assert(tie.best == far and tie.exact, "on a tie the measured place decides the row")
 print("journey_shop_offer_spec: ok")

@@ -15,6 +15,9 @@ local REFRESH_EVERY = 60
 -- Timed replans replace the followed route only for a worthwhile gain; endpoint costs stay unchanged between
 -- the infrequent batches, except for Remaining() along the walk you are following.
 local SWITCH_GAIN, SWITCH_SHARE = 30000, 0.1
+-- The steps an offer cannot take back once followed: a Hearthstone or teleport, a portal, a flight or a sailing
+-- carry you off. A walk, a passage (a doorway walked both ways), a lift or a tram is retraced (#1032).
+local COMMITS = { teleport = true, portal = true, flight = true, boat = true, zeppelin = true }
 
 -- A followed route yields to a challenger for a gain worth the change: a tenth of the trip left, or 30 seconds,
 -- whichever is the smaller. The floor alone is unreachable on a trip under half a minute, so there the share decides.
@@ -697,12 +700,19 @@ local function RefreshCosts(includeGoal, forced, replace)
 			and (not startBatch.done or not goalBatch.done)
 			and not search.offer
 			and #feasible.legs > 0
-		-- An offer is followed at once, before the proof ends. A first walk the proof refutes is only steps you retrace,
-		-- but a Hearthstone, portal or flight cannot be undone: an offer opens with one only when no plan the lower
-		-- bounds still allow beats it without that step. Otherwise a walk still being searched could be thrown away for
-		-- a trip across the world (#1032).
-		if offer and feasible and feasible.legs[1].mode ~= "walk" then
-			offer = Plan(false, feasible, job, feasible.legs[1]) == feasible
+		-- An offer is followed at once, before the proof ends. A walk the proof refutes is only steps you retrace, but a
+		-- Hearthstone, portal or flight cannot be undone, and walking to it can reach it before the proof ends: an offer
+		-- takes one only when no plan the lower bounds still allow beats it without that step. Otherwise a walk still
+		-- being searched could be thrown away for a trip across the world (#1032).
+		local committing
+		for _, leg in ipairs(offer and feasible and feasible.legs or {}) do
+			if COMMITS[leg.mode] then
+				committing = leg
+				break
+			end
+		end
+		if committing then
+			offer = Plan(false, feasible, job, committing) == feasible
 			if stale() then
 				return
 			end
