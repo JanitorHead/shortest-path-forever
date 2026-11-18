@@ -737,9 +737,7 @@ local function Solve(options, cache, check, weigh)
 					if withoutTeleports and edge.teleport and not edge.partyPortal and not edge.teleport.bind then
 						canLeave = false
 					end
-					if opening and Opens(node, edge, opening) then
-						canLeave = false
-					end
+					canLeave = canLeave and not (opening and Opens(node, edge, opening))
 					if walked and edge.mode == "walk" and edge.yards > 0 then
 						canLeave = false
 					end
