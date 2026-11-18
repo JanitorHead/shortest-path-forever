@@ -650,17 +650,12 @@ local function Solve(options, cache, check, weigh)
 			discarded = {},
 		}
 	end
-	-- options.withoutOpening bars one step: an edge like it leaving the place it leaves. Matched where it leaves, so a
-	-- connecting flight, one leg of several hops, is barred at its first hop.
+	-- options.withoutOpening bars one step where it leaves, so a connecting flight is barred at its first hop.
 	local opening = options.withoutOpening
-	local function Opens(node, edge, step)
-		local from = nodes[node]
-		return edge.mode == step.mode
-			and edge.route == step.route
-			and edge.teleport == step.teleport
-			and from.map == step.from.map
-			and from.x == step.from.x
-			and from.y == step.from.y
+	local function Opens(node, edge)
+		local from, at = nodes[node], opening.from
+		local same = edge.mode == opening.mode and edge.route == opening.route and edge.teleport == opening.teleport
+		return same and from.map == at.map and from.x == at.x and from.y == at.y
 	end
 	local function Search(withoutHearth, withoutTeleports, cutoff, ridden, assumeKnown, ownLabels)
 		local labels
@@ -742,7 +737,7 @@ local function Solve(options, cache, check, weigh)
 					if withoutTeleports and edge.teleport and not edge.partyPortal and not edge.teleport.bind then
 						canLeave = false
 					end
-					if opening and Opens(node, edge, opening) then
+					if opening and Opens(node, edge) then
 						canLeave = false
 					end
 					if walked and edge.mode == "walk" and edge.yards > 0 then
