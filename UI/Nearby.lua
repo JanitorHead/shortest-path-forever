@@ -276,6 +276,9 @@ local function Navigate(key, place)
 	if not place then
 		return false
 	end
+	if ns.StopServiceRanking then
+		ns.StopServiceRanking()
+	end
 	if place.entrance then
 		return ns.NearbyEntrances.Navigate(place)
 	end
@@ -623,6 +626,9 @@ local function Travel(key, world, query, tier)
 	if stopTravel then
 		stopTravel()
 		stopTravel = nil
+	end
+	if ns.StopServiceRanking then
+		ns.StopServiceRanking()
 	end
 	local candidates = Shortlist(key, world, SHORTLIST, query, tier)
 	local map, x, y = PlayerUi()

@@ -72,7 +72,11 @@ local function Spawn(place)
 	local point = spawns[place]
 	if point == nil then
 		local world = ns.WorldPoint(place.map, place.x, place.y)
-		point = world and ns.OnSpawnFloor(world) or false
+		-- A map that cannot project yet is asked again on the next measure; only a spawn with no floor is final.
+		if not world then
+			return false
+		end
+		point = ns.OnSpawnFloor(world) or false
 		spawns[place] = point
 	end
 	return point
@@ -113,11 +117,12 @@ end
 
 -- The walks the journey would take from where you stand to each place: its own search, from its own start (your floor,
 -- or your height band) to the spot it walks to (the NPC's own floor), under its own hazards. An estimate built on them
--- is the time the journey shows; the straight line under a shop's walls is not (#1032). Calls back as walks settle,
--- nearest first, with each settled place's running yards (false where no walk was found) and, for each place still
--- searched, a lower bound on its walk (Path.LowerBound); then once more with pending nil when done. A place it cannot
--- search is never pending, and its estimate stays the planner's own. The work runs under the frame budget; Cancel
--- stops it, as a caller does once its rankings are decided rather than walk to every far place.
+-- prices the direct walk as the journey does, not as the straight line under a shop's walls (#1032); its other legs
+-- stay the planner's lower bounds. Calls back as walks settle, nearest first, with each settled place's running yards
+-- (false where no walk was found) and, for each place still searched, a lower bound on its walk (Path.LowerBound);
+-- then once more with pending nil when done. A place it cannot search is never pending, and its estimate stays the
+-- planner's own. The work runs under the frame budget; Cancel stops it, as a caller does once its rankings are decided
+-- rather than walk to every far place.
 ---@param places SPFNearbyPlace[]
 ---@param callback SPFWalksSettled
 ---@return SPFPathJob?
@@ -132,6 +137,11 @@ local function MeasureWalks(places, callback)
 	handle = ns.Path.Run(function()
 		return Groups(here, places)
 	end, function(groups)
+		-- A grouping that failed measures nothing: every estimate stays the planner's own, and the callers decide.
+		if not groups then
+			callback({})
+			return
+		end
 		local walks, pending, open, last = {}, {}, 1, measured
 		measured = {}
 		-- Each change goes out at once: while other groups search, what is known so far, and when the last ends, done.
