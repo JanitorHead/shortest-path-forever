@@ -652,9 +652,9 @@ local function Solve(options, cache, check, weigh)
 	end
 	-- options.withoutOpening bars one step where it leaves, so a connecting flight is barred at its first hop.
 	local opening = options.withoutOpening
-	local function Opens(node, edge)
-		local from, at = nodes[node], opening.from
-		local same = edge.mode == opening.mode and edge.route == opening.route and edge.teleport == opening.teleport
+	local function Opens(node, edge, step)
+		local from, at = nodes[node], step.from
+		local same = edge.mode == step.mode and edge.route == step.route and edge.teleport == step.teleport
 		return same and from.map == at.map and from.x == at.x and from.y == at.y
 	end
 	local function Search(withoutHearth, withoutTeleports, cutoff, ridden, assumeKnown, ownLabels)
@@ -737,7 +737,7 @@ local function Solve(options, cache, check, weigh)
 					if withoutTeleports and edge.teleport and not edge.partyPortal and not edge.teleport.bind then
 						canLeave = false
 					end
-					if opening and Opens(node, edge) then
+					if opening and Opens(node, edge, opening) then
 						canLeave = false
 					end
 					if walked and edge.mode == "walk" and edge.yards > 0 then
