@@ -124,7 +124,7 @@
     },
     {
       "source": "UI/JourneyStops.lua",
-      "sha256": "1c8a7030aeff2566d84ff339aca01b60978d32b9440f2ede768895113cc98cc9",
+      "sha256": "17314807eb4cf1336f2f4df275dd8a15a82b0bf6190fcd23b2530024f51b81c2",
       "review": "Read Text, Build and refresh: help and status are created by Text with GameFontHighlight; messages and formatted progress/order phrases reach status without font overrides. SharedButtonSmallTemplate buttons and row labels, PortraitFrameTemplate title, tooltip text and dynamic stop names are excluded because this producer does not establish their font objects.",
       "bindings": [
         {

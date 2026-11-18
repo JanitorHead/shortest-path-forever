@@ -247,7 +247,8 @@ function Editor.new()
 	end
 	---@param pathJob? SPFPathJob the path job stepping (ns.Path.Run), so an uncached estimate pauses at the frame budget
 	function controller:Step(pathJob)
-		if not self.job then
+		local job = self.job
+		if not job then
 			return
 		end
 		local reason = Blocked()
@@ -256,7 +257,6 @@ function Editor.new()
 			self.state = reason == "combat" and "order-combat" or reason == "corpse" and "order-corpse" or "occupied"
 			return
 		end
-		local job = self.job
 		local state, points = job:Step(pathJob)
 		-- Cleared or restarted while its estimate paused: that order no longer owns the editor.
 		if self.job ~= job then
