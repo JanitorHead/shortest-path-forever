@@ -303,6 +303,39 @@ do
 	nearDock = nil
 end
 
+-- Knocked off the street in combat, the fall still counts where you land once it ends.
+do
+	walkIn()
+	inCombat = true
+	falling = true
+	journeyAt = { x = -8839.8, y = 593 }
+	tick()
+	inCombat = false
+	falling = false
+	journeyAt = { x = GAP.x + 1, y = GAP.y }
+	tick()
+	drain()
+	tick()
+	local height = Floor.Height(0, GAP.x + 1, GAP.y)
+	assert(height and height < 80, "a fall in combat lands on the ground: " .. tostring(height))
+	journeyAt = nil
+	tick()
+end
+
+-- A finished decode wakes the travel clock, so a player standing still is weighed without moving again.
+do
+	local woken = 0
+	ns.WakeTravel = function()
+		woken = woken + 1
+	end
+	Floor.Forget()
+	Grid.Idle()
+	Floor.Sample(0, SW_FM.x, SW_FM.y)
+	drain()
+	ns.WakeTravel = nil
+	assert(woken > 0, "the decode woke the travel clock")
+end
+
 -- In combat the floor is held, not followed.
 do
 	Floor.Forget()

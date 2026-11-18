@@ -141,6 +141,10 @@ function Floor.Sample(map, x, y)
 		return Floor.Forget()
 	end
 	if InCombatLockdown() then
+		-- Held, not followed; a knockback seen here still counts once combat ends.
+		if here and IsFalling and IsFalling() then
+			here.fell = true
+		end
 		return
 	end
 	local st = Grid.State(map)
@@ -195,6 +199,10 @@ function Floor.Sample(map, x, y)
 		if not decoding then
 			decoding = Path.Decode(map, missing, function()
 				decoding = nil
+				-- Standing still, the travel clock may have stopped meanwhile: wake it to weigh the step now.
+				if ns.WakeTravel then
+					ns.WakeTravel()
+				end
 			end)
 		end
 		-- The step waits for its clusters; a fresh start is unknown meanwhile.
