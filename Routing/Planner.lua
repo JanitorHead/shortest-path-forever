@@ -948,7 +948,7 @@ local function NoCheck() end
 local function Plan(options, job)
 	local cache = options.cache
 	local holder = cache and cache.busy
-	if holder and holder ~= job then
+	if cache and holder and holder ~= job then
 		if holder.done or holder.cancelled then
 			-- Its plan stopped part way: the topology it was building is not trusted.
 			for key in pairs(cache) do

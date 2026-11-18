@@ -5,6 +5,7 @@ if ns.broken then
 	return
 end
 local L = ns.L
+---@class SPFPlanner
 local Planner = ns.Planner
 
 local function QuestPointValid(point)
