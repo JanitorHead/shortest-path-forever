@@ -473,7 +473,17 @@ local function RankRows(queue, walks, pending, map, x, y, callback)
 		end
 		local open = 0
 		for _, item in ipairs(queue) do
-			if not item.decided then
+			-- A row none of whose walks changed since it was last ranked ranks the same: only changed rows rank again.
+			local settled = 0
+			for _, place in ipairs(item.candidates) do
+				if walks[place] ~= nil then
+					settled = settled + 1
+				end
+			end
+			if not item.decided and item.settled == settled and pending then
+				open = open + 1
+			elseif not item.decided then
+				item.settled = settled
 				local rank = ns.NearbyServices.Rank(item.candidates, estimate, map, x, y, walks, pending)
 				local place, seconds, more
 				repeat
@@ -685,8 +695,9 @@ local function StartTicker(shown)
 			ticker = C_Timer.NewTicker(TICK, function()
 				if visible then
 					Refresh()
-					-- A measure still running finishes first: restarting it every tick would rank nothing.
-					if not (ranking or measuring) then
+					-- A measure still running finishes first, while it answers for where you stand: restarting it every
+					-- tick would rank nothing.
+					if not (ranking or measuring) or measuring and not ns.NearbyServices.Holds(measuring) then
 						Queue()
 					end
 				end

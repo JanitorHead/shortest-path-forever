@@ -609,82 +609,38 @@ local function PlayerWorld()
 		return ns.WorldPoint(map, x, y)
 	end
 end
-local NewRank, MeasureWalks, CancelRank = ns.NearbyRank.New, ns.NearbyRank.MeasureWalks, ns.NearbyRank.Cancel
+local Choose = ns.NearbyRank.Choose
 
--- The ranking a click started and the walking measure it ranks on, while they run: a later click replaces them.
----@type SPFPathJob?
-local traveling
----@type SPFPathJob?
-local walking
+-- Stops the choice a click started, while it runs: a later click replaces it.
+---@type fun()?
+local stopTravel
 
 -- Go to the chosen place: the closest few by straight line, then the cheapest of those by the planner's own journey
 -- cost. A boat or flight can beat a shorter walk across the hills. Planned on the click, so opening or refreshing a
 -- menu never starts a plan, and only the shortlist is planned: in path jobs under the frame budget, never in the
--- clicking frame, the journey starting once the ranking is decided (NearbyRank). Returns the menu's response.
+-- clicking frame, the journey starting once the choice is decided (NearbyRank). Returns the menu's response.
 local function Travel(key, world, query, tier)
-	for _, job in ipairs({ traveling, walking }) do
-		CancelRank(job)
+	if stopTravel then
+		stopTravel()
+		stopTravel = nil
 	end
-	traveling, walking = nil, nil
 	local candidates = Shortlist(key, world, SHORTLIST, query, tier)
-	local best = candidates[1]
 	local map, x, y = PlayerUi()
 	if #candidates < 2 or not (ns.EstimateIn and map and x and y) then
-		return Pick(key, best)
+		return Pick(key, candidates[1])
 	end
-	-- A destination chosen while the walks or the ranking run is the newer request: the ranking then starts nothing.
+	-- A destination chosen while the choice runs is the newer request: the choice then starts nothing.
 	local goal = ns.JourneyGoal()
-	local this, latest, again, done
-	local function Rank()
-		if traveling then
-			again = true
-			return
+	local stop
+	stop = Choose(candidates, map, x, y, function(place)
+		if stopTravel == stop then
+			stopTravel = nil
 		end
-		local walks, pending = latest.walks, latest.pending
-		local ranking
-		ranking = ns.Path.Run(function(job)
-			local rank = NewRank(candidates, function(...)
-				return ns.EstimateIn(job, ...)
-			end, map, x, y, walks, pending)
-			local more = true
-			while more do
-				_, _, more = rank:Step()
-			end
-			return rank.best or best, rank.exact or not pending
-		end, function(place, decided)
-			if traveling ~= ranking then
-				return
-			end
-			traveling = nil
-			if decided then
-				done = true
-				if walking then
-					CancelRank(walking)
-					walking = nil
-				end
-				if ns.JourneyGoal() == goal then
-					Navigate(key, place)
-				end
-			elseif again then
-				again = false
-				Rank()
-			end
-		end)
-		traveling = ranking
-	end
-	this = MeasureWalks(candidates, function(walks, pending)
-		if walking ~= this or done then
-			return
+		if ns.JourneyGoal() == goal then
+			Navigate(key, place)
 		end
-		if not pending then
-			walking = nil
-		end
-		latest = { walks = walks, pending = pending }
-		Rank()
 	end)
-	if this and not latest then
-		walking = this
-	end
+	stopTravel = stop
 	return MenuResponse.CloseAll
 end
 
@@ -825,6 +781,7 @@ end
 ---@field Rank SPFRank
 ---@field MeasureWalks SPFMeasureWalks
 ---@field Cancel fun(job: SPFPathJob)
+---@field Holds fun(job: SPFPathJob): boolean
 ---@field Detail fun(key: string, place: SPFNearbyPlace, query?: string): string
 ---@field Goods fun(key: string, place: SPFNearbyPlace, query?: string): integer[]?
 ---@field ItemName fun(itemID: integer): string?
@@ -961,9 +918,10 @@ ns.NearbyServices = {
 	OnReady = WhenReady,
 	Sections = Sections,
 	Shortlist = Shortlist,
-	Rank = NewRank,
-	MeasureWalks = MeasureWalks,
-	Cancel = CancelRank,
+	Rank = ns.NearbyRank.New,
+	MeasureWalks = ns.NearbyRank.MeasureWalks,
+	Cancel = ns.NearbyRank.Cancel,
+	Holds = ns.NearbyRank.Holds,
 	Detail = Detail,
 	Goods = Goods,
 	ItemName = function(itemID)

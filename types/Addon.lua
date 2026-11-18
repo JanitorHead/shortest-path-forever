@@ -525,7 +525,7 @@ ShortestPathForeverPathData = nil
 ---@class SPFPlanOptions : SPFPlaceOptions
 ---@field withoutHearth? boolean
 ---@field feasibleOnly? boolean
----@field withoutOpening? SPFLeg plan as if this first step were not there
+---@field withoutOpening? SPFLeg plan as if this step, from where it leaves, were not there
 ---@field incumbent? number
 ---@field incumbentPlan? SPFPlan
 ---@field hearthMinimumSavings? number
