@@ -355,6 +355,7 @@ local function Solve(options, cache, check)
 	end
 	local walkIndex = {}
 	for _, walk in ipairs(options.walks or {}) do
+		check()
 		local from, to = PointKey(walk.from), PointKey(walk.to)
 		walkIndex[from] = walkIndex[from] or {}
 		local previous = walkIndex[from][to]
@@ -393,6 +394,7 @@ local function Solve(options, cache, check)
 		Add("start", nil, options.from)
 		Add("goal", nil, options.to)
 		for _, place in ipairs(Planner.Places(options)) do
+			check()
 			local index = Add(place.kind, place.id, place)
 			if place.kind == "dock" then
 				docks[place.id] = index
@@ -411,6 +413,7 @@ local function Solve(options, cache, check)
 			end
 		end
 		for _, path in ipairs(options.taxiPaths or {}) do
+			check()
 			if taxis[path.from] and taxis[path.to] then
 				-- A ride this character has flown overrides the shipped estimate for that directed path.
 				local measured = options.taxiTimes and options.taxiTimes[path.from .. ":" .. path.to]
@@ -425,6 +428,7 @@ local function Solve(options, cache, check)
 		for _, id in ipairs(Keys(options.routes or {})) do
 			local route = options.routes[id]
 			for index, stop in ipairs(route.stops) do
+				check()
 				if docks[stop.dock] and (options.otherFaction ~= false or Eligible(route, options)) then
 					for offset = 1, #route.stops - 1 do
 						local onward = route.stops[(index + offset - 1) % #route.stops + 1]
@@ -476,6 +480,7 @@ local function Solve(options, cache, check)
 		end
 		local counts, saved = {}, {}
 		for i, adjacent in ipairs(edges) do
+			check()
 			counts[i] = #adjacent
 		end
 		for _, key in ipairs(CACHE_KEYS) do
@@ -598,6 +603,7 @@ local function Solve(options, cache, check)
 	---@type table<number, SPFAnchor>?
 	local anchors = options.anchors
 	for from, adjacent in ipairs(edges) do
+		check()
 		for _, edge in ipairs(adjacent) do
 			local duration = edge.duration
 			if edge.route and not edge.aboard and not (anchors and anchors[edge.route]) then

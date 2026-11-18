@@ -438,16 +438,20 @@ local function Plan(feasible, incumbent, job)
 		lastRunSpeed, followed.now = Context.RunSpeed(), ns.NowMs()
 		return followed
 	end
+	-- Where you stand, the context and the walks below each read the client; the budget is checked between them.
+	ns.Path.Checkpoint()
 	local options = Context.Options(here, goal, routePolicy)
 	-- This is a manual refusal for the active journey only. Keep it out of Context.Options so
 	-- public estimates and nearby-service planning retain the normal Hearthstone policy.
 	options.withoutHearth = ns.JourneyWithoutHearth and ns.JourneyWithoutHearth() or false
 	local now = options.now
 	lastRunSpeed = options.walkSpeed
+	ns.Path.Checkpoint()
 	local walks = MeasuredWalks(here)
 	for _, walk in ipairs(Walks.Landings(options.teleports, waterMode)) do
 		walks[#walks + 1] = walk
 	end
+	ns.Path.Checkpoint()
 	options.cache, options.walks, options.waterWalking, options.hazards = plannerCache, walks, waterMode, hazards
 	options.feasibleOnly = feasible
 	options.incumbent, options.incumbentPlan = incumbent and incumbent.arrive, incumbent
