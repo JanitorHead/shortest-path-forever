@@ -611,19 +611,21 @@ local function PlayerWorld()
 end
 local NewRank, MeasureWalks, CancelRank = ns.NearbyRank.New, ns.NearbyRank.MeasureWalks, ns.NearbyRank.Cancel
 
--- The ranking a click started, while it runs: a later click replaces it.
+-- The ranking a click started and the walking measure it ranks on, while they run: a later click replaces them.
 ---@type SPFPathJob?
 local traveling
+---@type SPFPathJob?
+local walking
 
 -- Go to the chosen place: the closest few by straight line, then the cheapest of those by the planner's own journey
 -- cost. A boat or flight can beat a shorter walk across the hills. Planned on the click, so opening or refreshing a
--- menu never starts a plan, and only the shortlist is planned: in a path job under the frame budget, never in the
--- clicking frame, the journey starting once the ranking lands. Returns the menu's response.
+-- menu never starts a plan, and only the shortlist is planned: in path jobs under the frame budget, never in the
+-- clicking frame, the journey starting once the ranking is decided (NearbyRank). Returns the menu's response.
 local function Travel(key, world, query, tier)
-	if traveling then
-		CancelRank(traveling)
-		traveling = nil
+	for _, job in ipairs({ traveling, walking }) do
+		CancelRank(job)
 	end
+	traveling, walking = nil, nil
 	local candidates = Shortlist(key, world, SHORTLIST, query, tier)
 	local best = candidates[1]
 	local map, x, y = PlayerUi()
@@ -632,34 +634,56 @@ local function Travel(key, world, query, tier)
 	end
 	-- A destination chosen while the walks or the ranking run is the newer request: the ranking then starts nothing.
 	local goal = ns.JourneyGoal()
-	local measuring
-	measuring = MeasureWalks(candidates, function(walks)
-		if traveling ~= measuring then
+	local this, latest, again, done
+	local function Rank()
+		if traveling then
+			again = true
 			return
 		end
-		local this
-		this = ns.Path.Run(function(job)
+		local walks, pending = latest.walks, latest.pending
+		local ranking
+		ranking = ns.Path.Run(function(job)
 			local rank = NewRank(candidates, function(...)
 				return ns.EstimateIn(job, ...)
-			end, map, x, y, walks)
+			end, map, x, y, walks, pending)
 			local more = true
 			while more do
 				_, _, more = rank:Step()
 			end
-			return rank.best or best
-		end, function(place)
-			if traveling == this then
-				traveling = nil
+			return rank.best or best, rank.exact or not pending
+		end, function(place, decided)
+			if traveling ~= ranking then
+				return
+			end
+			traveling = nil
+			if decided then
+				done = true
+				if walking then
+					CancelRank(walking)
+					walking = nil
+				end
 				if ns.JourneyGoal() == goal then
 					Navigate(key, place)
 				end
+			elseif again then
+				again = false
+				Rank()
 			end
 		end)
-		traveling = this
+		traveling = ranking
+	end
+	this = MeasureWalks(candidates, function(walks, pending)
+		if walking ~= this or done then
+			return
+		end
+		if not pending then
+			walking = nil
+		end
+		latest = { walks = walks, pending = pending }
+		Rank()
 	end)
-	-- A search that answered at once has already started the ranking.
-	if measuring and not traveling then
-		traveling = measuring
+	if this and not latest then
+		walking = this
 	end
 	return MenuResponse.CloseAll
 end
@@ -784,7 +808,7 @@ end
 ---@field rows SPFNearbyRow[]
 ---@alias SPFEstimate fun(...: number): number?
 -- luacheck: push ignore 631
----@alias SPFRank fun(places: SPFNearbyPlace[], estimate: SPFEstimate, map: number, x: number, y: number, walks?: SPFWalks): SPFNearbyRank
+---@alias SPFRank fun(places: SPFNearbyPlace[], estimate: SPFEstimate, map: number, x: number, y: number, walks?: SPFWalks, pending?: SPFWalksPending): SPFNearbyRank
 -- luacheck: pop
 ---@alias SPFClosed table<string, boolean> the sections the player folded shut
 ---@alias SPFSeconds table<string, number> the panel's travel estimates, by row id

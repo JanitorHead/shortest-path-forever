@@ -88,9 +88,11 @@ local collapsed = {}
 local estimates = {}
 ---@type table<string, SPFNearbyPlace>
 local chosen = {}
--- The path job ranking the rows (Queue), while one runs.
+-- The path job ranking the rows (Queue), and the walking measure it ranks on, while they run.
 ---@type SPFPathJob?
 local ranking
+---@type SPFPathJob?
+local measuring
 ---@type table?
 local ticker
 local query = ""
@@ -448,42 +450,54 @@ local function UpdateRow(key)
 	Paint(row)
 end
 
--- Rank each shown group's shortlist in one path job, under the shared frame budget: an uncached estimate pauses at
--- the budget and goes on next frame. Each row takes the cheapest of its shortlist as it lands; nothing runs once the
--- job ends or the panel hides (AGENTS.md).
+-- Rank each shown group's shortlist in path jobs, under the shared frame budget: an uncached estimate pauses at the
+-- budget and goes on next frame. A row takes its cheapest NPC once that is decided (NearbyRank), as the walks land
+-- nearest first; nothing runs once every row is decided or the panel hides (AGENTS.md).
 local function StopRanking()
+	if measuring then
+		ns.NearbyServices.Cancel(measuring)
+		measuring = nil
+	end
 	if ranking then
-		ns.NearbyServices.Cancel(ranking)
+		ns.Path.Cancel(ranking)
 		ranking = nil
 	end
 end
 
--- Rank each row's shortlist on the measured walks, in one path job.
-local function RankRows(queue, walks, map, x, y)
+-- Ranks the rows not yet decided on the walks measured so far; callback(open) with how many are still open.
+local function RankRows(queue, walks, pending, map, x, y, callback)
 	local this
 	this = ns.Path.Run(function(job)
 		local function estimate(...)
 			return ns.EstimateIn(job, ...)
 		end
+		local open = 0
 		for _, item in ipairs(queue) do
-			local rank = ns.NearbyServices.Rank(item.candidates, estimate, map, x, y, walks)
-			local place, seconds, more
-			repeat
-				place, seconds, more = rank:Step()
-			until not more
-			if place then
-				chosen[item.key] = place
+			if not item.decided then
+				local rank = ns.NearbyServices.Rank(item.candidates, estimate, map, x, y, walks, pending)
+				local place, seconds, more
+				repeat
+					place, seconds, more = rank:Step()
+				until not more
+				item.decided = rank.exact or not pending
+				if item.decided then
+					if place then
+						chosen[item.key] = place
+					end
+					if seconds then
+						estimates[item.key] = seconds
+					end
+					UpdateRow(item.key)
+				else
+					open = open + 1
+				end
 			end
-			if seconds then
-				estimates[item.key] = seconds
-			end
-			UpdateRow(item.key)
 		end
-	end, function()
+		return open
+	end, function(open)
 		if ranking == this then
 			ranking = nil
-			-- Every row has its travel time now: the dungeons and raids reorder by it, once.
-			Refresh()
+			callback(open)
 		end
 	end)
 	ranking = this
@@ -513,23 +527,47 @@ function Queue()
 	if #queue == 0 then
 		return
 	end
-	-- Every row's shortlist in one walking search, so each row's time is the journey's.
+	-- Every row's shortlist in one walking measure, so each row's time is the journey's.
 	local places = {}
 	for _, item in ipairs(queue) do
 		for _, place in ipairs(item.candidates) do
 			places[#places + 1] = place
 		end
 	end
-	local measuring
-	measuring = ns.NearbyServices.MeasureWalks(places, function(walks)
-		if ranking ~= measuring then
+	local this, latest, again
+	local function Rank()
+		if ranking then
+			again = true
 			return
 		end
-		RankRows(queue, walks, map, x, y)
+		local walks, pending = latest.walks, latest.pending
+		RankRows(queue, walks, pending, map, x, y, function(open)
+			if again then
+				again = false
+				Rank()
+			elseif open == 0 then
+				-- Every row is decided: the walks to the far places are not needed.
+				if measuring and measuring == this then
+					ns.NearbyServices.Cancel(measuring)
+					measuring = nil
+				end
+				-- Every row has its travel time now: the dungeons and raids reorder by it, once.
+				Refresh()
+			end
+		end)
+	end
+	this = ns.NearbyServices.MeasureWalks(places, function(walks, pending)
+		if measuring ~= this then
+			return
+		end
+		if not pending then
+			measuring = nil
+		end
+		latest = { walks = walks, pending = pending }
+		Rank()
 	end)
-	-- A search that answered at once has already started the ranking.
-	if measuring and not ranking then
-		ranking = measuring
+	if this and not latest then
+		measuring = this
 	end
 end
 
@@ -648,7 +686,7 @@ local function StartTicker(shown)
 				if visible then
 					Refresh()
 					-- A measure still running finishes first: restarting it every tick would rank nothing.
-					if not ranking then
+					if not (ranking or measuring) then
 						Queue()
 					end
 				end
