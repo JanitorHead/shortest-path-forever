@@ -69,13 +69,13 @@
     },
     {
       "source": "UI/StopPin.lua",
-      "sha256": "28eb803df69a66be0fc877d242c60bed6c78909afcf6ac61ea4faa0c8c589a23",
+      "sha256": "2144ca1fac3f09c393ac2a9f79d7eb28a873d013ebb1c62802dbce6aa0afdff4",
       "review": "Read Number creation and SetStop/tooltip paths. Number explicitly uses GameFontNormal but displays a dynamic stop number, not a locale phrase. The time-distance phrase and stop descriptions are tooltip text owned by the tooltip template; none is bound to Number.",
       "bindings": []
     },
     {
       "source": "UI/Arrow.lua",
-      "sha256": "6a8710b250f768d3ceb9e5507519de1660147a5a5c26eeea484c429ff8006c5d",
+      "sha256": "c98083459797c50f48902bc407a513de8fe74c8fe1d3c7c732d70b953811b060",
       "review": "Read Create, ArrowLabel, distance updates, arrival labels, progress and cast prompt. MoverHint uses GameFontHighlightSmall and Distance uses GameFontNormal, including the formatted time-distance phrase. No later font override occurs. Dynamic objective lines, arrival titles, route titles and actions from helpers are excluded; this review does not claim coverage for their inserted text.",
       "bindings": [
         {
@@ -124,7 +124,7 @@
     },
     {
       "source": "UI/JourneyStops.lua",
-      "sha256": "bf7b25e48cf838403e52803c473201d5c30bdbaeedaaedea46c3d67dd1542454",
+      "sha256": "17314807eb4cf1336f2f4df275dd8a15a82b0bf6190fcd23b2530024f51b81c2",
       "review": "Read Text, Build and refresh: help and status are created by Text with GameFontHighlight; messages and formatted progress/order phrases reach status without font overrides. SharedButtonSmallTemplate buttons and row labels, PortraitFrameTemplate title, tooltip text and dynamic stop names are excluded because this producer does not establish their font objects.",
       "bindings": [
         {
@@ -388,7 +388,7 @@
     },
     {
       "source": "UI/ServicesPanel.lua",
-      "sha256": "0c2a1634d40696436a926da6aff79be1450faed92bfe9235b3d7dfa8047d2dfa",
+      "sha256": "10f5725fd781cd16a639949cd2bc47189fa32ed789910cf999ac19a252134eb1",
       "review": "Read BuildHeader, BuildContent, CreateBetterRow, PaintBetter, Where and Refresh. headerTitle uses GameFontNormalLarge2; emptyText uses GameFontDisable for STATUS and empty/position notices; better-row Label uses GameFontHighlight for the name-zone format and subtitle uses GameFontHighlight for Where. No later font override occurs. Search instructions and tooltips are template-owned; external group/section names, service details and countdown helper output are excluded.",
       "bindings": [
         {

@@ -71,7 +71,7 @@
 ---@field SetHearthstoneEnabled fun(enabled: boolean) flips the saved Hearthstone switch and replans (Journey/Journey.lua)
 ---@field ToggleHearthstone fun() flips the saved Hearthstone switch (Journey/Journey.lua)
 ---@field Hearthstone fun(now?: number): SPFHearthstone? the Hearthstone and its bind point, when it could be used (Transport/Teleports.lua)
----@field HearthSaving fun(): number? ms the Hearthstone saves on the journey, nil when it cannot be told (UI/HearthPin.lua)
+---@field HearthSaving fun(ready?: fun()): number? ms the Hearthstone saves on the journey, nil when it cannot be told (UI/HearthPin.lua)
 ---@field HearthPinTooltip fun(name: string, saving: number?): string, string[] (UI/HearthPin.lua)
 ---@field RefreshHearthPin fun() redraws the Hearthstone's button on the world map (UI/HearthPin.lua)
 
@@ -562,6 +562,7 @@ ShortestPathForeverPathData = nil
 ---@field hazards? SPFHazards -- weights baked walks that cross a hazard (Journey/Hazards.lua)
 ---@field cache? SPFPlannerCache
 ---@class SPFPlannerCache
+---@field busy? SPFPathJob the path job whose plan is building this cache now (Routing/Planner.lua)
 ---@field topology? SPFTopology
 ---@class SPFTopology
 ---@field nodes SPFPlace[]
