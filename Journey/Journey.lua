@@ -706,6 +706,10 @@ local function Update(self, elapsed)
 	self.progressElapsed = 0
 	local x, y, _, map = ns.JourneyPosition()
 	if not x then
+		-- No position (a loading screen, an instance): the floor followed before it may not be yours after.
+		if ns.Floor then
+			ns.Floor.Forget()
+		end
 		return
 	end
 	-- The guide's bend under way advances from this existing progress tick too, so an arrow that is off still keeps

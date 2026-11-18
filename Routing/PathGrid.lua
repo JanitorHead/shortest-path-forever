@@ -1819,14 +1819,24 @@ local pinned = {}
 
 ---@param map number?
 ---@param clusters table<number, true>?
+---@return boolean released whether a cluster pinned before is pinned no longer
 local function Pin(map, clusters)
 	if not map and next(pinned) == nil then
-		return -- Floor.lua forgets on every tick it follows nothing (a taxi, a lift): nothing pinned, no table to make
+		return false -- Floor.lua forgets on every tick it follows nothing (a taxi, a lift): nothing pinned, no table to make
+	end
+	local released = false
+	for m, keep in pairs(pinned) do
+		for k in pairs(keep) do
+			if m ~= map or not (clusters and clusters[k]) then
+				released = true
+			end
+		end
 	end
 	pinned = {}
 	if map and clusters then
 		pinned[map] = clusters
 	end
+	return released
 end
 
 -- Whether cluster k is decoded, or holds no walking data, so reading it never decodes.

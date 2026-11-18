@@ -203,7 +203,10 @@ end
 ---@param map number?
 ---@param clusters table<number, true>?
 function Path.Pin(map, clusters)
-	Grid.Pin(map, clusters)
+	-- A released cluster goes now when no job runs: otherwise it stays decoded until the next job drains the queue.
+	if Grid.Pin(map, clusters) and #queue == 0 then
+		Grid.Idle()
+	end
 end
 
 -- callback(costs, reason, job) completes once; optional progress(costs, nil, job) runs after each slice.

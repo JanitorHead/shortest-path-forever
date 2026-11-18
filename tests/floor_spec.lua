@@ -2,7 +2,7 @@
 -- of Lordaeron starts in the Undercity rather than on the ruins above it.
 local ns = {}
 assert(loadfile("tools/load_nav.lua"))(0)
-local swimming, nearDock, inCombat = false, nil, false
+local swimming, falling, nearDock, inCombat = false, false, nil, false
 _G.UnitOnTaxi = function()
 	return false
 end
@@ -11,6 +11,9 @@ _G.InCombatLockdown = function()
 end
 _G.IsSwimming = function()
 	return swimming
+end
+_G.IsFalling = function()
+	return falling
 end
 local tick, journeyAt
 ns.OnTravelTick = function(fn)
@@ -155,6 +158,105 @@ do
 	journeyAt = nil
 	tick()
 	assert(Floor.Height(0, STREET.x, STREET.y) == nil, "with no position the floor is forgotten")
+end
+
+-- The Trade District (#1046): the walking map has a cell beside the street that holds only the ground under the city.
+-- Walking in from the flight master at a run's pace per travel tick, with each decode one frame behind, the street is
+-- held through that cell, and a walk from it climbs straight to the roost. A fall or a swim there takes the lower
+-- surface instead.
+local SW_FM = { x = -8832.77, y = 478.62, z = 109.6 } -- Data/Taxi.lua node 2
+local GAP = { x = -8851, y = 589 } -- the street stands at z 94; the cell's only surface is the ground, z 74
+local ON_STREET = { x = -8838, y = 580, z = 97 }
+local function surfaces(p)
+	Path.FindSync(0, { x = p.x, y = p.y }, { x = p.x + 1, y = p.y + 1 })
+	local st = Grid.State(0)
+	local k, lc = Grid.locate(st, p.x, p.y)
+	local val, z, at = st.val[k], st.z[k], st.at[k]
+	local out = {}
+	if val[lc + 1] ~= 0 then
+		out[#out + 1] = z[lc + 1]
+	end
+	local n = at[-(lc + 1)]
+	while n and at[n + 1] == lc do
+		out[#out + 1] = z[n + 1]
+		n = n + 1
+	end
+	return out
+end
+local function walkIn()
+	Floor.Forget()
+	local line = assert(Path.FindSync(0, SW_FM, ON_STREET))
+	line[#line + 1] = GAP
+	for i = 2, #line do
+		local a, b = line[i - 1], line[i]
+		local steps = math.max(1, math.ceil(math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2) / 7))
+		for j = 1, steps do
+			journeyAt = { x = a.x + j / steps * (b.x - a.x), y = a.y + j / steps * (b.y - a.y) }
+			tick()
+			if frames[1] then
+				table.remove(frames, 1)()
+			end
+		end
+	end
+	drain()
+	tick()
+	tick()
+end
+do
+	local gap = surfaces(GAP)
+	assert(#gap == 1 and gap[1] < 80, "the gap cell holds only the ground: " .. table.concat(gap, " "))
+	walkIn()
+	local height = Floor.Height(0, GAP.x, GAP.y)
+	assert(height and height > 85, "the street is held through the gap: " .. tostring(height))
+	local route = assert(Path.FindSync(0, { x = GAP.x, y = GAP.y, z = height }, SW_FM))
+	for _, p in ipairs(route) do
+		assert(not p.z or p.z > 85, "from the held street the walk stays on the streets: " .. tostring(p.z))
+	end
+
+	walkIn()
+	falling = true
+	journeyAt = { x = GAP.x + 1, y = GAP.y }
+	tick()
+	falling = false
+	tick()
+	height = Floor.Height(0, GAP.x + 1, GAP.y)
+	assert(height and height < 80, "a fall there lands on the ground: " .. tostring(height))
+	journeyAt = nil
+	tick()
+end
+
+-- Knocked off a canal's bank into the water, you swim: the floor is the water's, not the street's above it.
+do
+	local CANAL = { x = -8920, y = 496 } -- the street at z 94 over the canal's water at z 72
+	Floor.Forget()
+	journeyAt = { x = CANAL.x, y = CANAL.y - 8 }
+	tick()
+	drain()
+	tick()
+	swimming = true
+	journeyAt = CANAL
+	tick()
+	drain()
+	tick()
+	swimming = false
+	local height = Floor.Height(0, CANAL.x, CANAL.y)
+	assert(height and height < 80, "swimming in the canal: " .. tostring(height))
+	journeyAt = nil
+	tick()
+end
+
+-- A cluster released from the pin goes as soon as no job runs, not at the next job.
+do
+	Floor.Forget()
+	journeyAt = { x = SW_FM.x, y = SW_FM.y }
+	tick()
+	drain()
+	tick()
+	local st = Grid.State(0)
+	assert(next(st.used), "the clusters around you are decoded")
+	journeyAt = nil
+	tick()
+	assert(next(st.used) == nil, "with nothing followed they are released")
 end
 
 -- At a lift's landing the floor is unknown: the lift changes it without moving you.

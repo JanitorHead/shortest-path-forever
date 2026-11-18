@@ -40,6 +40,8 @@ local FIRST_LIFT = 1001 -- Data/Transports.lua numbers lift and tram landings fr
 ---@field x number last sample
 ---@field y number
 ---@field nodes SPFFloorSurface[] the surfaces you may be on
+---@field gapX number? the cell a held floor last failed to reach
+---@field gapY number?
 
 ---@type SPFFloorState?
 local here
@@ -148,7 +150,20 @@ function Floor.Sample(map, x, y)
 		return Floor.Forget()
 	end
 	local last = here
-	if last and last.map == map and last.gx == gx and last.gy == gy then
+	-- The same cell, or the gap cell a held floor already failed to reach: nothing new unless you fell.
+	if
+		last
+		and last.map == map
+		and (
+			(last.gx == gx and last.gy == gy)
+			or (
+				last.gapX == gx
+				and last.gapY == gy
+				and not (IsFalling and IsFalling())
+				and not (IsSwimming and IsSwimming())
+			)
+		)
+	then
 		last.x, last.y = x, y
 		return
 	end
@@ -185,23 +200,28 @@ function Floor.Sample(map, x, y)
 		end
 		return
 	end
+	-- Swimming, you are on a water surface: a fall into water, a swim under a pier.
+	local swimming = IsSwimming and IsSwimming()
 	local nodes
-	if last and #last.nodes > 0 then
+	if last and #last.nodes > 0 and not swimming then
 		nodes = Step(st, last.nodes, ox, oy, gx, gy, steps + 1)
-		-- No way on the walking map from your floor to this cell: mostly a building or a street's edge the map has no
-		-- surface for at your height, sometimes a fall. Hold the floor you were last seen on rather than guess one here:
-		-- beside Stormwind's streets the only surface such a cell holds is the ground under the city. The next step is
-		-- taken from the cell the floor was last seen on, so it settles again on the way out, and past REACH cells from
-		-- that cell, or a JUMP between samples, the floor starts afresh.
+		-- No way on the walking map from your floor to this cell. Falling, the client says it is a fall or a knockback:
+		-- the floor starts afresh from this cell's surfaces. Otherwise it is a building or a street's edge the map has no
+		-- surface for at your height: hold the floor you were last seen on rather than guess one here, since beside
+		-- Stormwind's streets the only surface such a cell holds is the ground under the city (#1046). The next step is
+		-- taken from the cell the floor was last seen on, so it settles again on the way out; past REACH cells from that
+		-- cell, or a JUMP between samples, the floor starts afresh. A jump in such a cell reads as a fall.
 		if #nodes == 0 then
-			last.x, last.y = x, y
-			return
+			if not (IsFalling and IsFalling()) then
+				last.x, last.y, last.gapX, last.gapY = x, y, gx, gy
+				return
+			end
+			nodes = Surfaces(st, gx, gy)
 		end
 	else
 		nodes = Surfaces(st, gx, gy)
 	end
-	-- Swimming, you are on a water surface.
-	if #nodes > 1 and IsSwimming and IsSwimming() then
+	if swimming then
 		local wet = {}
 		for _, s in ipairs(nodes) do
 			if st.val[s.k][s.node + 1] == 2 then
