@@ -388,7 +388,7 @@
     },
     {
       "source": "UI/ServicesPanel.lua",
-      "sha256": "10f5725fd781cd16a639949cd2bc47189fa32ed789910cf999ac19a252134eb1",
+      "sha256": "15a67553c1975af8bde625207db63762fdd2728f64e7c005b9379f637f56e17b",
       "review": "Read BuildHeader, BuildContent, CreateBetterRow, PaintBetter, Where and Refresh. headerTitle uses GameFontNormalLarge2; emptyText uses GameFontDisable for STATUS and empty/position notices; better-row Label uses GameFontHighlight for the name-zone format and subtitle uses GameFontHighlight for Where. No later font override occurs. Search instructions and tooltips are template-owned; external group/section names, service details and countdown helper output are excluded.",
       "bindings": [
         {

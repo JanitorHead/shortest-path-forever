@@ -357,6 +357,9 @@ ns.NearbyServices = {
 		shortlisted[#shortlisted + 1] = { key = key, tier = tier }
 		return { (tier and far) or places[key][1] }
 	end,
+	MeasureWalks = function(_, callback)
+		callback({})
+	end,
 	Rank = function(candidates)
 		return {
 			Step = function()

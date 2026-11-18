@@ -70,6 +70,16 @@ local function SamePlace(a, b)
 end
 Search.SamePlace = SamePlace
 
+-- An offer is followed at once, before the proof ends. A first walk the proof refutes is only steps you retrace, but a
+-- Hearthstone, portal or flight cannot be undone: an offer may start with one only when the best plan the lower bounds
+-- still allow starts with that same step. Otherwise a cheaper walk still being searched could be thrown away for a
+-- trip across the world (#1032).
+local function Undoable(offer, best)
+	local step, other = offer.legs[1], best.legs[1]
+	return step.mode == "walk"
+		or other ~= nil and step.mode == other.mode and step.route == other.route and SamePlace(step.to, other.to)
+end
+
 -- Where you stand, with the height of your floor when Floor.lua knows it: the walks then start on that floor rather
 -- than the cheapest surface near you. Where the floor is not known, the range checks to the NPCs around you bound the
 -- height instead, and the walks start on the surfaces inside that band (Band.lua, #737).
@@ -81,6 +91,7 @@ local function Here()
 	local z = ns.Floor and ns.Floor.Height(map, x, y) or nil
 	return { map = map, x = x, y = y, z = z, band = z == nil and ns.Band and ns.Band.At(map, x, y) or nil }
 end
+Search.Here = Here
 
 -- Cancelled searches leave both batches paused with their settled costs.
 local function CancelPaths()
@@ -695,6 +706,7 @@ local function RefreshCosts(includeGoal, forced, replace)
 			and (not startBatch.done or not goalBatch.done)
 			and not search.offer
 			and #feasible.legs > 0
+			and Undoable(feasible, planned)
 		then
 			search.offer = feasible
 			PrepareWalks(feasible)
