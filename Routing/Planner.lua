@@ -129,7 +129,6 @@ function Planner.Landmass(node, landmasses)
 	end
 end
 
--- A place your faction can use; a class flight master (Nighthaven's druid ones) serves only its class.
 local function Eligible(node, options)
 	return (not node.faction or node.faction == options.faction) and (not node.class or node.class == options.class)
 end
@@ -719,11 +718,9 @@ local function Solve(options, cache, check, weigh)
 				local learned = state > LEARNED
 				-- A flight may only leave, land at or connect through flight points the character knows. Walking to
 				-- an unknown flight master learns that one point in person, so only its departure may fly; every
-				-- landing and connecting point still has to be known. A gossip flight lands beside its flight master
-				-- on the ground, which is the same in-person arrival.
+				-- landing and connecting point still has to be known. A gossip landing is the same in-person arrival.
 				local canLeaveNode = assumeKnown or not flying or not nodes[node].undiscovered
-				local arrived = labels.edge[current]
-				learned = learned or (arrived ~= nil and arrived.gossip == true)
+				learned = learned or (labels.edge[current] ~= nil and labels.edge[current].gossip == true)
 				for _, edge in ipairs(edges[node]) do
 					local canLeave = canLeaveNode
 					if edge.mode == "flight" and not assumeKnown then
@@ -859,13 +856,8 @@ local function Solve(options, cache, check, weigh)
 		for index = #reversed, 1, -1 do
 			local leg, last = reversed[index], legs[#legs]
 			local preceding = reversed[index + 1]
-			if
-				leg.mode == "flight"
-				and last
-				and preceding.mode == "flight"
-				and not leg.gossip
-				and not preceding.gossip
-			then
+			local chained = leg.mode == "flight" and preceding.mode == "flight" and not (leg.gossip or preceding.gossip)
+			if chained and last then
 				last.to, last.arrive = leg.to, leg.arrive
 				last.hops[#last.hops + 1] = leg.hops[1]
 				-- Connecting hops stay in flight; only the initial departure pays boarding.
