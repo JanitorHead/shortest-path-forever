@@ -150,8 +150,17 @@ ns.Path.FindMany = function(...)
 	return many(...)
 end
 local again
-assert(ns.NearbyServices.MeasureWalks({ place }, function(walks)
+ns.NearbyServices.MeasureWalks({ place }, function(walks)
 	again = walks[place]
-end) == nil)
+end)
+drain()
 assert(not searched and again, "standing still reuses the walks")
+-- A setting the walks were searched under changes: the same spot needs a new search.
+ns.db.followRoads = not ns.db.followRoads
+again = nil
+ns.NearbyServices.MeasureWalks({ place }, function(walks)
+	again = walks[place]
+end)
+drain()
+assert(searched and again, "a new road setting searches again")
 print("journey_shop_offer_spec: ok")

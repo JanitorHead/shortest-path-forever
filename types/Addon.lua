@@ -525,6 +525,7 @@ ShortestPathForeverPathData = nil
 ---@class SPFPlanOptions : SPFPlaceOptions
 ---@field withoutHearth? boolean
 ---@field feasibleOnly? boolean
+---@field withoutOpening? SPFLeg plan as if this first step were not there
 ---@field incumbent? number
 ---@field incumbentPlan? SPFPlan
 ---@field hearthMinimumSavings? number
@@ -604,6 +605,7 @@ ShortestPathForeverPathData = nil
 ---@field count? number
 
 ---@class SPFPathJob
+---@field walking? table<SPFPathJob, true> a Nearby measure's walking searches (NearbyRank.lua)
 ---@field map number
 ---@field from SPFPoint
 ---@field to? SPFPoint

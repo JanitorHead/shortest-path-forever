@@ -360,6 +360,9 @@ ns.NearbyServices = {
 	MeasureWalks = function(_, callback)
 		callback({})
 	end,
+	Cancel = function(job)
+		ns.Path.Cancel(job)
+	end,
 	Rank = function(candidates)
 		return {
 			Step = function()
