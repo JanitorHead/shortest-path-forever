@@ -91,6 +91,14 @@ class RasterizeLayersTest(unittest.TestCase):
         layers = self.layers(polys, {}, {})
         self.assertEqual(sorted(z for z, _, _ in layers[0]), [10.0, 30.0])
 
+    def test_a_street_off_the_cell_centre_stays_a_floor(self):
+        # A stall on the cell centre leaves the street only on the cell's eastern half; the ground under the city
+        # spans the cell twenty yards below. The street is still where the player stands, so it is a layer (#1046).
+        polys = {0: self.surface(0.0, 8.0, 10.0), 1: self.surface(4.5, 8.0, 30.0)}
+        layers = self.layers(polys, {}, {})
+        self.assertEqual(sorted(z for z, _, _ in layers[0]), [10.0, 30.0])
+        self.assertEqual(layers[0][0][0], 10.0)  # the centre's surface stays the base
+
     def test_steep_ground_is_never_the_same_layer_as_the_ground_it_leads_to(self):
         # A face from 50 to 61.6 degrees is walked down and never across, so joining it to the flat ground beside it
         # inside one cell must not lose the level it leads up to.
