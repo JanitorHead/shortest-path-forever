@@ -209,6 +209,7 @@ do
 	local looked = {}
 	local sharedPlaces, planCalls = {}, 0
 	local runs = {}
+	local standX = 0
 	-- The journey keeps one goal table while it lasts.
 	local journeyGoal = { map = 1, x = 100, y = 100 }
 	local function pump()
@@ -272,7 +273,7 @@ do
 			return journeyGoal
 		end,
 		JourneyPosition = function()
-			return 0, 0, nil, 1
+			return standX, 0, nil, 1
 		end,
 		NowMs = function()
 			return 1000
@@ -354,6 +355,13 @@ do
 	check(ns.HearthSaving() == 5000, "the comparison measures the journey with and without the Hearthstone")
 	check(#sharedPlaces == 0, "the comparison keeps the Hearthstone out of the shared place list")
 	check(planCalls == 2, "a plan is made for each side of the comparison")
+	-- Moved on while a comparison is still planning: an ask from well past it plans from where it stands.
+	standX = 100
+	check(ns.HearthSaving() == nil and #runs == 1, "moving on plans the comparison again")
+	standX = 200
+	check(ns.HearthSaving() == nil and #runs == 2 and runs[1].cancelled, "a farther ask replaces the one in flight")
+	pump()
+	standX = 0
 
 	local plan = { legs = { { teleport = { bind = true, item = 6948 } } } }
 	ns.JourneyPlan = function()

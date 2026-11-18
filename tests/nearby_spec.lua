@@ -959,6 +959,16 @@ do
 		boat = boat or leg.mode == "boat"
 	end
 	assert(boat, "the chosen trainer is reached by boat")
+	-- A destination chosen while the ranking runs is the newer request: the ranking then starts nothing.
+	routed = nil
+	assert(build().callback() == travelEnv.MenuResponse.CloseAll)
+	local journeyGoal = worldNs.JourneyGoal
+	worldNs.JourneyGoal = function()
+		return { map = 1, x = 0.5, y = 0.5 }
+	end
+	driver.path.runAll()
+	worldNs.JourneyGoal = journeyGoal
+	assert(routed == nil, "a destination set during the ranking is kept")
 end
 print(
 	"nearby: installed QuestieDB contract, sliced loading, faction/class/profession grouping, "

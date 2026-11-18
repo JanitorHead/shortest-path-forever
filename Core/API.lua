@@ -360,17 +360,22 @@ local function Answer(from, to, key, job)
 		end
 		return nil, "unreachable"
 	end
+	local generation = estimates
 	local plan = ns.Planner.Plan(options, job)
 	local seconds = plan and math.max(0, (plan.arrive - now) / 1000) or nil
-	if not cached then
-		if order[slot] then
-			estimates[order[slot]] = nil
-		end
-		order[slot] = key
-		slot = slot % CACHE_LIMIT + 1
-	end
 	local entry = { at = now, seconds = seconds or false, legs = plan and plan.legs }
-	estimates[key] = entry
+	-- A plan that paused may answer for inputs another estimate has since replaced: it keeps its answer
+	-- out of the cache that replaced them.
+	if estimates == generation then
+		if not estimates[key] then
+			if order[slot] then
+				estimates[order[slot]] = nil
+			end
+			order[slot] = key
+			slot = slot % CACHE_LIMIT + 1
+		end
+		estimates[key] = entry
+	end
 	if seconds then
 		return entry
 	end

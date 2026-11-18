@@ -256,7 +256,12 @@ function Editor.new()
 			self.state = reason == "combat" and "order-combat" or reason == "corpse" and "order-corpse" or "occupied"
 			return
 		end
-		local state, points = self.job:Step(pathJob)
+		local job = self.job
+		local state, points = job:Step(pathJob)
+		-- Cleared or restarted while its estimate paused: that order no longer owns the editor.
+		if self.job ~= job then
+			return
+		end
 		if state == "working" or state == "loading" then
 			self.state = state == "working" and "ordering" or "loading"
 			return

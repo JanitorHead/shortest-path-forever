@@ -1057,9 +1057,10 @@ function Search.Replan(riding, flying, changedRide, changedSpeed)
 				ns.Path.Cancel(replanning)
 			end
 			local version = pathVersion
-			replanning = ns.Path.Run(function(job)
+			-- Held until it renders, so a newer tick cancels it at any pause.
+			local this
+			this = ns.Path.Run(function(job)
 				local planned = Plan(nil, nil, job)
-				replanning = nil
 				if version ~= pathVersion or not goal then
 					return
 				end
@@ -1080,8 +1081,13 @@ function Search.Replan(riding, flying, changedRide, changedSpeed)
 						Render(planned, changedRide)
 					end
 				end
+			end, function()
+				if replanning == this then
+					replanning = nil
+				end
 			end)
-			probeJobs[replanning] = true
+			replanning = this
+			probeJobs[this] = true
 		end
 	end
 end

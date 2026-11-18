@@ -668,6 +668,8 @@ local function Travel(key, world, query, tier)
 	if #candidates < 2 or not (ns.EstimateIn and map and x and y) then
 		return Pick(key, best)
 	end
+	-- A destination chosen while the ranking runs is the newer request: the ranking then starts nothing.
+	local goal = ns.JourneyGoal()
 	local this
 	this = ns.Path.Run(function(job)
 		local rank = NewRank(candidates, function(...)
@@ -681,7 +683,9 @@ local function Travel(key, world, query, tier)
 	end, function(place)
 		if traveling == this then
 			traveling = nil
-			Navigate(key, place)
+			if ns.JourneyGoal() == goal then
+				Navigate(key, place)
+			end
 		end
 	end)
 	traveling = this

@@ -122,7 +122,7 @@ end
 -- planned.
 ---@type {goal: SPFPoint, at: number, x: number, y: number, map: number, saving: number?}?
 local comparison
----@type {goal: SPFPoint, map: number, job: SPFPathJob, ready: fun()?}?
+---@type {goal: SPFPoint, map: number, x: number, y: number, job: SPFPathJob, ready: fun()?}?
 local planning
 
 -- How much faster the journey is with the Hearthstone, in ms: the planner's answer with it and without it, from where
@@ -183,14 +183,20 @@ function ns.HearthSaving(ready)
 		readyAt[#copy] = hearth.readyAt
 		options.teleportReady = readyAt
 	end
-	if planning and planning.goal == goal and planning.map == map and not planning.job.done then
+	if
+		planning
+		and planning.goal == goal
+		and planning.map == map
+		and (planning.x - x) ^ 2 + (planning.y - y) ^ 2 <= MOVED ^ 2
+		and not planning.job.done
+	then
 		planning.ready = ready or planning.ready
 		return nil
 	end
 	if planning then
 		ns.Path.Cancel(planning.job)
 	end
-	local this = { goal = goal, map = map, ready = ready }
+	local this = { goal = goal, map = map, x = x, y = y, ready = ready }
 	planning = this
 	this.job = ns.Path.Run(function(job)
 		local with = ns.Planner.Plan(options, job)
