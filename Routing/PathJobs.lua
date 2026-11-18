@@ -53,11 +53,18 @@ pump = function()
 		return
 	end
 	local finish = clock() + Path.budget
+	local searched = false
 	repeat
+		-- A callback job runs the caller's own work (the journey planner), which no deadline slices: once
+		-- this pump has searched, a callback waits for the next frame instead of stacking on the slice.
+		if searched and queue[1] and queue[1].notify and queue[1].owner and queue[1].owner.done then
+			break
+		end
 		local job = table.remove(queue, 1)
 		if not job then
 			break
 		end
+		searched = searched or not job.notify
 		local t0 = clock()
 		Deadline(math.min(finish, t0 + (not job.notify and #queue > 0 and Path.budget / 2 or Path.budget)))
 		Expansions(job.expansions or 0)
