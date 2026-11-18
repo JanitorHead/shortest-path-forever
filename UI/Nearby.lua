@@ -609,45 +609,7 @@ local function PlayerWorld()
 		return ns.WorldPoint(map, x, y)
 	end
 end
--- One row's shortlist ranked by the planner's own journey cost, one Estimate per Step. The panel, the tracking menu and
--- /spfnear drain it inside a path job, whose estimates pause at the frame budget. The best starts as the straight-line
--- nearest, so a row always has an NPC, and stays so when no estimate can be made.
----@class SPFNearbyRank
----@field key? string
----@field candidates SPFNearbyPlace[]
----@field estimate SPFEstimate
----@field fromMap integer
----@field fromX number
----@field fromY number
----@field at integer
----@field best? SPFNearbyPlace
----@field seconds? number
-local Rank = {}
-Rank.__index = Rank
-
-function Rank:Step()
-	local place = self.candidates[self.at]
-	if not place then
-		return self.best or self.candidates[1], self.seconds, false
-	end
-	self.at = self.at + 1
-	local seconds = self.estimate(self.fromMap, self.fromX, self.fromY, place.map, place.x, place.y)
-	if seconds and (not self.seconds or seconds < self.seconds) then
-		self.best, self.seconds = place, seconds
-	end
-	return self.best or self.candidates[1], self.seconds, self.at <= #self.candidates
-end
-
-local function NewRank(candidates, estimate, fromMap, fromX, fromY)
-	return setmetatable({
-		candidates = candidates,
-		estimate = estimate,
-		fromMap = fromMap,
-		fromX = fromX,
-		fromY = fromY,
-		at = 1,
-	}, Rank)
-end
+local NewRank, MeasureWalks = ns.NearbyRank.New, ns.NearbyRank.MeasureWalks
 
 -- The ranking a click started, while it runs: a later click replaces it.
 ---@type SPFPathJob?
@@ -668,27 +630,37 @@ local function Travel(key, world, query, tier)
 	if #candidates < 2 or not (ns.EstimateIn and map and x and y) then
 		return Pick(key, best)
 	end
-	-- A destination chosen while the ranking runs is the newer request: the ranking then starts nothing.
+	-- A destination chosen while the walks or the ranking run is the newer request: the ranking then starts nothing.
 	local goal = ns.JourneyGoal()
-	local this
-	this = ns.Path.Run(function(job)
-		local rank = NewRank(candidates, function(...)
-			return ns.EstimateIn(job, ...)
-		end, map, x, y)
-		local more = true
-		while more do
-			_, _, more = rank:Step()
+	local measuring
+	measuring = MeasureWalks(candidates, function(walks)
+		if traveling ~= measuring then
+			return
 		end
-		return rank.best or best
-	end, function(place)
-		if traveling == this then
-			traveling = nil
-			if ns.JourneyGoal() == goal then
-				Navigate(key, place)
+		local this
+		this = ns.Path.Run(function(job)
+			local rank = NewRank(candidates, function(...)
+				return ns.EstimateIn(job, ...)
+			end, map, x, y, walks)
+			local more = true
+			while more do
+				_, _, more = rank:Step()
 			end
-		end
+			return rank.best or best
+		end, function(place)
+			if traveling == this then
+				traveling = nil
+				if ns.JourneyGoal() == goal then
+					Navigate(key, place)
+				end
+			end
+		end)
+		traveling = this
 	end)
-	traveling = this
+	-- A search that answered at once has already started the ranking.
+	if measuring and not traveling then
+		traveling = measuring
+	end
 	return MenuResponse.CloseAll
 end
 
@@ -811,7 +783,9 @@ end
 ---@field collapsed boolean
 ---@field rows SPFNearbyRow[]
 ---@alias SPFEstimate fun(...: number): number?
----@alias SPFRank fun(places: SPFNearbyPlace[], estimate: SPFEstimate, map: number, x: number, y: number): SPFNearbyRank
+-- luacheck: push ignore 631
+---@alias SPFRank fun(places: SPFNearbyPlace[], estimate: SPFEstimate, map: number, x: number, y: number, walks?: SPFWalks): SPFNearbyRank
+-- luacheck: pop
 ---@alias SPFClosed table<string, boolean> the sections the player folded shut
 ---@alias SPFSeconds table<string, number> the panel's travel estimates, by row id
 ---@class SPFNearbyServices
@@ -825,6 +799,7 @@ end
 ---@field Sections fun(world: SPFPoint, query?: string, collapsed?: SPFClosed, seconds?: SPFSeconds): SPFNearbySection[]
 ---@field Shortlist fun(key: string, world: SPFPoint, limit: integer, query?: string, tier?: integer): SPFNearbyPlace[]
 ---@field Rank SPFRank
+---@field MeasureWalks SPFMeasureWalks
 ---@field Detail fun(key: string, place: SPFNearbyPlace, query?: string): string
 ---@field Goods fun(key: string, place: SPFNearbyPlace, query?: string): integer[]?
 ---@field ItemName fun(itemID: integer): string?
@@ -962,6 +937,7 @@ ns.NearbyServices = {
 	Sections = Sections,
 	Shortlist = Shortlist,
 	Rank = NewRank,
+	MeasureWalks = MeasureWalks,
 	Detail = Detail,
 	Goods = Goods,
 	ItemName = function(itemID)

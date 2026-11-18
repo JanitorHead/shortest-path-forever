@@ -36,6 +36,7 @@
 ---@field NearbyRoles SPFNearbyRolesAPI the class, portal and battlemaster groups (UI/NearbyRoles.lua)
 ---@field NearbyProfessions SPFNearbyProfessionsAPI the "Only my professions" shop rule (UI/NearbyProfessions.lua)
 ---@field NearbyServices SPFNearbyServices
+---@field NearbyRank SPFNearbyRankAPI the travel-time ranking and the walks it is built on (UI/NearbyRank.lua)
 ---@field NearbyGroups SPFNearbyGroups the vendor and service groups the list and the map share (UI/NearbyGroups.lua)
 ---@field TownServiceChoices SPFTownServiceChoice[] the town services' four levels (UI/TownServices.lua)
 ---@field RefreshTownServices fun() redraws the town services on the world map (UI/TownServices.lua)

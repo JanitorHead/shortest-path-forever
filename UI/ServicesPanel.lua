@@ -458,6 +458,37 @@ local function StopRanking()
 	end
 end
 
+-- Rank each row's shortlist on the measured walks, in one path job.
+local function RankRows(queue, walks, map, x, y)
+	local this
+	this = ns.Path.Run(function(job)
+		local function estimate(...)
+			return ns.EstimateIn(job, ...)
+		end
+		for _, item in ipairs(queue) do
+			local rank = ns.NearbyServices.Rank(item.candidates, estimate, map, x, y, walks)
+			local place, seconds, more
+			repeat
+				place, seconds, more = rank:Step()
+			until not more
+			if place then
+				chosen[item.key] = place
+			end
+			if seconds then
+				estimates[item.key] = seconds
+			end
+			UpdateRow(item.key)
+		end
+	end, function()
+		if ranking == this then
+			ranking = nil
+			-- Every row has its travel time now: the dungeons and raids reorder by it, once.
+			Refresh()
+		end
+	end)
+	ranking = this
+end
+
 function Queue()
 	if not visible then
 		return
@@ -482,33 +513,24 @@ function Queue()
 	if #queue == 0 then
 		return
 	end
-	local this
-	this = ns.Path.Run(function(job)
-		local function estimate(...)
-			return ns.EstimateIn(job, ...)
+	-- Every row's shortlist in one walking search, so each row's time is the journey's.
+	local places = {}
+	for _, item in ipairs(queue) do
+		for _, place in ipairs(item.candidates) do
+			places[#places + 1] = place
 		end
-		for _, item in ipairs(queue) do
-			local rank = ns.NearbyServices.Rank(item.candidates, estimate, map, x, y)
-			local place, seconds, more
-			repeat
-				place, seconds, more = rank:Step()
-			until not more
-			if place then
-				chosen[item.key] = place
-			end
-			if seconds then
-				estimates[item.key] = seconds
-			end
-			UpdateRow(item.key)
+	end
+	local measuring
+	measuring = ns.NearbyServices.MeasureWalks(places, function(walks)
+		if ranking ~= measuring then
+			return
 		end
-	end, function()
-		if ranking == this then
-			ranking = nil
-			-- Every row has its travel time now: the dungeons and raids reorder by it, once.
-			Refresh()
-		end
+		RankRows(queue, walks, map, x, y)
 	end)
-	ranking = this
+	-- A search that answered at once has already started the ranking.
+	if measuring and not ranking then
+		ranking = measuring
+	end
 end
 
 -- A fresh look at the player's place: zones change and the ticker both come through here.
