@@ -1,5 +1,6 @@
 ---@class SPFNamespace
 ---@field RefreshServiceFilters fun() refreshes visible map filter checkboxes
+---@field StopServiceRanking? fun() stops the panel's walk measure and ranking
 ---@type string, SPFNamespace
 local _, ns = ...
 
@@ -463,6 +464,8 @@ local function StopRanking()
 		ranking = nil
 	end
 end
+-- A journey started from Nearby needs the frame budget for its own searches.
+ns.StopServiceRanking = StopRanking
 
 -- Ranks the rows not yet decided on the walks measured so far; callback(open) with how many are still open.
 local function RankRows(queue, walks, pending, map, x, y, callback)
@@ -696,8 +699,12 @@ local function StartTicker(shown)
 				if visible then
 					Refresh()
 					-- A measure still running finishes first, while it answers for where you stand: restarting it every
-					-- tick would rank nothing.
-					if not (ranking or measuring) or measuring and not ns.NearbyServices.Holds(measuring) then
+					-- tick would rank nothing. A journey still searching has the frame budget first.
+					local searching = ns.JourneyStatus and ns.JourneyStatus()
+					if
+						not searching
+						and (not (ranking or measuring) or measuring and not ns.NearbyServices.Holds(measuring))
+					then
 						Queue()
 					end
 				end
