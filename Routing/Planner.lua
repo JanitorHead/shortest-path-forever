@@ -129,8 +129,9 @@ function Planner.Landmass(node, landmasses)
 	end
 end
 
+-- A place your faction can use; a class flight master (Nighthaven's druid ones) serves only its class.
 local function Eligible(node, options)
-	return not node.faction or node.faction == options.faction
+	return (not node.faction or node.faction == options.faction) and (not node.class or node.class == options.class)
 end
 
 local function Keys(values)
@@ -308,6 +309,7 @@ local CACHE_KEYS = {
 	"baked",
 	"taxiTimes",
 	"faction",
+	"class",
 	"otherFaction",
 	"waterWalking",
 	"hazards",
@@ -422,6 +424,8 @@ local function Solve(options, cache, check, weigh)
 				Edge(taxis[path.from], taxis[path.to], {
 					mode = "flight",
 					path = path,
+					-- A class flight master flies you by gossip, straight to its landing whether you know it or not.
+					gossip = options.taxiNodes[path.from].class ~= nil or nil,
 					duration = (measured or path.seconds) * 1000,
 					estimated = not measured and path.estimated,
 				})
@@ -521,7 +525,8 @@ local function Solve(options, cache, check, weigh)
 	end
 	local undiscovered = false
 	for id, index in pairs(taxis) do
-		local known = options.taxiKnown == nil or options.taxiKnown[id] and true or false
+		-- A class flight master has no discovery: every character it serves has it.
+		local known = options.taxiKnown == nil or options.taxiKnown[id] and true or options.taxiNodes[id].class ~= nil
 		nodes[index].undiscovered = not known
 		if not known then
 			undiscovered = true
@@ -720,7 +725,7 @@ local function Solve(options, cache, check, weigh)
 					local canLeave = canLeaveNode
 					if edge.mode == "flight" and not assumeKnown then
 						local departureKnown = not nodes[node].undiscovered or learned
-						if not departureKnown or nodes[edge.to].undiscovered then
+						if not departureKnown or (nodes[edge.to].undiscovered and not edge.gossip) then
 							canLeave = false
 						end
 					end
@@ -757,7 +762,8 @@ local function Solve(options, cache, check, weigh)
 						if edge.mode == "flight" and not flying then
 							finish = finish + BOARDING
 						end
-						local target = edge.to + (edge.mode == "flight" and FLIGHT or 0)
+						-- A gossip flight ends on the ground at its landing: flying on means talking to that flight master.
+						local target = edge.to + (edge.mode == "flight" and not edge.gossip and FLIGHT or 0)
 						if edge.mode == "walk" then
 							if nodes[edge.to].undiscovered and not assumeKnown then
 								-- Standing at this master is what unlocks its flights, so this arrival is the one
@@ -830,6 +836,7 @@ local function Solve(options, cache, check, weigh)
 				boarding = edge.stop,
 				alighting = edge.alighting,
 				hops = edge.path and { edge.path } or nil,
+				gossip = edge.gossip,
 				yards = edge.yards,
 				teleport = edge.teleport,
 				partyPortal = edge.partyPortal,
@@ -849,7 +856,13 @@ local function Solve(options, cache, check, weigh)
 		for index = #reversed, 1, -1 do
 			local leg, last = reversed[index], legs[#legs]
 			local preceding = reversed[index + 1]
-			if leg.mode == "flight" and last and preceding.mode == "flight" then
+			if
+				leg.mode == "flight"
+				and last
+				and preceding.mode == "flight"
+				and not leg.gossip
+				and not preceding.gossip
+			then
 				last.to, last.arrive = leg.to, leg.arrive
 				last.hops[#last.hops + 1] = leg.hops[1]
 				-- Connecting hops stay in flight; only the initial departure pays boarding.

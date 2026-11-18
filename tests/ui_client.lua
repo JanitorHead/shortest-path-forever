@@ -1107,6 +1107,9 @@ _G.Menu = {
 _G.UnitFactionGroup = function()
 	return "Alliance"
 end
+_G.UnitClass = _G.UnitClass or function()
+	return "Hunter", "HUNTER"
+end
 _G.UnitLevel = function()
 	return 60
 end
