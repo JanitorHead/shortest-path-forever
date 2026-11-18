@@ -500,15 +500,26 @@ end
 -- Where here falls on a walk: the segment ending at points[index], how far along it (t), and the yards still to walk
 -- from there, or nil when here is more than reach (ON_PATH by default) off the walk. A here with a height (the floor
 -- Floor.lua follows) is not on a segment drawn on another floor.
+-- Segment lengths of a walk, built once per points table: OnWalk runs on every progress tick for the same
+-- walk, and rebuilding them allocated a table and re-rooted every segment each time (WFA-13). Weak keys let
+-- a replaced walk's lengths go with it.
+local walkLengths = setmetatable({}, { __mode = "k" })
 local function OnWalk(points, here, reach)
 	if not here then
 		return nil
 	end
-	local lengths, total = {}, 0
-	for index = 2, #points do
-		local a, b = points[index - 1], points[index]
-		lengths[index] = math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2)
-		total = total + lengths[index]
+	local cached = walkLengths[points]
+	local lengths, total
+	if cached and cached.count == #points then
+		lengths, total = cached.lengths, cached.total
+	else
+		lengths, total = {}, 0
+		for index = 2, #points do
+			local a, b = points[index - 1], points[index]
+			lengths[index] = math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2)
+			total = total + lengths[index]
+		end
+		walkLengths[points] = { lengths = lengths, total = total, count = #points }
 	end
 	local walked, best, found, along, after = 0, nil, nil, nil, nil
 	for index = 2, #points do
