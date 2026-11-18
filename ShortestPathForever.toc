@@ -47,6 +47,7 @@ Data\Credits.lua
 Transport\Model.lua
 Routing\Savings.lua
 Routing\Planner.lua
+Routing\QuestDestination.lua
 Core\Core.lua
 Core\Distance.lua
 Transport\Timetable.lua
