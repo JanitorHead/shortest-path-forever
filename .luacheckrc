@@ -55,6 +55,7 @@ read_globals = {
 	"GetRealZoneText",
 	"GetServerTime",
 	"GetTime",
+	"GetFramerate",
 	"GRAY_FONT_COLOR",
 	"RED_FONT_COLOR",
 	"HIGHLIGHT_FONT_COLOR",

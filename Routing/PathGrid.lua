@@ -27,7 +27,9 @@ end
 local Path = {}
 ns.Path = Path
 
-Path.budget = 2 -- milliseconds of path work, leaving headroom under the 3 ms frame ceiling
+-- Milliseconds of path work a frame. A slice overruns it by about half a millisecond, inside the 3 ms frame
+-- rule (#1080).
+Path.budget = 2.5
 Path.clusters = 64 -- secondary count ceiling per map (at least 4)
 -- Decoded entrances/edges across all maps. A reverse search across a continent keeps a ring of clusters in use, each
 -- with its inbound lists; 4 MB held about 55 of them, and a search over most of Kalimdor rebuilt each cluster's lists
@@ -128,6 +130,9 @@ local function Data(map)
 end
 
 local states = {}
+-- Each map's endpoint connections, kept when a journey ends and its states go (Reset): a flight master's or dock's
+-- entrance costs are the same for every journey, and connecting one is a search over its whole cluster (#1080).
+local keptEnds = {}
 
 local function unpackField(data, field, key)
 	if data[field][key] or not data.packed then
@@ -223,7 +228,7 @@ local function State(map)
 			baseDeg = {},
 			baseAdj = {},
 			baseIn = {},
-			ends = {}, -- bounded local connections, shared by successive endpoint batches
+			ends = {}, -- bounded local connections, shared by successive endpoint batches and journeys
 			endCount = 0,
 			road = {}, -- [k] = road cells (local cell -> coverage), false when the cluster has none
 			roadEdges = {}, -- [k] = baked entrance edge ratios (RoadEdges.lua)
@@ -231,6 +236,10 @@ local function State(map)
 			nodeZ = {}, -- [id] = an entrance's stored height, kept after its cluster is released
 			nodeSteep = {}, -- [id] = whether its surface is steep ground
 		}
+		local kept = keptEnds[map]
+		if kept then
+			st.ends, st.endCount = kept.ends, kept.count
+		end
 		states[map] = st
 	end
 	return st
@@ -1881,7 +1890,12 @@ end
 
 local function Reset()
 	holds = {}
-	for _, st in pairs(states) do
+	for map, st in pairs(states) do
+		-- The costs stay; the local search trees behind them are only for drawing a walk, and go with the grids.
+		for _, entry in pairs(st.ends) do
+			entry.tree = nil
+		end
+		keptEnds[map] = { ends = st.ends, count = st.endCount }
 		if st.D.packed then
 			st.D.graph, st.D.grid, st.D.height, st.D.floor = {}, {}, {}, {}
 		end
