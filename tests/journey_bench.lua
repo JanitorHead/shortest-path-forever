@@ -1,18 +1,24 @@
--- Real Journey + nav data, one pump per simulated 60 Hz frame. Optional arg: a baseline source directory.
+-- Real Journey + nav data, one pump per simulated 60 Hz frame. Optional args: a baseline source directory, then
+-- "continent" for the continent-wide case alone (kept out of the default set speedpatrol times).
 local root = arg[1] or "."
-for _, case in ipairs({
+local cases = {
 	{ "Auberdine -> Tanaris", 26, 39, "Alliance" },
 	{ "Auberdine -> Eastern Plaguelands", 26, 67, "Alliance" },
 	{ "Crossroads -> Thunder Bluff", 25, 22, "Horde" },
 	{ "Ironforge -> Menethil", 6, 7, "Alliance" },
+}
+if arg[2] == "continent" then
 	-- A goal search over most of Kalimdor: the Auberdine boat stays a contender until about 13.5k yards (#1074).
-	{
-		"Stormwind -> Feralas",
-		{ map = 0, x = -8849, y = 647.9, z = 98 },
-		{ map = 1, x = -4450, y = 1350, z = 0 },
-		"Alliance",
-	},
-}) do
+	cases = {
+		{
+			"Stormwind -> Feralas",
+			{ map = 0, x = -8849, y = 647.9, z = 98 },
+			{ map = 1, x = -4450, y = 1350, z = 0 },
+			"Alliance",
+		},
+	}
+end
+for _, case in ipairs(cases) do
 	local driver = assert(loadfile("tests/journey_driver.lua"))(root)
 	local ns = driver.ns
 	for _, file in ipairs({
