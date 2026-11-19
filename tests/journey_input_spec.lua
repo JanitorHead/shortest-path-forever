@@ -138,7 +138,7 @@ local chunk = assert(loadfile("Journey/JourneyInput.lua"))
 setfenv(chunk, env)("ShortestPathForever", ns)
 assert(handler(map, 3, "LeftButton"), "Shift-clicking a flight-master pin must start a journey")
 assert(destination.map == 1 and destination.x == 100 and destination.y == 200)
-assert(destination.label == "Astranaar" and destination.pinBadge, "keep the clicked icon's corner marker")
+assert(destination.label == "Astranaar")
 assert(ns.TaxiNodes[26].label == nil, "do not mutate the shared taxi node")
 destination, shift = nil, false
 assert(not handler(map, 3, "LeftButton") and destination == nil)
@@ -156,7 +156,7 @@ pin.GetGlobalPosition = function()
 	return 0.3, 0.4
 end
 assert(handler(map, 3, "LeftButton") and destination.x == 0.3 and destination.y == 0.4)
-assert(destination.label == "Camp" and destination.pinBadge, "other point icons keep their corner tag")
+assert(destination.label == "Camp")
 pin.GetGlobalPosition = function() end
 destination = nil
 assert(not handler(map, 3, "LeftButton") and destination == nil, "non-point pins cannot start journeys")
@@ -174,7 +174,6 @@ local own = {
 }
 destination = nil
 assert(ownClick(own, "LeftButton") and destination.x == 100 and destination.label == "Astranaar", "own flight pin")
-assert(destination.pinBadge, "keep the clicked icon's corner marker")
 own.marker, own.poiInfo, destination = "dock", nil, nil
 assert(ownClick(own, "LeftButton") and destination.x == 0.6 and destination.y == 0.7, "a dock by where it stands")
 own.marker, destination = "stop", nil

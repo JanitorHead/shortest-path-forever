@@ -248,7 +248,7 @@ local function PlanQuest(questID, clickedMap, isWaypoint)
 		ns.Print(L["No location for that quest yet."])
 		return false
 	end
-	point.label, point.questID, point.pinBadge = location.label, questID, clickedMap ~= nil
+	point.label, point.questID = location.label, questID
 	-- The goal's live objectives: the arrow and any pin read them from the client's quest log.
 	point.questIDs = { questID }
 	ns.StartJourney(point)
@@ -349,6 +349,9 @@ end
 local focusedQuest
 ---@type table?
 local focusedWaypoint
+-- The flight point a left click on the map super-tracks (UI/FlightPins.lua): the same choice of destination (#1079).
+---@type number?
+local focusedNode
 
 ---@return number?
 local function SuperTrackedQuest()
@@ -365,8 +368,20 @@ local function UserWaypoint()
 	return get and get() or nil
 end
 
+---@return number?
+local function SuperTrackedNode()
+	local get = C_SuperTrack and C_SuperTrack.GetSuperTrackedMapPin
+	if not (get and Enum.SuperTrackingMapPinType) then
+		return nil
+	end
+	local kind, id = get()
+	if kind == Enum.SuperTrackingMapPinType.TaxiNode and type(id) == "number" then
+		return id
+	end
+end
+
 local function RememberFocused()
-	focusedQuest, focusedWaypoint = SuperTrackedQuest(), UserWaypoint()
+	focusedQuest, focusedWaypoint, focusedNode = SuperTrackedQuest(), UserWaypoint(), SuperTrackedNode()
 end
 
 -- A loading screen starts from the focus the player already has; only a later change is theirs to route.
@@ -412,14 +427,41 @@ local function GoalIsWaypoint(waypoint)
 	return point ~= nil and goal.map == point.map and goal.x == point.x and goal.y == point.y
 end
 
+---@param node number
+---@return boolean
+local function GoalIsNode(node)
+	local goal, at = ns.JourneyGoal and ns.JourneyGoal(), ns.TaxiNodes[node]
+	return goal ~= nil and at ~= nil and goal.map == at.map and goal.x == at.x and goal.y == at.y
+end
+
+local JourneyToPin
+
+---@param node number
+local function JourneyToNode(node)
+	JourneyToPin(nil, { nodeID = node, name = ns.TaxiName and ns.TaxiName(node) or nil }, true)
+end
+
 ---@param event string
 function ns.FocusedTrackingChanged(event)
 	local guide = ns.JourneyGuide
 	local owned = guide and guide.OwnsReported and guide.OwnsReported(event) or false
 	if event == "SUPER_TRACKING_CHANGED" then
-		local questID = SuperTrackedQuest()
-		local changed = questID ~= focusedQuest
-		focusedQuest = questID
+		local questID, node = SuperTrackedQuest(), SuperTrackedNode()
+		local changed, nodeChanged = questID ~= focusedQuest, node ~= focusedNode
+		focusedQuest, focusedNode = questID, node
+		if
+			nodeChanged
+			and node
+			and not owned
+			and ns.db
+			and ns.db.focusedQuest
+			and ns.db.journey
+			and not GuideLeads()
+			and not GoalIsNode(node)
+		then
+			JourneyToNode(node)
+			return
+		end
 		if
 			owned
 			or not changed
@@ -470,25 +512,24 @@ end
 
 -- A journey to a pin clicked with the journey key, labelled by its name if it has one: a flight point by its node,
 -- anything else by where it stands on the map. False when there is nowhere to plan to.
----@param mapID number
+---@param mapID? number
 ---@param info? {nodeID?: number, name?: string}
 ---@param flight boolean
 ---@param x? number
 ---@param y? number
 ---@return boolean
-local function JourneyToPin(mapID, info, flight, x, y)
+function JourneyToPin(mapID, info, flight, x, y)
 	local node = flight and info and ns.TaxiNodes[info.nodeID]
 	local point
 	if node then
 		point = { map = node.map, x = node.x, y = node.y, z = node.z }
-	elseif x and y then
+	elseif mapID and x and y then
 		point = ns.WorldPoint(mapID, x, y)
 	end
 	if not (point and OnZone(ns.InstanceEntrance(point))) then
 		return false
 	end
 	point.label = info and info.name
-	point.pinBadge = true
 	ns.StartJourney(point)
 	return true
 end
