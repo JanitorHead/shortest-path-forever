@@ -243,7 +243,8 @@ local labels = {}
 for _, item in ipairs(foreign.entries) do
 	labels[#labels + 1] = item.text
 end
-assert(table.concat(labels, ",") == expected:gsub(",divider,Lock the tracker,Tracker$", ""), "foreign menus preserve slot order")
+local foreignOrder = expected:gsub(",divider,Lock the tracker,Tracker$", "")
+assert(table.concat(labels, ",") == foreignOrder, "foreign menus preserve slot order")
 local previousGuide, previousCleared = guide, cleared
 entry(foreign, "Guide me").callback()
 entry(foreign, "Clear journey").callback()
