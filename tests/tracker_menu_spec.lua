@@ -221,6 +221,7 @@ env.ForeverCore.TrackerHost = shared.TrackerHost
 env.ForeverCore.ContextMenu = shared.ContextMenu
 env.ForeverCore.APIKit = { Hub = noop, NotReady = noop }
 env.ForeverCore.Art = { Marker = noop, Diamond = noop }
+env.ForeverCore.QuestLogTabs = { SetTabShown = noop }
 env.C_AddOns = { GetAddOnMetadata = noop }
 ns.ForeverRequire = function(ready)
 	assert(ready, "the addon loads with a foreign host")
