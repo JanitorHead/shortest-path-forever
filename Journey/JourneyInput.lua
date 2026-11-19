@@ -43,6 +43,26 @@ function ns.JourneyKeyName(key)
 	return KEY_NAMES[key or JourneyKey()] or KEY_NAMES.shift
 end
 
+-- The line a tooltip ends with on every map pin the journey key plans a journey to (#1078): the addon's flight
+-- points, docks and portals, and the map's own pins OnPinClick takes. One producer, so the wording and the key match
+-- everywhere.
+-- Nothing while journeys are off, or under the gamepad interface, whose map cursor has no key to hold.
+---@return string?
+function ns.JourneyClickHint()
+	if not (ns.db and ns.db.journey) or ns.GamepadUI() then
+		return nil
+	end
+	return string.format(L["%s-click to plan a journey here"], ns.JourneyKeyName())
+end
+
+---@param tooltip GameTooltip
+function ns.AddJourneyClickHint(tooltip)
+	local hint = ns.JourneyClickHint()
+	if hint then
+		GameTooltip_AddInstructionLine(tooltip, hint)
+	end
+end
+
 -- The bindings UI reads these names from the global namespace. They are set here from L so each locale translates
 -- them with the rest of the addon; Bindings.xml lists the hidden buttons they click.
 _G.BINDING_HEADER_SHORTESTPATHFOREVER = L["Shortest Path Forever"]
@@ -776,6 +796,34 @@ ns.Init(function()
 	-- The map's click registries are Blizzard's own for addons (MapCanvasSecureUtil.CreateHandlerRegistry): it keeps
 	-- them outside the map's fields and calls each handler through securecallfunction, so the map's code never runs
 	-- the addon's. The addon's own pins take their clicks through UI/Canvas.lua instead.
+	-- The map's own pins write their tooltips themselves. The hint joins one owned by a pin OnPinClick plans to, found
+	-- from the pin's fields alone (MapCanvasPinMixin's owningMap and normalizedX, QuestPinMixin's questID): none of its
+	-- methods is called and nothing is written to it (WFA-38).
+	-- The minimap's own tooltip, over what it tracks, is the minimap's: a click there plans to that spot.
+	GameTooltip:HookScript("OnShow", function(tooltip)
+		local pin = tooltip:GetOwner()
+		---@cast pin SPFMapPin?
+		if not (pin and ns.JourneyClickHint()) or pin:IsForbidden() then
+			return
+		end
+		if pin == Minimap then
+			ns.AddJourneyClickHint(tooltip)
+			tooltip:Show()
+			return
+		end
+		local template = rawget(pin, "pinTemplate")
+		if
+			not WorldMapFrame:IsShown()
+			or rawget(pin, "owningMap") ~= WorldMapFrame
+			or type(template) ~= "string"
+			or (template == "QuestPinTemplate" and not rawget(pin, "questID"))
+			or (template ~= "QuestPinTemplate" and rawget(pin, "normalizedX") == nil)
+		then
+			return
+		end
+		ns.AddJourneyClickHint(tooltip)
+		tooltip:Show()
+	end)
 	WorldMapFrame:AddCanvasClickHandler(OnCanvasClick)
 	WorldMapFrame:AddGlobalPinMouseActionHandler(OnPinClick)
 	ns.Canvas.OnClick(OnOwnPinClick)

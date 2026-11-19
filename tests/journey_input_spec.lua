@@ -25,6 +25,7 @@ local function Record(tag, fn)
 		questMapLogMenu = fn
 	end
 end
+local gamepad, tooltipShown = false, nil
 local ns = {
 	db = { journey = true },
 	L = setmetatable({}, {
@@ -47,6 +48,9 @@ local ns = {
 	end,
 	Init = function(fn)
 		fn()
+	end,
+	GamepadUI = function()
+		return gamepad
 	end,
 	-- UI/Canvas.lua: the addon's own pins hand their clicks to this filter.
 	Canvas = {
@@ -104,6 +108,15 @@ local env = setmetatable({
 			minimapClick = fn
 		end,
 	},
+	GameTooltip = {
+		HookScript = function(_, script, fn)
+			assert(script == "OnShow")
+			tooltipShown = fn
+		end,
+	},
+	GameTooltip_AddInstructionLine = function(tooltip, text)
+		tooltip.lines[#tooltip.lines + 1] = text
+	end,
 	Menu = { ModifyMenu = Record },
 	MapCanvasMixin = { MouseAction = { Click = 3 } },
 	C_Map = {
@@ -185,6 +198,69 @@ assert(not ownClick(own, "LeftButton") and destination == nil, "an open chat box
 chatBox = nil
 assert(not ownClick(own, "RightButton") and destination == nil)
 print("journey input ok")
+
+-- Every map pin the journey key plans to ends its tooltip with how (#1078): one line from one producer, naming the
+-- chosen key, and only where the click would plan.
+do
+	local function tooltipFor(owner)
+		local tooltip = { lines = {}, shows = 0 }
+		function tooltip.GetOwner()
+			return owner
+		end
+		function tooltip.Show(self)
+			self.shows = self.shows + 1
+		end
+		tooltipShown(tooltip)
+		return tooltip
+	end
+	local function blizzardPin(fields)
+		local mapPin = { owningMap = env.WorldMapFrame }
+		for key, value in pairs(fields) do
+			mapPin[key] = value
+		end
+		function mapPin.IsForbidden()
+			return false
+		end
+		return mapPin
+	end
+	shown = true
+	local hint = "Shift-click to plan a journey here"
+	assert(ns.JourneyClickHint() == hint, "the line names the chosen key")
+	ns.db.journeyKey = "alt"
+	assert(ns.JourneyClickHint() == "Alt-click to plan a journey here", "and follows the setting")
+	ns.db.journeyKey = nil
+	local quest = tooltipFor(blizzardPin({ pinTemplate = "QuestPinTemplate", questID = 7 }))
+	assert(quest.lines[1] == hint and quest.shows == 1, "a quest pin's tooltip gains the line")
+	local poi = tooltipFor(blizzardPin({ pinTemplate = "AreaPOIPinTemplate", normalizedX = 0.3 }))
+	assert(poi.lines[1] == hint, "an area pin's tooltip gains the line")
+	assert(
+		not tooltipFor(blizzardPin({ pinTemplate = "AreaPOIPinTemplate" })).lines[1],
+		"a pin with no spot plans nothing"
+	)
+	assert(not tooltipFor(blizzardPin({ pinTemplate = "QuestPinTemplate" })).lines[1], "nor a quest pin with no quest")
+	local other = blizzardPin({ pinTemplate = "AreaPOIPinTemplate", normalizedX = 0.3 })
+	other.owningMap = {}
+	assert(not tooltipFor(other).lines[1], "a pin on another map is not the world map's")
+	assert(not tooltipFor({
+		IsForbidden = function()
+			return false
+		end,
+	}).lines[1], "a frame that is no pin")
+	assert(not tooltipFor(nil).lines[1], "a tooltip with no owner")
+	ns.db.journey = false
+	assert(ns.JourneyClickHint() == nil and not tooltipFor(poi.GetOwner()).lines[1], "nothing while journeys are off")
+	ns.db.journey, gamepad = true, true
+	assert(ns.JourneyClickHint() == nil, "nothing under the gamepad interface, which has no key to hold")
+	gamepad = false
+	env.Minimap.IsForbidden = function()
+		return false
+	end
+	assert(tooltipFor(env.Minimap).lines[1] == hint, "the minimap's tooltip: a click there plans to the spot")
+	shown = false
+	assert(not tooltipFor(poi.GetOwner()).lines[1], "nothing while the world map is closed")
+	shown = true
+	print("journey input: pin hints ok")
+end
 
 -- The global mouse event still fires over a Questie-owned icon that swallowed canvas clicks.
 alt, shift, destination = true, false, nil

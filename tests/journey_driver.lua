@@ -195,6 +195,7 @@ local env = setmetatable({
 		end,
 		AddGlobalPinMouseActionHandler = noop,
 	},
+	GameTooltip = { HookScript = noop },
 	Minimap = {
 		HookScript = function(_, _, fn)
 			minimapClick = fn
