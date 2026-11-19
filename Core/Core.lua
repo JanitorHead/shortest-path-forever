@@ -126,6 +126,9 @@ local DEFAULTS = {
 	-- The Journey section's scroll viewport, applied by ForeverCore when its setter is available.
 	trackerHeight = 200,
 	arrow = true,
+	-- The cast prompt for a teleport step (UI/Arrow.lua). Off hides only the prompt: journeys still plan the Hearthstone
+	-- and class teleports, and the tracker step still names them.
+	castPrompt = true,
 	-- Under the arrow: "distance", the journey's "time" left, or "both".
 	arrowLabel = "distance",
 	arrowDirect = false,
