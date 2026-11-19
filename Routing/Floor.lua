@@ -34,6 +34,7 @@ local FIRST_LIFT = 1001 -- Data/Transports.lua numbers lift and tram landings fr
 ---@field z number height
 ---@field gx number global cell the surface was last seen on
 ---@field gy number
+---@field held true? held where it was last seen, or a fresh start's neighbour: no way from it to you yet
 
 ---@class SPFFloorState
 ---@field map number
@@ -226,13 +227,15 @@ function Floor.Sample(map, x, y)
 		-- the ground under the city (#1046). Ruling the street out there would settle a fresh start on the ground under
 		-- it. A held surface steps again from its own cell, so it settles on the way out; past REACH cells from that
 		-- cell, or a JUMP between samples, it is gone. A jump in such a cell reads as a fall.
+		-- After a fall only a surface you could have been on counts as a jump: a held one is a guess.
 		local seen, held = {}, {}
 		nodes = {}
 		for _, s in ipairs(last.nodes) do
 			local reach = max(abs(gx - s.gx), abs(gy - s.gy))
-			if reach <= REACH then
+			if reach <= REACH and not (last.fell and s.held) then
 				local found = Step(st, { s }, s.gx, s.gy, gx, gy, reach + 1)
 				if #found == 0 then
+					s.held = true
 					held[#held + 1] = s
 				end
 				for _, f in ipairs(found) do
@@ -266,6 +269,7 @@ function Floor.Sample(map, x, y)
 					if (cx ~= gx or cy ~= gy) and cx >= 0 and cy >= 0 and cx < st.GX and cy < st.GY then
 						for _, s in ipairs(Surfaces(st, cx, cy)) do
 							if #Step(st, { s }, cx, cy, gx, gy, 2) == 0 then
+								s.held = true
 								nodes[#nodes + 1] = s
 							end
 						end
