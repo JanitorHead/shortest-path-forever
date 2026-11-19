@@ -8,7 +8,7 @@ end
 
 -- The search for a journey's fastest way: one bounded FindMany from where you stand and one back from the goal,
 -- short A* probes for the candidate's own walks, the plan they settle, that plan's walking geometry (JourneyWalks.lua)
--- and whether it replaces the route you are following. A feasible route can be followed while the proof continues.
+-- and whether it replaces the route you are following. A first search draws its estimate until the proof ends.
 -- Journey.lua starts, steps and cancels the search and follows what it publishes.
 local PROBE_BUDGET = 60 -- ms before switching from candidate costs to shared endpoint searches
 local REFRESH_EVERY = 60
@@ -34,6 +34,7 @@ Search.Walks = Walks
 
 ---@alias SPFSearchNews
 ---| "searching" a first search began: nothing to follow yet
+---| "rough" a first search's estimate, drawn until its proved route replaces it, never followed
 ---| "route" this route replaces the followed one (nil: no way there)
 ---| "walks" the followed route was retimed and its walks redrawn
 ---| "times" the followed route was retimed
@@ -152,12 +153,6 @@ local function PrepareWalks(planned)
 	)
 end
 
--- A route committed before its proof ended: the optimum replaces it once, whatever the gain, unless it is the same
--- journey.
-local function Provisional()
-	return followed ~= nil and followed.provisional == true
-end
-
 -- Only the timings move, so the drawn route, Guide and any walk still being searched carry on undisturbed.
 local function Retime(planned)
 	followed.now, followed.arrive = planned.now, planned.arrive
@@ -268,8 +263,8 @@ local function Elapsed(timing)
 	}
 end
 
--- The route a first search shows before any walk is searched: a copy of its estimate, so the proof's own candidate
--- and the shown route never share legs that drawing fills in.
+-- The route a first search draws before any walk is searched: a copy of its estimate, so the proof's own candidate
+-- and the drawn route never share legs that drawing fills in. Its walks are straight hints until the proof draws them.
 ---@param planned SPFPlan
 ---@return SPFPlan
 local function Rough(planned)
@@ -283,9 +278,12 @@ local function Rough(planned)
 		for key, value in pairs(leg) do
 			copy[key] = value
 		end
+		if copy.mode == "walk" and not copy.measured then
+			copy.walkPlaceholder = true
+		end
 		rough.legs[index] = copy
 	end
-	rough.preview, rough.provisional, rough.rough = nil, true, true
+	rough.preview, rough.rough = nil, true
 	return rough
 end
 
@@ -309,40 +307,7 @@ local function ReleaseCosts()
 	end
 end
 
--- The first usable route of a search: a plan of settled walks alone, shown once the walk to take first is drawn.
--- The proof goes on, and its optimum replaces this route once. Returns whether that walk is still being drawn.
----@return boolean
-local function Offer()
-	local offer = search and search.offer
-	if not offer or followed or pendingCosts == 0 then
-		return false
-	end
-	local first = offer.legs[1]
-	if first.walkError or first.walkDeferred then
-		Walks.Drop(offer)
-		search.offer = nil
-	elseif first.mode ~= "walk" or first.measured then
-		offer.provisional = true
-		Commit(offer)
-	else
-		return true
-	end
-	return false
-end
-
 FinishSearch = function()
-	local drawing = search and search.offer ~= nil and not followed
-	if drawing and not Offer() and search and search.resume then
-		-- The first walk is drawn, or failed: the proof it held back goes on.
-		local resume = search.resume
-		search.resume = nil
-		resume()
-	end
-	-- The proof is in: an offer still drawing its first walk would only delay the route that beats it.
-	if search and search.offer and not followed and pendingCosts == 0 and search.offer ~= search.candidate then
-		Walks.Drop(search.offer)
-		search.offer, search.resume = nil, nil
-	end
 	if not search or pendingCosts > 0 or Walks.Pending() > 0 then
 		return
 	end
@@ -374,21 +339,11 @@ FinishSearch = function()
 			valid = false
 		end
 	end
-	-- A route shown before its proof ended gives way to the proved one, whatever it gained or whether its walks
-	-- failed, as a first search's route would have been committed; only the same journey stays.
-	local provisional = Provisional()
-	-- A first search draws every walk anew; a route shown before its proof ended already drew its first.
-	local refine = search.refine or search.initial and not provisional
+	-- A first search draws every walk anew.
+	local refine = search.refine or search.initial
 	-- A search replacing a destination that moved cannot be answered by the plan that led to the old place.
-	local keep = followed
-		and planned
-		and estimate
-		and (
-			provisional and not forced and same
-			or not provisional and (not valid or (not forced and (same or not better)))
-		)
-	-- A rough route drew no walks of its own, so the proved route always replaces it.
-	if search.replace or followed and followed.rough then
+	local keep = followed and planned and estimate and (not valid or (not forced and (same or not better)))
+	if search.replace then
 		keep = false
 	end
 	if not keep and planned and not planned.prepared then
@@ -400,7 +355,6 @@ FinishSearch = function()
 	search = nil
 	ReleaseCosts()
 	if keep then
-		followed.provisional = nil
 		if same then
 			followed.unknownFlight, followed.unknownFlightMaps = planned.unknownFlight, planned.unknownFlightMaps
 		end
@@ -446,10 +400,7 @@ local function Render(planned, forced)
 		end
 		PrepareWalks(kept)
 	end
-	local estimate = not search.initial
-		and not forced
-		and not Provisional()
-		and EstimateKept(planned and planned.now or ns.NowMs())
+	local estimate = not search.initial and not forced and EstimateKept(planned and planned.now or ns.NowMs())
 	if estimate and planned and Walks.Pending() == 0 and not search.refine then
 		local gain = estimate.arrive - planned.arrive
 		if not Worthwhile(gain, estimate.arrive - planned.now) then
@@ -474,9 +425,8 @@ local function Plan(feasible, incumbent, job)
 	if not (here and goal) then
 		return nil
 	end
-	-- Taxi paths cannot be interrupted; retain their chosen destination until landing. A rough route was never chosen:
-	-- returning it would settle the search with the estimate itself.
-	if followed and not followed.rough and UnitOnTaxi("player") then
+	-- Taxi paths cannot be interrupted; retain their chosen destination until landing.
+	if followed and UnitOnTaxi("player") then
 		lastRunSpeed, followed.now = Context.RunSpeed(), ns.NowMs()
 		return followed
 	end
@@ -730,37 +680,9 @@ local function RefreshCosts(includeGoal, forced, replace)
 		if stale() then
 			return
 		end
-		if
-			feasible
-			and planned
-			and planned ~= feasible
-			and (planned.needsStart or planned.needsGoal)
-			and search.initial
-			and not followed
-			and (not startBatch.done or not goalBatch.done)
-			and not search.offer
-			and #feasible.legs > 0
-		then
-			search.offer = feasible
-			PrepareWalks(feasible)
-		end
 		-- Publishing starts in a frame of its own when the plans spent this one's budget.
 		ns.Path.Checkpoint()
 		if stale() then
-			return
-		end
-		-- Drawing the offer's first walk takes the frame budget until it lands, then the proof goes on.
-		local offering = Offer()
-		-- Publishing an offer can synchronously stop or replace this journey.
-		if version ~= pathVersion then
-			return
-		end
-		if offering and planned and (planned.needsStart or planned.needsGoal) then
-			active(startBatch, false)
-			active(goalBatch, false)
-			search.resume = function()
-				request(true)
-			end
 			return
 		end
 		-- A batch that has not yet settled the targets on its own node may still find a zero, a transfer, for a walk
@@ -874,11 +796,11 @@ local function RefreshCosts(includeGoal, forced, replace)
 			end
 			if preview then
 				preview.preview, search.candidate = true, preview
-				-- A first search shows this estimate at once, its walks straight until the proof draws them. The proved
-				-- route replaces it, or keeps it when it is the same journey.
+				-- A first search draws this estimate at once and offers no walk of its own: the proved route replaces it.
 				-- An estimate whose zero walks left no legs would read as arrival, so it waits for the proof.
-				if not followed and search.initial and #preview.legs > 0 then
-					Commit(Rough(preview))
+				if not followed and search.initial and not search.rough and #preview.legs > 0 then
+					search.rough = true
+					publish(Rough(preview), "rough")
 					if stale() then
 						return
 					end

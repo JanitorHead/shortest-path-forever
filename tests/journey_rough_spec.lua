@@ -36,8 +36,11 @@ do
 	local journey, path = test.ns, test.path
 	path.auto = false
 	test.begin({ map = 1, x = 0, y = 0, z = 0 }, { map = 1, x = 1000, y = 0 })
-	local rough = select(3, journey.JourneyInfo())
-	assert(rough and rough.rough, "taxi fixture starts with a rough route")
+	local rough = test.shown()
+	assert(rough and rough.rough and not select(3, journey.JourneyInfo()), "a rough route is drawn, never followed")
+	for _, leg in ipairs(rough.legs) do
+		assert(leg.mode ~= "walk" or leg.measured or leg.walkPlaceholder, "its unmeasured walks are drawn as hints")
+	end
 	test.env.UnitOnTaxi = function()
 		return true
 	end
@@ -48,7 +51,11 @@ do
 		path.finish(find, { find.from, find.to }, 1000)
 	end
 	assert(not journey.JourneyStatus(), "taxi fixture finishes the proof")
-	assert(not select(3, journey.JourneyInfo()) and not test.shown(), "boarding a taxi cannot settle on a rough route")
+	local followed = select(3, journey.JourneyInfo())
+	assert(
+		not (followed and followed.rough) and not (test.shown() and test.shown().rough),
+		"boarding a taxi cannot settle on a rough route"
+	)
 end
 
 do
