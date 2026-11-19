@@ -8,10 +8,10 @@ end
 -- The player's floor. The client gives no player height (UnitPosition's is a placeholder 0), so a search from where
 -- you stand starts from every surface near you and keeps the cheapest: under the Ruins of Lordaeron that is the
 -- ruins, and on the Undercity's rings a walkway above you. Floor follows the surfaces you can be on as you move
--- instead: a surface stays a candidate while the walking map has a way from it to each new cell you reach, and a cell
--- with one surface settles it. Once the candidates are one floor, Height gives its height and the search starts on it
--- (Path.lua's snap takes the surface nearest a height). Until then, and wherever it cannot tell, searches start as
--- before.
+-- instead: a surface stays a candidate while the walking map has a way from it to each new cell you reach, or is held
+-- where it was last seen while the map has a hole at its height, and a cell with one surface settles it. Once the
+-- candidates are one floor, Height gives its height and the search starts on it (Path.lua's snap takes the surface
+-- nearest a height). Until then, and wherever it cannot tell, searches start as before.
 -- Reading a cell never decodes: the clusters around you are decoded by a job under the walking search's frame budget
 -- (Path.Decode) and kept while you are followed (Path.Pin).
 ---@class SPFFloor
@@ -32,6 +32,8 @@ local FIRST_LIFT = 1001 -- Data/Transports.lua numbers lift and tram landings fr
 ---@field k number cluster
 ---@field node number node in the cluster
 ---@field z number height
+---@field gx number global cell the surface was last seen on
+---@field gy number
 
 ---@class SPFFloorState
 ---@field map number
@@ -64,11 +66,11 @@ local function Surfaces(st, gx, gy)
 		return out
 	end
 	if val[lc + 1] ~= 0 then
-		out[1] = { k = k, node = lc, z = z[lc + 1] }
+		out[1] = { k = k, node = lc, z = z[lc + 1], gx = gx, gy = gy }
 	end
 	local node = at[-(lc + 1)]
 	while node and at[node + 1] == lc do
-		out[#out + 1] = { k = k, node = node, z = z[node + 1] }
+		out[#out + 1] = { k = k, node = node, z = z[node + 1], gx = gx, gy = gy }
 		node = node + 1
 	end
 	return out
@@ -178,11 +180,15 @@ function Floor.Sample(map, x, y)
 	if not (last and steps) or steps > REACH or (x - last.x) ^ 2 + (y - last.y) ^ 2 > JUMP ^ 2 then
 		last = nil
 	end
-	-- Every cluster the step reads: neighbour looks one cell past the box Step walks.
-	local ox, oy = last and last.gx or gx, last and last.gy or gy
+	-- Every cluster the step reads: neighbour looks one cell past the box Step walks, from each surface's own cell.
+	-- A fresh start also weighs the cells around you (below).
+	local x0, x1, y0, y1 = gx - 1, gx + 1, gy - 1, gy + 1
+	for _, s in ipairs(last and last.nodes or {}) do
+		x0, x1, y0, y1 = min(x0, s.gx), max(x1, s.gx), min(y0, s.gy), max(y1, s.gy)
+	end
 	local keep, missing = {}, {}
-	for cx = min(ox, gx) - 2, max(ox, gx) + 2 do
-		for cy = min(oy, gy) - 2, max(oy, gy) + 2 do
+	for cx = x0 - 2, x1 + 2 do
+		for cy = y0 - 2, y1 + 2 do
 			if cx >= 0 and cy >= 0 and cx < st.GX and cy < st.GY then
 				local k = Cell(st, cx, cy)
 				if not keep[k] then
@@ -214,22 +220,59 @@ function Floor.Sample(map, x, y)
 	-- Swimming, you are on a water surface: a fall into water, a swim under a pier.
 	local nodes
 	if last and #last.nodes > 0 and not swimming then
-		nodes = Step(st, last.nodes, ox, oy, gx, gy, steps + 1)
-		-- No way on the walking map from your floor to this cell. Falling, the client says it is a fall or a knockback:
-		-- the floor starts afresh from this cell's surfaces. Otherwise it is a building or a street's edge the map has no
-		-- surface for at your height: hold the floor you were last seen on rather than guess one here, since beside
-		-- Stormwind's streets the only surface such a cell holds is the ground under the city (#1046). The next step is
-		-- taken from the cell the floor was last seen on, so it settles again on the way out; past REACH cells from that
-		-- cell, or a JUMP between samples, the floor starts afresh. A jump in such a cell reads as a fall.
+		-- Each surface steps on its own, from the cell it was last seen on. One with no way on the walking map to this
+		-- cell is a building or a street's edge the map has no surface for at that height, unless you fell: it is held
+		-- where it was seen rather than ruled out, since beside Stormwind's streets the only surface such a cell holds is
+		-- the ground under the city (#1046). Ruling the street out there would settle a fresh start on the ground under
+		-- it. A held surface steps again from its own cell, so it settles on the way out; past REACH cells from that
+		-- cell, or a JUMP between samples, it is gone. A jump in such a cell reads as a fall.
+		local seen, held = {}, {}
+		nodes = {}
+		for _, s in ipairs(last.nodes) do
+			local reach = max(abs(gx - s.gx), abs(gy - s.gy))
+			if reach <= REACH then
+				local found = Step(st, { s }, s.gx, s.gy, gx, gy, reach + 1)
+				if #found == 0 then
+					held[#held + 1] = s
+				end
+				for _, f in ipairs(found) do
+					local id = f.k * 1048576 + f.node
+					if not seen[id] then
+						seen[id] = true
+						f.gx, f.gy = gx, gy
+						nodes[#nodes + 1] = f
+					end
+				end
+			end
+		end
 		if #nodes == 0 then
-			if not last.fell then
-				last.x, last.y, last.gapX, last.gapY = x, y, gx, gy
+			if not last.fell and #held > 0 then
+				last.nodes, last.x, last.y, last.gapX, last.gapY = held, x, y, gx, gy
 				return
 			end
 			nodes = Surfaces(st, gx, gy)
+		elseif not last.fell then
+			for _, s in ipairs(held) do
+				nodes[#nodes + 1] = s
+			end
 		end
 	else
+		-- A fresh start holds every surface of the cells around you with no way into yours, as a step would: a cell
+		-- beside a street can hold only the ground under it, and standing there you are as likely on the street.
 		nodes = Surfaces(st, gx, gy)
+		if not swimming then
+			for cx = gx - 1, gx + 1 do
+				for cy = gy - 1, gy + 1 do
+					if (cx ~= gx or cy ~= gy) and cx >= 0 and cy >= 0 and cx < st.GX and cy < st.GY then
+						for _, s in ipairs(Surfaces(st, cx, cy)) do
+							if #Step(st, { s }, cx, cy, gx, gy, 2) == 0 then
+								nodes[#nodes + 1] = s
+							end
+						end
+					end
+				end
+			end
+		end
 	end
 	if swimming then
 		local wet = {}
