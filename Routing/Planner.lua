@@ -175,6 +175,8 @@ local function WalkCost(options, a, b, index)
 	return Gap(a, b), true
 end
 
+local NO_SHARES = {}
+
 -- A fixed place's key in the baked walk table (Data/Walks.lua); nil for where you stand and where you are going.
 local function PlaceKey(node)
 	if node.kind ~= "start" and node.kind ~= "goal" then
@@ -188,15 +190,18 @@ end
 local function BakedCost(options, a, b, weigh)
 	local ka, kb = a.bakedKey, b.bakedKey
 	local baked = ka and kb and options.baked and options.baked[a.map]
-	local pair = baked and baked[ka < kb and ka .. " " .. kb or kb .. " " .. ka]
+	local key = baked and (ka < kb and ka .. " " .. kb or kb .. " " .. ka)
+	local pair = key and baked[key]
 	if pair then
 		local mode = options.waterWalking and 2 or 1
 		local yards = pair[mode + (ka > kb and pair[3] ~= nil and 2 or 0)]
 		local reverse = pair[mode + (ka < kb and pair[3] ~= nil and 2 or 0)]
 		local hazards = options.hazards
 		if hazards and (yards or reverse) then
-			weigh() -- a cold zone cache sends Segment to the client's map API per sample
-			local factor = hazards.Segment(a.map, a.x, a.y, b.x, b.y)
+			weigh() -- a walk with no baked zone shares samples the zone map along its way
+			-- A map's baked shares cover every baked walk on it; one it leaves out crosses nothing charged.
+			local shares = options.bakedZones and options.bakedZones[a.map]
+			local factor = hazards.Segment(a.map, a.x, a.y, b.x, b.y, shares and (shares[key] or NO_SHARES))
 			yards, reverse = yards and yards * factor, reverse and reverse * factor
 		end
 		return true, yards, reverse
@@ -306,6 +311,7 @@ local CACHE_KEYS = {
 	"partyPortals",
 	"landmasses",
 	"baked",
+	"bakedZones",
 	"taxiTimes",
 	"faction",
 	"otherFaction",
