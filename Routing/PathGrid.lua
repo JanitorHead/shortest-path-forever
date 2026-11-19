@@ -29,7 +29,9 @@ ns.Path = Path
 
 Path.budget = 2 -- milliseconds of path work, leaving headroom under the 3 ms frame ceiling
 Path.clusters = 64 -- secondary count ceiling per map (at least 4)
-Path.graphKB = 4096 -- decoded entrances/edges across all maps
+-- Decoded entrances/edges across all maps. A reverse search across a continent keeps a ring of clusters in use, each
+-- with its inbound lists; 4 MB held about a third of Kalimdor's and rebuilt every cluster about five times (#1074).
+Path.graphKB = 8192
 Path.cacheKB = 24576 -- decoded grids across all maps; active corridors may exceed it
 Path.clock = debugprofilestop or function()
 	return os.clock() * 1000
