@@ -27,7 +27,7 @@ end
 local Path = {}
 ns.Path = Path
 
-Path.budget = 3 -- milliseconds of path work, the 3 ms frame ceiling (#1080)
+Path.budget = 2.5 -- milliseconds of path work; a slice overruns it by about half a millisecond, inside the 3 ms frame rule (#1080)
 Path.clusters = 64 -- secondary count ceiling per map (at least 4)
 Path.graphKB = 4096 -- decoded entrances/edges across all maps
 Path.cacheKB = 24576 -- decoded grids across all maps; active corridors may exceed it
