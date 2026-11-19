@@ -261,7 +261,21 @@ local southshore = tracker.blocks[1]
 assert(southshore and southshore.key == "dock17", "Southshore's dock block")
 assert(#southshore.rows == 1, "one boat leaves Southshore")
 local text = southshore.rows[1].text
-assert(text:find(ns.Timetable.Destination({ to = { 10, 9 } }), 1, true), text)
+assert(text:find("Darkshore, then Wetlands", 1, true), text)
+-- Auberdine's two Menethil boats, one of them sailing on to Southshore, read as two trips.
+ns.NearestDock = function() return 10, 0 end
+refresh(true)
+local auberdine = tracker.blocks[1]
+assert(auberdine and auberdine.key == "dock10", "Auberdine's dock block")
+local direct, onward
+for _, row in ipairs(auberdine.rows) do
+  if row.text:find("Wetlands, then Hillsbrad Foothills", 1, true) then
+    onward = true
+  elseif row.text:find("Wetlands", 1, true) then
+    direct = true
+  end
+end
+assert(direct and onward, "Auberdine names the direct and the onward Menethil boat")
 ns.NearestDock, ns.DockLabel, ns.db.tracker = nearestDock, dockLabel, false
 refresh(true)
 assert(#errors == 0, table.concat(errors, "\n"))
