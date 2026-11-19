@@ -33,6 +33,7 @@ optional `### For addon authors` subsection after a version's player bullets.
 - Nearby services lists Forever's own class and profession trainers, such as the Zephras Isle trainers, under Trainers (#1082).
 - Journey: a route that has to search most of a continent on foot, such as Stormwind to central Feralas, settles about a quarter faster.
 - Journey: short routes settle on their final plan sooner (#1080).
+- **Shift-click shows a Waypoint UI marker again.** With Waypoint UI loaded, a journey hands it each turn from the start, even with no pin placed and with *Mark only where steps end* on. Clearing the journey clears the marker. Turn off Waypoint UI's own pathfinding to follow the journey's directions.
 
 ## [1.43.2] - 2026-11-18
 
