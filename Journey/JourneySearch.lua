@@ -465,6 +465,35 @@ local function Plan(feasible, incumbent, job)
 	return planned
 end
 
+-- The settled-walks plan cannot join two measured walks at a place (the planner never walks on from a walk), so
+-- while the goal's walk to a place settles before the start's walk to the goal, that plan can go a long way round
+-- to reach the place (#1062). Walking to that place and on to the goal is a real route: while it beats the plan,
+-- offering the plan would show a detour the proof is bound to replace.
+---@param feasible SPFPlan
+---@return boolean
+local function WalkChainBeats(feasible)
+	local here, first = Here(), feasible.legs[1]
+	if not (here and first and first.depart) then
+		return false
+	end
+	local function key(place)
+		return place.kind and place.kind .. place.id or place
+	end
+	local toGoal = {}
+	for _, walk in ipairs(goalCosts) do
+		if walk.cost and not walk.estimated then
+			toGoal[key(walk.from)] = walk.cost
+		end
+	end
+	for _, walk in ipairs(MeasuredWalks(here)) do
+		local rest = walk.from == here and walk.cost and not walk.estimated and toGoal[key(walk.to)]
+		if rest and first.depart + (walk.cost + rest) / lastRunSpeed * 1000 < feasible.arrive then
+			return true
+		end
+	end
+	return false
+end
+
 -- Reuse only the last two endpoint searches, with starts confirmed by the pathfinder as the same snapped node.
 -- One search owns the callbacks' shared revision, preview and probe budget across resumes
 ---@param includeGoal boolean?
@@ -695,6 +724,7 @@ local function RefreshCosts(includeGoal, forced, replace)
 			and (not startBatch.done or not goalBatch.done)
 			and not search.offer
 			and #feasible.legs > 0
+			and not WalkChainBeats(feasible)
 		then
 			search.offer = feasible
 			PrepareWalks(feasible)
