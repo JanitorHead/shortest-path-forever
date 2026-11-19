@@ -43,7 +43,9 @@ local function schedule()
 	end
 end
 
+local pumps, lastPump = 0, nil
 pump = function()
+	pumps, lastPump = pumps + 1, GetTime and GetTime() or nil
 	scheduled, pumped = false, true
 	if InCombatLockdown and InCombatLockdown() then
 		if not combatWait then
@@ -300,4 +302,34 @@ function Path.Cancel(job)
 	Path.Pause(job)
 	Grid.Release(job)
 	job.cancelled, job.scratch, job.co = true, nil, nil
+end
+
+-- Probe build only (cb/1032-probe): never merged. Lines under 255 chars, one per queued job.
+function SPFProbe()
+	local lines = {}
+	local pending, round, costError, loading = ns.JourneyStatus and ns.JourneyStatus()
+	lines[1] = string.format(
+		"q=%d sched=%s pumps=%d last=%s now=%s budget=%s combat=%s journey pending=%s round=%s err=%s loading=%s",
+		#queue, tostring(scheduled), pumps, tostring(lastPump), tostring(GetTime and GetTime()), tostring(Path.budget),
+		tostring(InCombatLockdown and InCombatLockdown()), tostring(pending), tostring(round), tostring(costError),
+		tostring(loading)
+	)
+	for i, job in ipairs(queue) do
+		local settled, total = 0, job.targets and #job.targets or 0
+		for t = 1, total do
+			if job.costs and job.costs[t] ~= nil then
+				settled = settled + 1
+			end
+		end
+		lines[#lines + 1] = string.format(
+			"%d %s%s map=%s fr=%d cpu=%.1f tgt=%d/%d r=%s exp=%s paused=%s",
+			i, job.notify and "cb" or job.plain and "run" or job.targets and "many" or job.decode and "dec" or "find",
+			job.front and "F" or "", tostring(job.map), job.frames or 0, job.cpu or 0, settled, total,
+			tostring(job.radius), tostring(job.expansions), tostring(job.paused)
+		)
+		if #lines >= 25 then
+			break
+		end
+	end
+	return lines
 end
