@@ -501,13 +501,21 @@ ShortestPathForeverPathData = nil
 ---@field color? ColorMixin -- drawn in this colour rather than its mode's
 ---@field hazardNotes? string[] -- the hostile towns and high zones a measured walk meets or goes round (Hazards.lua)
 ---@field reachedAt? number -- when you reached a lift's shaft, whose landings share a spot (JourneySteps.lua)
+-- A guessed walk from where you stand or to the goal that a plan still has to prove, with the ends it was guessed
+-- between (Planner.lua).
+---@class SPFPendingWalk
+---@field mode "walk"
+---@field from SPFPlace
+---@field to SPFPlace
+---@field estimated true
+
 ---@class SPFPlan
 ---@field provisional? boolean
 ---@field arrive number
 ---@field legs SPFLeg[]
 ---@field needsStart boolean
 ---@field needsGoal boolean
----@field pendingWalks SPFLeg[]
+---@field pendingWalks SPFPendingWalk[]
 ---@field now? number
 ---@field preview? boolean
 ---@field prepared? boolean
