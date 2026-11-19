@@ -193,6 +193,7 @@ L["Search services and goods"] = "搜索服务和物品"
 L["Services"] = "服务"
 L["Shortest Path report"] = "Shortest Path报告"
 L["Show boats and zeppelins"] = "显示船只和飞艇"
+L["Show cast prompt"] = "显示施法提示" -- mt
 L["Show direction arrow"] = "显示方向箭头"
 L["Show flight masters"] = "显示飞行管理员"
 L["Show journey steps in the objective tracker"] = "在目标追踪器中显示旅程步骤"
@@ -209,6 +210,8 @@ L["Show the time left under the compass"] = "在指南针下显示剩余时间"
 L["Show the way to your corpse"] = "显示前往尸体的路"
 L["Shows over the nameplate of the NPC a Nearby services journey walks to."] =
 	"显示在附近服务旅程所前往的NPC姓名板上方。"
+L["Shows the Hearthstone or teleport to use in the arrow's place. Off, journeys still use them and the tracker still names the step."] =
+	"在箭头的位置显示要使用的炉石或传送。关闭后，旅程仍会使用它们，追踪器仍会显示该步骤。" -- mt
 L["Shows the arrow to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."] =
 	"显示箭头，可拖到任意位置；Shift拖动或方向键微调。右键点击使其复位。"
 L["Shows the compass to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."] =

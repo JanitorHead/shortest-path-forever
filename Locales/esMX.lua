@@ -198,6 +198,7 @@ L["Search services and goods"] = "Buscar servicios y bienes"
 L["Services"] = "Servicios"
 L["Shortest Path report"] = "Informe de Shortest Path"
 L["Show boats and zeppelins"] = "Mostrar barcos y zepelines"
+L["Show cast prompt"] = "Mostrar aviso de lanzamiento" -- mt
 L["Show direction arrow"] = "Mostrar flecha de dirección"
 L["Show flight masters"] = "Mostrar maestros de vuelo"
 L["Show journey steps in the objective tracker"] = "Mostrar los pasos del viaje en el rastreador de objetivos"
@@ -215,6 +216,8 @@ L["Show the time left under the compass"] = "Tiempo restante bajo la brújula"
 L["Show the way to your corpse"] = "Mostrar el camino a tu cadáver"
 L["Shows over the nameplate of the NPC a Nearby services journey walks to."] =
 	"Las muestra sobre la placa de nombre del PNJ al que lleva un viaje de servicios cercanos."
+L["Shows the Hearthstone or teleport to use in the arrow's place. Off, journeys still use them and the tracker still names the step."] =
+	"Muestra la piedra de hogar o el teletransporte que usar en el lugar de la flecha. Desactivado, los viajes los siguen usando y el seguimiento sigue nombrando el paso." -- mt
 L["Shows the arrow to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."] =
 	"Muestra la flecha para arrastrarla a cualquier lugar; Mayús+arrastrar o las flechas la ajustan. Clic derecho para devolverla."
 L["Shows the compass to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."] =

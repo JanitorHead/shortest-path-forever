@@ -202,6 +202,7 @@ L["Search services and goods"] = "편의시설 및 물품 검색"
 L["Services"] = "편의시설"
 L["Shortest Path report"] = "Shortest Path 보고서"
 L["Show boats and zeppelins"] = "배와 비행선 표시"
+L["Show cast prompt"] = "시전 안내 표시" -- mt
 L["Show direction arrow"] = "방향 화살표 표시"
 L["Show flight masters"] = "비행 조련사 표시"
 L["Show journey steps in the objective tracker"] = "목표 추적기에서 여정 단계 표시"
@@ -219,6 +220,8 @@ L["Show the time left under the compass"] = "나침반 아래에 남은 시간 �
 L["Show the way to your corpse"] = "시체까지 가는 길 표시"
 L["Shows over the nameplate of the NPC a Nearby services journey walks to."] =
 	"주변 편의시설 여정이 향하는 NPC의 이름표 위에 표시합니다."
+L["Shows the Hearthstone or teleport to use in the arrow's place. Off, journeys still use them and the tracker still names the step."] =
+	"화살표 자리에 사용할 귀환석이나 순간이동을 표시합니다. 끄면 여정은 계속 이를 사용하고 추적기도 계속 해당 단계를 표시합니다." -- mt
 L["Shows the arrow to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."] =
 	"화살표를 표시해 어디로든 끌 수 있습니다. Shift-끌기나 화살표 키로 미세 조정하고, 오른쪽 클릭하면 제자리로 돌아갑니다."
 L["Shows the compass to drag anywhere; Shift-drag or the arrow keys nudge it. Right-click it to put it back."] =

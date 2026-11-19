@@ -51,7 +51,7 @@
     },
     {
       "source": "UI/Settings.lua",
-      "sha256": "adf78300ff76b8b684688b409a2be89b798e96f7556499a363a9556e53f1ec54",
+      "sha256": "f0b13f562404ea07f1927ab603e10ec2da1662c3c31de19960a24033134db9c7",
       "review": "Read Page, Checkbox, Scale, Dropdown and Saving and their registration calls. Settings rows, index buttons and option labels delegate to Blizzard secure initializers; this file creates no FontString and establishes no explicit FontObject. Minimap button text, tooltip text, chat output and helper arguments are excluded rather than assigned an assumed settings font.",
       "bindings": []
     },
@@ -75,7 +75,7 @@
     },
     {
       "source": "UI/Arrow.lua",
-      "sha256": "c98083459797c50f48902bc407a513de8fe74c8fe1d3c7c732d70b953811b060",
+      "sha256": "e6b53e84890bad476dc1bec01fd06a6821a9c945fa5b7ad4f00dbe53baa0a90a",
       "review": "Read Create, ArrowLabel, distance updates, arrival labels, progress and cast prompt. MoverHint uses GameFontHighlightSmall and Distance uses GameFontNormal, including the formatted time-distance phrase. No later font override occurs. Dynamic objective lines, arrival titles, route titles and actions from helpers are excluded; this review does not claim coverage for their inserted text.",
       "bindings": [
         {

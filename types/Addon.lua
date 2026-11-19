@@ -377,6 +377,7 @@
 ---@field hideQuestPins? boolean the game's own quest markers give way to a journey's stops (QuestPins.lua)
 ---@field journeyTracker? boolean
 ---@field arrow? boolean
+---@field castPrompt? boolean the cast prompt for a teleport step; off hides only the prompt (Arrow.lua)
 ---@field metres? boolean
 ---@field compassScale? number percent, 100 is the stock size
 ---@field arrowScale? number percent, 100 is the stock size (Arrow.lua)
