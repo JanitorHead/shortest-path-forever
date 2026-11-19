@@ -71,7 +71,7 @@ def data():
     program = r"""
 local ns = {}
 local files = { "Locales/enUS", "Data/Routes", "Data/Transports", "Data/Portals", "Data/Taxi" }
-for _, name in ipairs({ "Transport/Model", "Routing/PathGrid", "Routing/Path", "Routing/Planner", "UI/FlightLines" }) do
+for _, name in ipairs({ "Transport/Model", "Routing/PathGrid", "Routing/Path", "Routing/Planner", "Routing/LegPoints", "UI/FlightLines" }) do
 	files[#files + 1] = name
 end
 for _, name in ipairs(files) do

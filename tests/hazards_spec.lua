@@ -669,6 +669,7 @@ do
 	assert(loadfile("Transport/Model.lua"))("ShortestPathForever", planning)
 	assert(loadfile("Routing/Savings.lua"))("ShortestPathForever", planning)
 	assert(loadfile("Routing/Planner.lua"))("ShortestPathForever", planning)
+	assert(loadfile("Routing/LegPoints.lua"))("ShortestPathForever", planning)
 	local nodes = { [1] = { map = 1, x = 0, y = 0 }, [2] = { map = 1, x = 2000, y = 0 } }
 	local function plan(hazards)
 		return planning.Planner.Plan({

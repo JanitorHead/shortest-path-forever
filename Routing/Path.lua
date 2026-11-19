@@ -1131,17 +1131,19 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 		end
 	end
 	-- Both ends rescued onto one entrance at no cost are a transfer too, even from different clusters. Only a source
-	-- with such an entrance needs the check, and only then are targets linked before the search reaches them.
-	local zeros = {}
+	-- with such an entrance needs the check, and only targets in that entrance's own cluster can share it: a point
+	-- connects to its own cluster's entrances, and an entrance id names its cluster. The rest stay unlinked until the
+	-- search reaches them.
+	local zeros, zeroClusters = {}, {}
 	for id, cost in pairs((reverse and sourceIn) or source) do
 		if cost == 0 then
-			zeros[id] = true
+			zeros[id], zeroClusters[floor(id / 4096)] = true, true
 		end
 	end
 	if next(zeros) then
 		for i, point in ipairs(targets) do
 			local k = costs[i] == nil and locate(st, point.x, point.y)
-			local target = k and link(i, k)
+			local target = k and zeroClusters[k] and link(i, k)
 			for id, cost in pairs(target and target.ends or {}) do
 				if costs[i] == nil and cost == 0 and zeros[id] then
 					costs[i] = 0

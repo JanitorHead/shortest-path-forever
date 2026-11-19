@@ -61,7 +61,7 @@ local zoneCells, zoneCount = {}, 0
 -- Data/ZoneCells.lua holds the client's answer for every CELL square of the continents, as runs per column: reading
 -- it costs a table lookup where C_Map costs several calls, and a first journey asks for about 20000 squares.
 local baked = {}
----@return number|false|nil zone, or false for none; nil off the baked grid
+---@return number|false|nil zone # false for no zone, nil off the baked grid
 local function Baked(map, i, j)
 	local grid = ns.ZoneCells and ns.ZoneCells[map]
 	if not grid then
