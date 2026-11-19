@@ -16,9 +16,12 @@ local function read(path)
 end
 local pin = read("tools/forever-core.txt"):gsub("%s+$", "")
 assert(TOC["X-Forever-Core"] == pin, "the TOC records the pinned core, " .. pin)
+-- The release embeds that pin inside the addon at Libs/ForeverCore (release.yml reads tools/forever-core.txt), so
+-- the TOC opts in and .pkgmeta lists ForeverCore as an embedded library rather than a separate folder.
+assert(TOC["X-Forever-Core-Embed"], "the TOC opts in to the embedded core")
 assert(
-	read(".pkgmeta"):find("releases/download/" .. pin .. "/ForeverCore-" .. pin .. "-forever.zip", 1, true),
-	"the package bundles the pinned core, " .. pin
+	read(".pkgmeta"):find("embedded%-libraries:%s*%-%s*forevercore"),
+	"the package lists ForeverCore as an embedded library"
 )
 
 -- The client's addon list: this addon, which requires ForeverCore, and ForeverCore itself.
@@ -210,15 +213,10 @@ assert(registered.spec.title == "Shortest Path report", "with its own report tit
 assert(type(registered.spec.lines) == "function", "and its own report lines")
 assert(attached == ns.db, "the saved table is attached once it loads")
 
--- The client loads ForeverCore first because the TOC lists it, and the package bundles it.
+-- The client loads a standalone ForeverCore first because the TOC lists it; the embedded copy is checked above.
 local toc = assert(io.open("ShortestPathForever.toc", "rb")):read("*a")
 -- The packager writes the TOC with CRLF line ends, so the list may end in a carriage return.
 local optional = toc:match("\n## OptionalDeps:([^\n]*)") or ""
 assert((optional .. ","):find("[%s,]ForeverCore[%s,]"), "the TOC lists ForeverCore so it loads first")
-local pkgmeta = assert(io.open(".pkgmeta", "rb")):read("*a")
-assert(
-	pkgmeta:find("\n  ForeverCore: https://github.com/cjber/forever-core/releases/", 1, true),
-	"the package bundles ForeverCore"
-)
 
 print("core_dependency_spec: ok")
