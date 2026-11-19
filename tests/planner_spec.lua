@@ -604,8 +604,9 @@ do
 	near(only(Plan(o), "walk").yards, 50)
 end
 
--- A walk then a walk is one search: only a zero walk between the same point joins them. A lower bound of zero to a
--- place 30 yd off is not one, so the measured direct walk is the plan and nothing waits on the start's probe.
+-- A walk then a walk is one search: only a zero walk joins them. A lower bound of zero may still measure zero (both
+-- ends on one node), so it joins walks until the batch knows the place is apart; then the measured direct walk is the
+-- plan and nothing waits on the start's probe.
 do
 	local o = options()
 	o.to, o.exactMaps = point(1, 100), nil
@@ -616,13 +617,13 @@ do
 		{ from = o.from, to = place, cost = 0, estimated = true },
 		{ from = place, to = o.to, cost = 69 },
 	}
+	local bound = Plan(o)
+	near(bound.arrive, o.now + 69 / o.walkSpeed * 1000)
+	assert(bound.needsStart, "a zero bound that may be a transfer is probed")
+	o.walks[2].apart = true
 	local direct = Plan(o)
 	near(only(direct, "walk").yards, 100)
-	assert(not direct.needsStart, "a bound to a place off the start must not split the direct walk")
-	-- The same place where you stand is a transfer, even before its zero is measured.
-	o.taxiNodes[1] = point(1)
-	o.walks[2].to, o.walks[3].from = o.taxiNodes[1], o.taxiNodes[1]
-	near(Plan(o).arrive, o.now + 69 / o.walkSpeed * 1000)
+	assert(not direct.needsStart, "a bound to a place apart from the start must not split the direct walk")
 end
 
 -- The earlier flight arrival has already visited the only onward stop. A later arrival without that

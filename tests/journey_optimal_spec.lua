@@ -34,15 +34,19 @@ ns.Planner.Plan = function(o)
 	options.feasibleOnly, options.incumbent, options.incumbentPlan = nil, nil, nil
 	return plan(o)
 end
--- Every route the search hands Journey: a route shown before the proof ends is a settled one, with its first walk
--- drawn and no better than the optimum, and at most one such route comes before the proved one.
+-- Every route the search hands Journey: the rough route from baked data comes first, then the proved one. Any other
+-- route shown before the proof ends is a settled one, with its first walk drawn and no better than the optimum.
 local published = {}
 local start = ns.JourneySearch.Start
 ns.JourneySearch.Start = function(point, route, state, listener)
 	return start(point, route, state, function(planned, news)
 		if news == "route" and planned then
-			published[#published + 1] =
-				{ arrive = planned.arrive, provisional = planned.provisional, leg = planned.legs[1] }
+			published[#published + 1] = {
+				arrive = planned.arrive,
+				provisional = planned.provisional,
+				rough = planned.rough,
+				leg = planned.legs[1],
+			}
 		end
 		return listener(planned, news)
 	end)
@@ -122,7 +126,10 @@ for i = 1, 30 do
 	local bounded, exact = driver.shown(), full(options)
 	assert((bounded ~= nil) == (exact ~= nil), "reachability differs for pair " .. i)
 	for at, route in ipairs(published) do
-		if route.provisional then
+		if route.rough then
+			-- An estimate can reach a place no walk does: the search then clears it.
+			assert(at == 1 and (#published == 2 or not exact), "a rough route is shown first, then replaced")
+		elseif route.provisional then
 			assert(at == 1, "only a first route is shown before the proved one")
 			assert(route.leg.mode ~= "walk" or route.leg.measured, "a shown route draws its first walk")
 			assert(route.arrive >= exact.arrive - 1e-5, "a shown route cannot beat the optimum")

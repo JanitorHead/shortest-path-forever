@@ -268,6 +268,27 @@ local function Elapsed(timing)
 	}
 end
 
+-- The route a first search shows before any walk is searched: a copy of its estimate, so the proof's own candidate
+-- and the shown route never share legs that drawing fills in.
+---@param planned SPFPlan
+---@return SPFPlan
+local function Rough(planned)
+	local rough = {}
+	for key, value in pairs(planned) do
+		rough[key] = value
+	end
+	rough.legs = {}
+	for index, leg in ipairs(planned.legs) do
+		local copy = {}
+		for key, value in pairs(leg) do
+			copy[key] = value
+		end
+		rough.legs[index] = copy
+	end
+	rough.preview, rough.provisional, rough.rough = nil, true, true
+	return rough
+end
+
 local function Commit(planned)
 	followed = planned
 	local timing = Search.timing
@@ -365,7 +386,8 @@ FinishSearch = function()
 			provisional and not forced and same
 			or not provisional and (not valid or (not forced and (same or not better)))
 		)
-	if search.replace then
+	-- A rough route drew no walks of its own, so the proved route always replaces it.
+	if search.replace or followed and followed.rough then
 		keep = false
 	end
 	if not keep and planned and not planned.prepared then
@@ -618,6 +640,8 @@ local function RefreshCosts(includeGoal, forced, replace)
 				to = batch.reverse and batch.point or target,
 				cost = cost,
 				estimated = estimated,
+				-- Once the batch has settled every target on its own node, an unmeasured one is a real walk away.
+				apart = estimated and batch.job and batch.job.snapped or nil,
 			}
 		end
 		return list
@@ -710,6 +734,7 @@ local function RefreshCosts(includeGoal, forced, replace)
 			and planned ~= feasible
 			and (planned.needsStart or planned.needsGoal)
 			and search.initial
+			and not followed
 			and (not startBatch.done or not goalBatch.done)
 			and not search.offer
 			and #feasible.legs > 0
@@ -734,6 +759,22 @@ local function RefreshCosts(includeGoal, forced, replace)
 			search.resume = function()
 				request(true)
 			end
+			return
+		end
+		-- A batch that has not yet settled the targets on its own node may still find a zero, a transfer, for a walk
+		-- this candidate needs: it learns that sooner than a probe would, so it runs first.
+		-- A zero joined into a transfer leaves no pending walk behind, so every batch the plan used is checked.
+		local unsnapped = {}
+		if planned then
+			for _, batch in ipairs({ startBatch, goalBatch }) do
+				if batch.job and not batch.job.snapped and not batch.done then
+					unsnapped[batch] = true
+				end
+			end
+		end
+		if next(unsnapped) then
+			active(startBatch, unsnapped[startBatch] or false)
+			active(goalBatch, unsnapped[goalBatch] or false)
 			return
 		end
 		-- Short A* cost probes let easy routes prove themselves before expanding a wide frontier. Bound
@@ -831,6 +872,14 @@ local function RefreshCosts(includeGoal, forced, replace)
 			end
 			if preview then
 				preview.preview, search.candidate = true, preview
+				-- A first search shows this estimate at once, its walks straight until the proof draws them. The proved
+				-- route replaces it, or keeps it when it is the same journey.
+				if not followed and search.initial then
+					Commit(Rough(preview))
+					if stale() then
+						return
+					end
+				end
 			end
 		end
 		while again do

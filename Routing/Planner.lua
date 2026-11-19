@@ -167,7 +167,7 @@ local function WalkCost(options, a, b, index)
 		if options.feasibleOnly and walk.estimated then
 			return false, false
 		end
-		return walk.cost, walk.estimated or false
+		return walk.cost, walk.estimated or false, walk.apart
 	end
 	if options.feasibleOnly or (options.exactMaps and options.exactMaps[a.map]) then
 		return false, false
@@ -327,7 +327,12 @@ local function Solve(options, cache, check, weigh)
 	local topology = cache and cache.topology
 	if topology then
 		for _, key in ipairs(CACHE_KEYS) do
-			if topology.options[key] ~= options[key] then
+			local was, now = topology.options[key], options[key]
+			-- A hazard profile is rebuilt for every search; its key names everything that weighs a walk.
+			if key == "hazards" and was and now then
+				was, now = was.key, now.key
+			end
+			if was ~= now then
 				topology = nil
 				break
 			end
@@ -478,16 +483,12 @@ local function Solve(options, cache, check, weigh)
 							)
 						end
 						if reverse then
-							Edge(
-								to,
-								from,
-								{
-									mode = "walk",
-									duration = reverse / speed * 1000,
-									yards = reverse,
-									transfer = reverse == 0,
-								}
-							)
+							Edge(to, from, {
+								mode = "walk",
+								duration = reverse / speed * 1000,
+								yards = reverse,
+								transfer = reverse == 0,
+							})
 						end
 					end
 				end
@@ -590,9 +591,9 @@ local function Solve(options, cache, check, weigh)
 			for direction = 1, 2 do
 				local first, last = direction == 1 and from or to, direction == 1 and to or from
 				local origin, destination = nodes[first], nodes[last]
-				local yards, estimated
+				local yards, estimated, apart
 				if first ~= goal and last ~= start then
-					yards, estimated = WalkCost(options, origin, destination, walkIndex)
+					yards, estimated, apart = WalkCost(options, origin, destination, walkIndex)
 				end
 				if yards then
 					Edge(first, last, {
@@ -600,9 +601,9 @@ local function Solve(options, cache, check, weigh)
 						duration = yards / speed * 1000,
 						yards = yards,
 						estimated = estimated,
-						-- An estimate of zero yards is a lower bound that may hide a real walk, unless the ends are the same
-						-- point (the tolerance JourneySearch uses to know a fixed place by its coordinates).
-						transfer = yards == 0 and (not estimated or Gap(origin, destination) < 0.00001),
+						-- Zero yards join two walks unless the walk's batch knows the ends are on different nodes: an
+						-- estimate of zero is then only a lower bound on a real walk.
+						transfer = yards == 0 and not apart,
 					})
 				end
 			end
@@ -632,23 +633,52 @@ local function Solve(options, cache, check, weigh)
 			list[#list + 1], list[#list + 2] = from, duration
 		end
 	end
-	for _ = 1, count do
+	-- A heap of (cost, node) pairs, a node pushed again whenever its bound drops: a scan for the least open bound
+	-- made this pass quadratic in the places, most of a first plan's time.
+	local open = { 0, goal }
+	while #open > 0 do
 		check()
-		local current, best
-		for node, cost in pairs(lower) do
-			if not done[node] and (not best or cost < best) then
-				current, best = node, cost
+		local best, current = open[1], open[2]
+		local size = #open
+		local lastCost, lastNode = open[size - 1], open[size]
+		open[size], open[size - 1] = nil, nil
+		size = size - 2
+		if size > 0 then
+			local at = 1
+			while true do
+				local child = at * 2 + 1
+				if child > size then
+					break
+				end
+				if child + 2 <= size and open[child + 2] < open[child] then
+					child = child + 2
+				end
+				if lastCost <= open[child] then
+					break
+				end
+				open[at], open[at + 1] = open[child], open[child + 1]
+				at = child
 			end
+			open[at], open[at + 1] = lastCost, lastNode
 		end
-		if not current then
-			break
-		end
-		done[current] = true
-		local adjacent = backward[current] or {}
-		for i = 1, #adjacent, 2 do
-			local node, cost = adjacent[i], best + adjacent[i + 1]
-			if not lower[node] or cost < lower[node] then
-				lower[node] = cost
+		if not done[current] and best == lower[current] then
+			done[current] = true
+			local adjacent = backward[current] or {}
+			for i = 1, #adjacent, 2 do
+				local node, cost = adjacent[i], best + adjacent[i + 1]
+				if not lower[node] or cost < lower[node] then
+					lower[node] = cost
+					local at = #open + 1
+					while at > 1 do
+						local parent = math.floor((at + 1) / 4) * 2 - 1
+						if open[parent] <= cost then
+							break
+						end
+						open[at], open[at + 1] = open[parent], open[parent + 1]
+						at = parent
+					end
+					open[at], open[at + 1] = cost, node
+				end
 			end
 		end
 	end
