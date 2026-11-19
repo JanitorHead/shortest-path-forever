@@ -125,9 +125,6 @@ function ns.SetTownServiceGroupShown(group, shown)
 		ns.SetOption("townServices", "all")
 	end
 	ns.RefreshTownServices()
-	if ns.RefreshServiceFilters then
-		ns.RefreshServiceFilters()
-	end
 end
 
 ---@type SPFTownServiceChoice[]
@@ -824,9 +821,13 @@ function Services:RefreshAllData()
 end
 
 -- Redraws the town services, as the map's own layers redraw after a zoom, a setting or combat.
+-- The Nearby services rows' checkboxes say whether their pins show, so they repaint with the layer.
 function ns.RefreshTownServices()
 	if servicePins then
 		Services:RefreshAllData()
+	end
+	if ns.RefreshServiceFilters then
+		ns.RefreshServiceFilters()
 	end
 end
 
@@ -848,9 +849,9 @@ local function AddFilter(_, root)
 	for _, group in ipairs(ns.NearbyServices.Groups()) do
 		if ns.TownServiceFilterable(group) then
 			submenu:CreateCheckbox(group.label, function()
-				return GroupShown(group)
+				return ns.TownServiceOnMap(group)
 			end, function()
-				ns.SetTownServiceGroupShown(group, not GroupShown(group))
+				ns.SetTownServiceGroupShown(group, not ns.TownServiceOnMap(group))
 			end)
 		end
 	end

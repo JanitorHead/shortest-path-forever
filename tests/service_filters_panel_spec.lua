@@ -32,6 +32,12 @@ assert(ns.db.townServices == "all", "ticking a row turns the town services layer
 assert(ns.db.townServiceKinds.arrows == true and ns.db.townServiceKinds.bank == false,
  "the layer comes on with only the ticked service")
 assert(arrow.Filter:GetChecked(), "the ticked row stays ticked")
+ns.db.townServices = "off"
+ns.RefreshTownServices()
+assert(not arrow.Filter:GetChecked(), "turning the layer off repaints the row unticked")
+ns.db.townServices = "all"
+ns.RefreshTownServices()
+assert(arrow.Filter:GetChecked(), "turning the layer on repaints the row ticked")
 local before = navigated
 scroll:SetVerticalScroll(42)
 arrow.Filter:SetChecked(false)
@@ -67,5 +73,19 @@ end
 assert(header and header.key == "trainers", "recycled section header takes its current key")
 header.scripts.OnClick(header)
 assert(lastCollapsed.trainers and not lastCollapsed.vendors, "recycled header collapses its current section")
+-- The flight master row shows and hides the flight master pins, which stand for its NPCs on the map (#1068).
+groups[#groups + 1] = { section = "vendors", key = "flight", label = "Flight master", icon = 2512 }
+places.flight = { { id = 5, name = "Dungar Longdrink", title = "Gryphon Master", map = 100, x = 0.4, y = 0.4 } }
+ns.db.mapFlightMasters = true
+search:SetText("flight")
+local flight = assert(ordinaryRow("flight"))
+assert(flight.Filter:IsShown() and flight.Filter:GetChecked(), "the flight master row has a ticked map checkbox")
+flight.Filter:SetChecked(false)
+flight.Filter.scripts.OnClick(flight.Filter)
+assert(ns.db.mapFlightMasters == false, "unticking the flight master row hides the flight master pins")
+assert(ns.db.townServiceKinds.flight == nil, "the flight master is not a town service filter")
+ns.db.mapFlightMasters = true
+ns.RefreshServiceFilters()
+assert(flight.Filter:GetChecked(), "a repaint reads the saved flight master choice")
 print("service_filters_panel_spec: passed")
 ]==]))()
