@@ -143,7 +143,7 @@ local function PaintRow(row)
 	if row.Filter then
 		local filterable = ns.TownServiceFilterable(group)
 		row.Filter:SetShown(filterable)
-		row.Filter:SetChecked(filterable and ns.TownServiceGroupShown(group))
+		row.Filter:SetChecked(filterable and ns.TownServiceOnMap(group))
 		row.Icon:ClearAllPoints()
 		row.Icon:SetPoint("LEFT", filterable and 34 or 8, 0)
 	end

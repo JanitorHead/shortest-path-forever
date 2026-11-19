@@ -7,6 +7,7 @@ source = source:gsub(
 	[[
 ns.Canvas = { PinMixin = {} }
 env.CreateFromMixins = function() return {} end
+ns.SetOption = function(key, value) ns.db[key] = value end
 setfenv(assert(loadfile("UI/NearbyProfessions.lua")), env)("ShortestPathForever", ns)
 setfenv(assert(loadfile("UI/TownServices.lua")), env)("ShortestPathForever", ns)
 env._G = env]],
@@ -14,6 +15,7 @@ env._G = env]],
 )
 assert(loadstring(source .. [==[
 ns.NearbyServices.State = function() return "ready" end
+ns.NearbyServices.Groups = function() return groups end
 search:SetText("")
 ns.RefreshServiceFilters()
 local function ordinaryRow(key)
@@ -22,7 +24,14 @@ local function ordinaryRow(key)
  end
 end
 local arrow = assert(ordinaryRow("arrows"))
-assert(arrow.Filter:IsShown() and arrow.Filter:GetChecked(), "ordinary service has a checked map switch")
+-- The town services layer is off by default: no row is on the map, so none shows ticked (#1067).
+assert(arrow.Filter:IsShown() and not arrow.Filter:GetChecked(), "a row is unticked while its pins are off the map")
+arrow.Filter:SetChecked(true)
+arrow.Filter.scripts.OnClick(arrow.Filter)
+assert(ns.db.townServices == "all", "ticking a row turns the town services layer on")
+assert(ns.db.townServiceKinds.arrows == true and ns.db.townServiceKinds.bank == false,
+ "the layer comes on with only the ticked service")
+assert(arrow.Filter:GetChecked(), "the ticked row stays ticked")
 local before = navigated
 scroll:SetVerticalScroll(42)
 arrow.Filter:SetChecked(false)
@@ -32,6 +41,7 @@ assert(navigated == before, "checkbox does not start a journey")
 assert(scroll:GetVerticalScroll() == 42, "filter changes preserve scroll")
 ns.SetTownServiceGroupShown(groups[1], true)
 assert(arrow.Filter:GetChecked(), "map-menu changes immediately repaint visible checkboxes")
+ns.SetTownServiceGroupShown(groups[2], true)
 search:SetText("bank")
 local bank = assert(ordinaryRow("bank"))
 assert(bank == arrow and bank.Filter:GetChecked(), "a recycled row reads its new kind")

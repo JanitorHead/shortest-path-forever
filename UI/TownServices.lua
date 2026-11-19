@@ -91,6 +91,13 @@ local function GroupShown(group)
 end
 ns.TownServiceGroupShown = GroupShown
 
+-- Whether the group's NPCs are on the map: its own choice, under a town services layer that is on.
+---@param group SPFNearbyGroup
+---@return boolean
+function ns.TownServiceOnMap(group)
+	return (ns.db.townServices or "off") ~= "off" and GroupShown(group)
+end
+
 ---@param group SPFNearbyGroup
 ---@param shown boolean
 function ns.SetTownServiceGroupShown(group, shown)
@@ -98,11 +105,25 @@ function ns.SetTownServiceGroupShown(group, shown)
 		return
 	end
 	local kinds = {}
-	for key, value in pairs(ns.db.townServiceKinds or {}) do
-		kinds[key] = value
+	local off = (ns.db.townServices or "off") == "off"
+	if shown and off then
+		-- Every service was off the map with the layer: it comes on showing only the one asked for, in every town,
+		-- since a Nearby services row can name a vendor in any town.
+		for _, other in ipairs(ns.NearbyServices.Groups()) do
+			if ns.TownServiceFilterable(other) then
+				kinds[other.key] = false
+			end
+		end
+	else
+		for key, value in pairs(ns.db.townServiceKinds or {}) do
+			kinds[key] = value
+		end
 	end
 	kinds[group.key] = shown
 	ns.db.townServiceKinds = kinds
+	if shown and off then
+		ns.SetOption("townServices", "all")
+	end
 	ns.RefreshTownServices()
 	if ns.RefreshServiceFilters then
 		ns.RefreshServiceFilters()
