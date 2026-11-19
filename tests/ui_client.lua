@@ -955,6 +955,17 @@ local addonSettings, settingsRows, settingsButtons, openedCategories = {}, {}, {
 _G.MinimalSliderWithSteppersMixin = { Label = { Right = 1 } }
 -- The frames Escape closes (UIParent.lua); the report and Forever family windows add themselves.
 _G.UISpecialFrames = _G.UISpecialFrames or {}
+-- Blizzard_SharedXML/InputUtil.lua, under a mouse: core opens its right-click menus at the cursor.
+_G.InputUtil = _G.InputUtil
+	or {
+		IsGamepadUIEnabled = function()
+			return false
+		end,
+		AnchorRegionToCursor = function(region, point)
+			region:ClearAllPoints()
+			region:SetPoint(point, _G.UIParent, "BOTTOMLEFT", 0, 0)
+		end,
+	}
 -- Blizzard_SharedXML/TableUtil.lua.
 _G.tContains = _G.tContains
 	or function(list, item)
