@@ -256,7 +256,6 @@ local function RetimeKept()
 	return true
 end
 
----@param planned SPFPlan?
 -- Since the journey's search started: wall milliseconds, frames that ran path work, their milliseconds and the
 -- frame rate, for the report.
 local function Elapsed(timing)
@@ -290,6 +289,7 @@ local function Rough(planned)
 	return rough
 end
 
+---@param planned SPFPlan?
 local function Commit(planned)
 	followed = planned
 	local timing = Search.timing
