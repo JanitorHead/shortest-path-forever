@@ -187,6 +187,7 @@
 ---@class SPFTaxiNode : SPFPoint
 ---@field name string
 ---@field faction? string
+---@field class? string the only class this flight master serves (UnitClass's file name), by gossip
 ---@class SPFTaxiPath
 ---@field from number
 ---@field to number
@@ -475,6 +476,7 @@ ShortestPathForeverPathData = nil
 ---@field color? ColorMixin
 ---@class SPFLeg
 ---@field mode SPFMode
+---@field gossip? true a class flight master's flight: talk to it, there is no flight map
 ---@field from SPFPlace
 ---@field to SPFPlace
 ---@field depart number
@@ -545,6 +547,7 @@ ShortestPathForeverPathData = nil
 ---@field data? SPFRoute -- current ride remains usable for alighting when new boarding is excluded
 ---@class SPFPlaceOptions
 ---@field faction? string
+---@field class? string your class (UnitClass's file name): class flight masters serve only theirs
 ---@field docks? table<number, SPFDock>
 ---@field routes? table<number, SPFRoute>
 ---@field taxiNodes? table<number, SPFTaxiNode>
@@ -589,6 +592,7 @@ ShortestPathForeverPathData = nil
 ---@field teleport? SPFTeleportPlace
 ---@field partyPortal? SPFPartyPortal
 ---@field ready? number
+---@field gossip? true a class flight master's flight, which lands whether its landing is known or not
 ---@class SPFLabels
 ---@field node number[]
 ---@field state number[]
