@@ -48,9 +48,10 @@ LIFT_GUARDS = {
 # Plaguewood tower flights depend on PvP control, which the planner's faction/known-node contract cannot express.
 # Mount IDs alone also admit quest/test nodes.
 RESTRICTED_NODES = {84, 85, 86, 87}
-# Nighthaven's druid flight masters (Silva Fil'naveth, Bunthen Plainswind) fly druids, by gossip, to Rut'theran Village
-# and Thunder Bluff. The nodes have no discovery bit (TaxiNodes.CharacterBitNumber 0) and the paths are free
-# (TaxiPath.Cost 0): a druid of the node's faction always has them, and the flight lands without the landing being known.
+# Nighthaven's druid flight masters (Silva Fil'naveth, Bunthen Plainswind) fly druids, by gossip, to Rut'theran
+# Village and Thunder Bluff. The nodes have no discovery bit (TaxiNodes.CharacterBitNumber 0) and the paths are free
+# (TaxiPath.Cost 0): a druid of the node's faction always has them, and the flight lands without the landing being
+# known.
 CLASS_NODES = {62: "DRUID", 63: "DRUID"}
 # Continents with walking maps: the only places a route can continue from.
 MAPS = (0, 1, 2991)
@@ -821,7 +822,8 @@ def main():
             f"-- Measured durations: {covered}/{len(paths)} ({covered / len(paths):.1%}); "
             "remaining paths estimated at 32 yd/s.",
             "-- Speed: cmangos/mangos-classic src/game/MotionGenerators/PathMovementGenerator.cpp, TAXI_FLIGHT_SPEED.",
-            "-- Only ordinary flight-map nodes and the druid flight masters (class); quest/test/transport/PvP paths excluded.",
+            "-- Only ordinary flight-map nodes and the druid flight masters (class); "
+            "quest/test/transport/PvP paths excluded.",
             "-- Path points: flattened map/x/y triples, simplified within 20 yd in XY, rounded to 0.1 yd.",
             "-- InFlight duration data license:",
         ]
