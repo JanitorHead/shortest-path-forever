@@ -471,10 +471,23 @@ local function Solve(options, cache, check, weigh)
 						pairs[#pairs + 1], pairs[#pairs + 2] = from, to
 					else
 						if yards then
-							Edge(from, to, { mode = "walk", duration = yards / speed * 1000, yards = yards })
+							Edge(
+								from,
+								to,
+								{ mode = "walk", duration = yards / speed * 1000, yards = yards, transfer = yards == 0 }
+							)
 						end
 						if reverse then
-							Edge(to, from, { mode = "walk", duration = reverse / speed * 1000, yards = reverse })
+							Edge(
+								to,
+								from,
+								{
+									mode = "walk",
+									duration = reverse / speed * 1000,
+									yards = reverse,
+									transfer = reverse == 0,
+								}
+							)
 						end
 					end
 				end
@@ -587,6 +600,9 @@ local function Solve(options, cache, check, weigh)
 						duration = yards / speed * 1000,
 						yards = yards,
 						estimated = estimated,
+						-- An estimate of zero yards is a lower bound that may hide a real walk, unless the ends are the same
+						-- point (the tolerance JourneySearch uses to know a fixed place by its coordinates).
+						transfer = yards == 0 and (not estimated or Gap(origin, destination) < 0.00001),
 					})
 				end
 			end
@@ -730,7 +746,7 @@ local function Solve(options, cache, check, weigh)
 					if withoutTeleports and edge.teleport and not edge.partyPortal and not edge.teleport.bind then
 						canLeave = false
 					end
-					if walked and edge.mode == "walk" and edge.yards > 0 then
+					if walked and edge.mode == "walk" and not edge.transfer then
 						canLeave = false
 					end
 					if ridden and edge.to == goal and edge.mode == "walk" and not Rode(labels, current) then
@@ -763,7 +779,7 @@ local function Solve(options, cache, check, weigh)
 								-- Standing at this master is what unlocks its flights, so this arrival is the one
 								-- departure the route may use while unknown.
 								target = edge.to + LEARNED
-							elseif walked or edge.yards > 0 then
+							elseif walked or not edge.transfer then
 								target = edge.to + WALKED
 							end
 						end

@@ -204,7 +204,13 @@ for _, pair in ipairs({ { 26, 39 }, { 26, 67 }, { 25, 22 }, { 6, 7 } }) do
 		local bounded, exact = driver.shown(), full(options)
 		assert(
 			bounded and exact and math.abs(bounded.arrive - exact.arrive) < 1e-5,
-			"baked endpoint bounds must preserve the full-search optimum"
+			("baked endpoint bounds must preserve the full-search optimum: %d to %d, water %s, %s against %s"):format(
+				pair[1],
+				pair[2],
+				tostring(water),
+				tostring(bounded and bounded.arrive),
+				tostring(exact and exact.arrive)
+			)
 		)
 		ns.ClearJourney()
 	end
