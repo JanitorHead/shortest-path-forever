@@ -19,6 +19,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 - A dock's departure lines in the tracker name every call the boat makes, as the map does: the Southshore boat reads "Darkshore, then Wetlands" instead of only Darkshore, and Auberdine's two Menethil boats are told apart.
 - With an outdated ForeverCore (1.11), the addon shows its on-screen line saying how to fix it, instead of stopping with a Lua error.
 - **Walks in Stormwind start from the street you are on.** The addon now follows which floor you stand on outdoors as well as indoors, and keeps it through spots at a building's edge the walking map has no street for. A walk from the city's streets no longer starts on the open ground under the city (#737).
+- **Journeys from Stormwind's Trade District settle on the first plan.** The route no longer replans over and over as you walk the Trade District, and no longer sends you through the Mage Quarter on a loop before you cross the canal (#1071).
+- **No more "PathGrid.lua:1360" error while a route is planned.** A search paused while you move between areas resumes correctly (#1071).
 
 ## [1.43.2] - 2026-11-18
 

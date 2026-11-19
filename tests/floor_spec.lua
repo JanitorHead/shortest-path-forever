@@ -49,13 +49,13 @@ local MAGIC = { x = 1773.47, y = 61.121, z = -46.321 } -- the Magic Quarter
 local LIFT_TOP = { x = 1596.15, y = 291.8, z = 55.718 } -- Data/Transports.lua dock 1009, in the hall above
 local UNDER_HALL = { x = 1588, y = 237 } -- a city cell with the ruins' hall above it
 
--- Walk the drawn line from a to b, sampling every five yards as the journey's frame would; check is called at each
--- sample with the point, the line's height there and the tracked height.
-local function walk(from, to, check)
+-- Walk the drawn line from a to b, sampling every five yards (or spacing) as the journey's frame would; check is
+-- called at each sample with the point, the line's height there and the tracked height.
+local function walk(from, to, check, spacing)
 	local points = assert(Path.FindSync(0, from, to))
 	for i = 2, #points do
 		local a, b = points[i - 1], points[i]
-		local steps = math.max(1, math.ceil(math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2) / 5))
+		local steps = math.max(1, math.ceil(math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2) / (spacing or 5)))
 		for j = 1, steps do
 			local t = j / steps
 			local x, y = a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)
@@ -81,8 +81,9 @@ do
 	assert(st.val[k], "the job decoded the player's cluster, and the idle sweep after it kept it")
 end
 
--- Both ways across the city, from an unknown floor: the floor settles within a few dozen yards and is never another
--- floor than the one the line is drawn on.
+-- Both ways across the city, from an unknown floor: the floor settles within a block or so and is never another
+-- floor than the one the line is drawn on. A surface the map has no way from is held a few cells, so settling waits
+-- for that.
 for _, ends in ipairs({ { FM, MAGIC }, { MAGIC, FM } }) do
 	Floor.Forget()
 	local walked, settled, wrong, last = 0, nil, 0, nil
@@ -98,7 +99,7 @@ for _, ends in ipairs({ { FM, MAGIC }, { MAGIC, FM } }) do
 			end
 		end
 	end)
-	assert(settled and settled < 100, "the floor settles soon: " .. tostring(settled))
+	assert(settled and settled < 150, "the floor settles soon: " .. tostring(settled))
 	assert(wrong == 0, "the tracked floor is the line's floor: " .. wrong)
 end
 
@@ -268,7 +269,8 @@ do
 	drain()
 	tick()
 	height = Floor.Height(0, CANAL.x, CANAL.y)
-	assert(height and height > 85, "walking, the street over the canal: " .. tostring(height))
+	-- The street and the canal's water stack along the bank, so walking it never settles on one; it is never the water.
+	assert(not height or height > 85, "walking, the street over the canal: " .. tostring(height))
 	swimming = true
 	journeyAt = { x = CANAL.x + 0.5, y = CANAL.y }
 	tick()
@@ -277,6 +279,29 @@ do
 	assert(height and height < 80, "swimming in the same cell, the water: " .. tostring(height))
 	journeyAt = nil
 	tick()
+end
+
+-- Trade District streets have cells the walking map gives only the ground under the city (z 60, #1046): a street
+-- surface that cannot step into one is held, not ruled out, so the floor never settles on the ground beneath you.
+-- Ruled out, it did, and a journey planned there walked the ground through the Mage Quarter and replanned as the
+-- floor changed. From a fresh start in such a cell, the street around you is held the same way.
+do
+	local TRADE = { x = -8849, y = 647.9, z = 98 }
+	for _, ends in ipairs({
+		{ TRADE, { x = -8980.3, y = 941 } }, -- through cell 900,1021 to the Mage Quarter
+		{ { x = -8829.9, y = 722.2, z = 98 }, TRADE }, -- from cell 900,1027, the ground's alone
+	}) do
+		Floor.Forget()
+		local wrong = 0
+		walk(ends[1], ends[2], function(_, _, z, height, startZ, endZ)
+			if height and z and math.abs(height - z) > 10 then
+				-- On a ramp the floor may still be the segment's start or end.
+				local atEnd = (startZ and math.abs(height - startZ) <= 10) or (endZ and math.abs(height - endZ) <= 10)
+				wrong = wrong + (atEnd and 0 or 1)
+			end
+		end, 3)
+		assert(wrong == 0, "on the Trade District's street the floor is never the ground under it: " .. wrong)
+	end
 end
 
 -- A cluster released from the pin goes as soon as no job runs, not at the next job.
