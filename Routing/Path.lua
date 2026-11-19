@@ -1130,6 +1130,28 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 			end
 		end
 	end
+	-- Both ends rescued onto one entrance at no cost are a transfer too, even from different clusters. Only a source
+	-- with such an entrance needs the check, and only then are targets linked before the search reaches them.
+	local zeros = {}
+	for id, cost in pairs((reverse and sourceIn) or source) do
+		if cost == 0 then
+			zeros[id] = true
+		end
+	end
+	if next(zeros) then
+		for i, point in ipairs(targets) do
+			local k = costs[i] == nil and locate(st, point.x, point.y)
+			local target = k and link(i, k)
+			for id, cost in pairs(target and target.ends or {}) do
+				if costs[i] == nil and cost == 0 and zeros[id] then
+					costs[i] = 0
+					if job then
+						job.revision = job.revision + 1
+					end
+				end
+			end
+		end
+	end
 	hk, hv, hn = heldKeys, heldValues, heldSize
 	if job then
 		job.snapped = true

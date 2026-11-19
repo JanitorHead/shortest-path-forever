@@ -124,7 +124,8 @@ local function MeasuredWalks(here)
 	end
 	if startAt and startAt.map == here.map then
 		for _, walk in ipairs(startCosts) do
-			walks[#walks + 1] = { from = here, to = walk.to, cost = walk.cost, estimated = walk.estimated }
+			walks[#walks + 1] =
+				{ from = here, to = walk.to, cost = walk.cost, estimated = walk.estimated, apart = walk.apart }
 		end
 	end
 	local leg = followed and followed.legs[progress.index]
@@ -473,8 +474,9 @@ local function Plan(feasible, incumbent, job)
 	if not (here and goal) then
 		return nil
 	end
-	-- Taxi paths cannot be interrupted; retain their chosen destination until landing.
-	if followed and UnitOnTaxi("player") then
+	-- Taxi paths cannot be interrupted; retain their chosen destination until landing. A rough route was never chosen:
+	-- returning it would settle the search with the estimate itself.
+	if followed and not followed.rough and UnitOnTaxi("player") then
 		lastRunSpeed, followed.now = Context.RunSpeed(), ns.NowMs()
 		return followed
 	end
@@ -874,7 +876,8 @@ local function RefreshCosts(includeGoal, forced, replace)
 				preview.preview, search.candidate = true, preview
 				-- A first search shows this estimate at once, its walks straight until the proof draws them. The proved
 				-- route replaces it, or keeps it when it is the same journey.
-				if not followed and search.initial then
+				-- An estimate whose zero walks left no legs would read as arrival, so it waits for the proof.
+				if not followed and search.initial and #preview.legs > 0 then
 					Commit(Rough(preview))
 					if stale() then
 						return
