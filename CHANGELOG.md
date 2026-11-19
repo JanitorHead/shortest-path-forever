@@ -10,6 +10,18 @@ Each version's entry is also its release notes on GitHub, CurseForge and Wago. O
 verbatim rather than rewritten as the addon moves. API changes other addons' authors need go under an
 optional `### For addon authors` subsection after a version's player bullets.
 
+## [1.43.3] - 2026-11-19
+
+### Fixed
+
+- Druids now get routes that use their own class flight paths, Moonglade from Rut'theran Village or Thunder Bluff, wherever that is quicker.
+- On the world map, only the waypoint modifier picked in the settings creates a waypoint, so Alt-clicking another addon's map icon no longer plans a journey as well.
+- A dock's departure lines in the tracker name every call the boat makes, as the map does: the Southshore boat reads "Darkshore, then Wetlands" instead of only Darkshore, and Auberdine's two Menethil boats are told apart.
+- With an outdated ForeverCore (1.11), the addon shows its on-screen line saying how to fix it, instead of stopping with a Lua error.
+- **Walks in Stormwind start from the street you are on.** The addon now follows which floor you stand on outdoors as well as indoors, and keeps it through spots at a building's edge the walking map has no street for. A walk from the city's streets no longer starts on the open ground under the city (#737).
+- **Journeys from Stormwind's Trade District settle on the first plan.** The route no longer replans over and over as you walk the Trade District, and no longer sends you through the Mage Quarter on a loop before you cross the canal (#1071).
+- **No more "PathGrid.lua:1360" error while a route is planned.** A search paused while you move between areas resumes correctly (#1071).
+
 ## [1.43.2] - 2026-11-18
 
 ### Changed

@@ -187,13 +187,20 @@ chatBox = nil
 assert(not ownClick(own, "RightButton") and destination == nil)
 print("journey input ok")
 
--- The global mouse event still fires over a Questie-owned icon that swallowed canvas clicks.
+-- With Shift chosen, Alt-click on the map is not a journey gesture: OpenMap's Alt-click deletes its markers, and
+-- other icons keep their own Alt-click (#1050).
 alt, shift, destination = true, false, nil
 mouseEvent(nil, "GLOBAL_MOUSE_DOWN", "LeftButton")
-assert(
-	destination and destination.x == 0.25 and destination.y == 0.75,
-	"Alt-click uses the exact map cursor over icons"
-)
+assert(destination == nil, "with Shift chosen, Alt-click off a Questie icon is left to other addons")
+-- The global mouse event still fires over a Questie-owned icon that swallowed canvas clicks.
+local foci = env.GetMouseFoci
+_G.Questie = {}
+env.GetMouseFoci = function()
+	return { { miniMapIcon = false, data = {}, UiMapID = 1440, x = 40, y = 60 } }
+end
+mouseEvent(nil, "GLOBAL_MOUSE_DOWN", "LeftButton")
+-- The icon stands away from the map cursor (0.25, 0.75), so this is the icon's spot and not the cursor's.
+assert(destination and destination.x == 0.4 and destination.y == 0.6, "Alt-click plans to the Questie icon's spot")
 -- TomTom v4.3.13 CreateWorldMapClickHandler passes LeftButton through even while its modifier matches.
 -- Its waypoint gesture is right-click, so active or stale saved options must not disable our left-click.
 for _, options in ipairs({
@@ -204,7 +211,7 @@ for _, options in ipairs({
 }) do
 	env.TomTomDB, destination = options, nil
 	mouseEvent(nil, "GLOBAL_MOUSE_DOWN", "LeftButton")
-	assert(destination and destination.x == 0.25, "TomTom options must not claim Alt-left-click")
+	assert(destination and destination.x == 0.4, "TomTom options must not claim Alt-left-click on a Questie icon")
 	destination = nil
 	mouseEvent(nil, "GLOBAL_MOUSE_DOWN", "RightButton")
 	assert(destination == nil, "TomTom keeps its right-click gesture")
@@ -220,6 +227,7 @@ for _, state in ipairs({ { false, true, true }, { true, false, true }, { true, t
 	mouseEvent(nil, "GLOBAL_MOUSE_DOWN", "LeftButton")
 	assert(destination == nil, "ordinary clicks and clicks outside the visible map remain untouched")
 end
+_G.Questie, env.GetMouseFoci = nil, foci
 chatBox = {}
 destination = nil
 assert(not handler(map, 3, "LeftButton") and destination == nil, "Shift+click must share to an open chat box")
