@@ -845,8 +845,7 @@ local function Solve(options, cache, check, weigh)
 			-- Zero-cost lower bounds may disappear from the displayed steps, but still need proof.
 			if leg.mode == "walk" and leg.estimated then
 				if leg.from.kind == "start" or leg.to.kind == "goal" then
-					-- Its own record: merging a zero-time walk below moves a leg's end, and the probe for this walk
-					-- must cost the walk that is estimated, not the merged one (#1080).
+					-- Its own record, so the probe costs this estimated walk, not one merged below (#1080).
 					pendingWalks[#pendingWalks + 1] = { mode = "walk", from = leg.from, to = leg.to, estimated = true }
 				end
 				needsStart = needsStart or leg.from.kind == "start"

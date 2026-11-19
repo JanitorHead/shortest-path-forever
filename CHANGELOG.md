@@ -12,10 +12,6 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [1.43.3] - 2026-11-19
 
-### Added
-
-- **Hide the cast prompt.** A new "Show cast prompt" switch under Settings > Interface hides the Hearthstone or teleport prompt in the middle of the screen. Journeys still use your Hearthstone and the tracker step still names it (#1086).
-
 ### Fixed
 
 - Druids now get routes that use their own class flight paths, Moonglade from Rut'theran Village or Thunder Bluff, wherever that is quicker.
@@ -34,6 +30,10 @@ optional `### For addon authors` subsection after a version's player bullets.
 - Journey: a route that has to search most of a continent on foot, such as Stormwind to central Feralas, settles about a quarter faster.
 - Journey: short routes settle on their final plan sooner (#1080).
 - **Shift-click shows a Waypoint UI marker again.** With Waypoint UI loaded, a journey hands it each turn from the start, even with no pin placed and with *Mark only where steps end* on. Clearing the journey clears the marker. Turn off Waypoint UI's own pathfinding to follow the journey's directions.
+
+### Added
+
+- **Hide the cast prompt.** A new "Show cast prompt" switch under Settings > Interface hides the Hearthstone or teleport prompt in the middle of the screen. Journeys still use your Hearthstone and the tracker step still names it (#1086).
 
 ## [1.43.2] - 2026-11-18
 
