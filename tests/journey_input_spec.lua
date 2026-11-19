@@ -1,4 +1,4 @@
-local handler, destination, mouseEvent, ownClick, canvasClick, minimapClick
+local handler, destination, mouseEvent, ownClick, canvasClick, canvasPriority, minimapClick
 local questTrackerMenu, questMapLogMenu
 local alt, overMap, shown = false, true, true
 local map = {
@@ -96,8 +96,8 @@ local env = setmetatable({
 		GetNormalizedCursorPosition = function()
 			return 0.25, 0.75
 		end,
-		AddCanvasClickHandler = function(_, fn)
-			canvasClick = fn
+		AddCanvasClickHandler = function(_, fn, priority)
+			canvasClick, canvasPriority = fn, priority
 		end,
 		AddGlobalPinMouseActionHandler = function(_, fn)
 			handler = fn
@@ -320,6 +320,15 @@ assert(destination and destination.map == 1, "the pin's own journey is planned")
 destination = nil
 assert(canvasClick(map, "LeftButton") and destination, "Alt-clicking the map with Alt chosen plans a journey")
 assert(destination.x == 0.25 and destination.y == 0.75, "the map click keeps its spot")
+-- OpenMap's handler zooms in on every Alt-click at priority 1000, so ours must ask first (#1076).
+assert(canvasPriority and canvasPriority > 1000, "the journey key's canvas click runs before OpenMap's")
+local cursor = map.GetNormalizedCursorPosition
+map.GetNormalizedCursorPosition = function()
+	return 1.4, 0.5
+end
+destination = nil
+assert(not canvasClick(map, "LeftButton") and destination == nil, "a click past the map's edge is left to OpenMap")
+map.GetNormalizedCursorPosition = cursor
 own.marker, destination = "dock", nil
 assert(ownClick(own, "LeftButton") and destination, "Alt-clicking our own icon with Alt chosen plans a journey")
 destination = nil

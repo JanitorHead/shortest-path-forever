@@ -510,11 +510,21 @@ function ns.FocusedTrackingChanged(event)
 	ns.JourneyToUserWaypoint()
 end
 
+-- The journey key is this addon's gesture, so its canvas handler asks first. Higher priorities run first, and
+-- OpenMap takes every plain or Alt left click on its stitched map at 1000 to zoom in (#1076).
+local CANVAS_CLICK_PRIORITY = 1001
+
 local function OnCanvasClick(map, button)
 	if not ns.db.journey or button ~= "LeftButton" or not ns.JourneyKeyDown() or ChatBoxOpen() then
 		return false
 	end
-	ns.JourneyToMapPoint(map:GetMapID(), map:GetNormalizedCursorPosition())
+	-- Past the shown map's edge (OpenMap's stitched view) the spot is on no map this addon can read. OpenMap's
+	-- own handler plans a Shift-click there through API.Navigate, on the zone under the cursor.
+	local x, y = map:GetNormalizedCursorPosition()
+	if not (x and y and x >= 0 and x <= 1 and y >= 0 and y <= 1) then
+		return false
+	end
+	ns.JourneyToMapPoint(map:GetMapID(), x, y)
 	return true
 end
 
@@ -824,7 +834,7 @@ ns.Init(function()
 		ns.AddJourneyClickHint(tooltip)
 		tooltip:Show()
 	end)
-	WorldMapFrame:AddCanvasClickHandler(OnCanvasClick)
+	WorldMapFrame:AddCanvasClickHandler(OnCanvasClick, CANVAS_CLICK_PRIORITY)
 	WorldMapFrame:AddGlobalPinMouseActionHandler(OnPinClick)
 	ns.Canvas.OnClick(OnOwnPinClick)
 	-- The stock handler still pings the spot, which marks where the journey goes for your group too.
