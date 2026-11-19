@@ -7,6 +7,7 @@ end
 
 -- A plan's legs as world points to draw and follow, kept apart from the search that chooses them.
 local Model = ns.Model
+---@class SPFPlanner
 local Planner = ns.Planner
 
 -- Preview geometry while a walking leg is still pending.
