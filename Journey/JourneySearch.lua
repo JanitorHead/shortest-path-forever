@@ -472,8 +472,8 @@ end
 ---@param feasible SPFPlan
 ---@return boolean
 local function WalkChainBeats(feasible)
-	local here, first = Here(), feasible.legs[1]
-	if not (here and first and first.depart) then
+	local here = Here()
+	if not (here and feasible.now) then
 		return false
 	end
 	local function key(place)
@@ -487,7 +487,7 @@ local function WalkChainBeats(feasible)
 	end
 	for _, walk in ipairs(MeasuredWalks(here)) do
 		local rest = walk.from == here and walk.cost and not walk.estimated and toGoal[key(walk.to)]
-		if rest and first.depart + (walk.cost + rest) / lastRunSpeed * 1000 < feasible.arrive then
+		if rest and feasible.now + (walk.cost + rest) / lastRunSpeed * 1000 < feasible.arrive then
 			return true
 		end
 	end
