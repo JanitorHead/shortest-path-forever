@@ -392,18 +392,19 @@ local function Solve(options, cache, check, weigh)
 						pairs[#pairs + 1], pairs[#pairs + 2] = from, to
 					else
 						if yards then
-							Edge(
-								from,
-								to,
-								{ mode = "walk", duration = yards / speed * 1000, yards = yards, transfer = yards == 0 }
-							)
+							Edge(from, to, {
+								mode = "walk",
+								duration = yards / speed * 1000,
+								yards = yards,
+								transfer = yards == 0 or nil,
+							})
 						end
 						if reverse then
 							Edge(to, from, {
 								mode = "walk",
 								duration = reverse / speed * 1000,
 								yards = reverse,
-								transfer = reverse == 0,
+								transfer = reverse == 0 or nil,
 							})
 						end
 					end
@@ -519,7 +520,7 @@ local function Solve(options, cache, check, weigh)
 						estimated = estimated,
 						-- Zero yards join two walks unless the walk's batch knows the ends are on different nodes: an
 						-- estimate of zero is then only a lower bound on a real walk.
-						transfer = yards == 0 and not apart,
+						transfer = yards == 0 and not apart or nil,
 					})
 				end
 			end
@@ -549,52 +550,23 @@ local function Solve(options, cache, check, weigh)
 			list[#list + 1], list[#list + 2] = from, duration
 		end
 	end
-	-- A heap of (cost, node) pairs, a node pushed again whenever its bound drops: a scan for the least open bound
-	-- made this pass quadratic in the places, most of a first plan's time.
-	local open = { 0, goal }
-	while #open > 0 do
+	for _ = 1, count do
 		check()
-		local best, current = open[1], open[2]
-		local size = #open
-		local lastCost, lastNode = open[size - 1], open[size]
-		open[size], open[size - 1] = nil, nil
-		size = size - 2
-		if size > 0 then
-			local at = 1
-			while true do
-				local child = at * 2 + 1
-				if child > size then
-					break
-				end
-				if child + 2 <= size and open[child + 2] < open[child] then
-					child = child + 2
-				end
-				if lastCost <= open[child] then
-					break
-				end
-				open[at], open[at + 1] = open[child], open[child + 1]
-				at = child
+		local current, best
+		for node, cost in pairs(lower) do
+			if not done[node] and (not best or cost < best) then
+				current, best = node, cost
 			end
-			open[at], open[at + 1] = lastCost, lastNode
 		end
-		if not done[current] and best == lower[current] then
-			done[current] = true
-			local adjacent = backward[current] or {}
-			for i = 1, #adjacent, 2 do
-				local node, cost = adjacent[i], best + adjacent[i + 1]
-				if not lower[node] or cost < lower[node] then
-					lower[node] = cost
-					local at = #open + 1
-					while at > 1 do
-						local parent = math.floor((at + 1) / 4) * 2 - 1
-						if open[parent] <= cost then
-							break
-						end
-						open[at], open[at + 1] = open[parent], open[parent + 1]
-						at = parent
-					end
-					open[at], open[at + 1] = cost, node
-				end
+		if not current then
+			break
+		end
+		done[current] = true
+		local adjacent = backward[current] or {}
+		for i = 1, #adjacent, 2 do
+			local node, cost = adjacent[i], best + adjacent[i + 1]
+			if not lower[node] or cost < lower[node] then
+				lower[node] = cost
 			end
 		end
 	end
