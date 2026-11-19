@@ -154,7 +154,6 @@
 ---@field look? SPFAPIStopKind -- what the caller said stands there (API.lua)
 ---@field questID? number
 ---@field npc? integer -- the service NPC this stop reaches: Shortest Path marks its nameplate while the stop is current (Nearby services)
----@field pinBadge? boolean -- destination marker beside an existing map icon
 ---@field questIDs? number[] -- the quests whose client areas a held stop stands for (API.lua)
 ---@field handins? number[] -- the quests handed in at an API stop, hidden from the game's own map pins (API.lua)
 ---@field corpse? boolean -- where your corpse lies (Corpse.lua)
@@ -189,6 +188,7 @@
 ---@class SPFTaxiNode : SPFPoint
 ---@field name string
 ---@field faction? string
+---@field class? string the only class this flight master serves (UnitClass's file name), by gossip
 ---@class SPFTaxiPath
 ---@field from number
 ---@field to number
@@ -379,6 +379,7 @@
 ---@field hideQuestPins? boolean the game's own quest markers give way to a journey's stops (QuestPins.lua)
 ---@field journeyTracker? boolean
 ---@field arrow? boolean
+---@field castPrompt? boolean the cast prompt for a teleport step; off hides only the prompt (Arrow.lua)
 ---@field metres? boolean
 ---@field compassScale? number percent, 100 is the stock size
 ---@field arrowScale? number percent, 100 is the stock size (Arrow.lua)
@@ -427,7 +428,6 @@
 ---@field label? string
 ---@field questID? number
 ---@field handins? number[] -- the quests handed in at the kept stop, validated on the way in and out (Resume.lua)
----@field pinBadge? boolean
 ---@field at number
 -- Where the character stood when it last bound at an inn, with GetBindLocation's name then.
 ---@class SPFBindPoint : SPFPoint
@@ -477,6 +477,7 @@ ShortestPathForeverPathData = nil
 ---@field color? ColorMixin
 ---@class SPFLeg
 ---@field mode SPFMode
+---@field gossip? true a class flight master's flight: talk to it, there is no flight map
 ---@field from SPFPlace
 ---@field to SPFPlace
 ---@field depart number
@@ -555,6 +556,7 @@ ShortestPathForeverPathData = nil
 ---@field data? SPFRoute -- current ride remains usable for alighting when new boarding is excluded
 ---@class SPFPlaceOptions
 ---@field faction? string
+---@field class? string your class (UnitClass's file name): class flight masters serve only theirs
 ---@field docks? table<number, SPFDock>
 ---@field routes? table<number, SPFRoute>
 ---@field taxiNodes? table<number, SPFTaxiNode>
@@ -600,6 +602,7 @@ ShortestPathForeverPathData = nil
 ---@field teleport? SPFTeleportPlace
 ---@field partyPortal? SPFPartyPortal
 ---@field ready? number
+---@field gossip? true a class flight master's flight, which lands whether its landing is known or not
 ---@class SPFLabels
 ---@field node number[]
 ---@field state number[]

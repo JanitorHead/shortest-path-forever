@@ -31,7 +31,10 @@ ns.Path = Path
 -- rule (#1080).
 Path.budget = 2.5
 Path.clusters = 64 -- secondary count ceiling per map (at least 4)
-Path.graphKB = 4096 -- decoded entrances/edges across all maps
+-- Decoded entrances/edges across all maps. A reverse search across a continent keeps a ring of clusters in use, each
+-- with its inbound lists; 4 MB held about 55 of them, and a search over most of Kalimdor rebuilt each cluster's lists
+-- about five times (#1074).
+Path.graphKB = 8192
 Path.cacheKB = 24576 -- decoded grids across all maps; active corridors may exceed it
 Path.clock = debugprofilestop or function()
 	return os.clock() * 1000
@@ -1115,8 +1118,7 @@ local function roadNode(st, k, node)
 	if not set then
 		return 0
 	end
-	local C = st.C
-	local cell = node < C * C and node or st.at[k][node + 1]
+	local cell = cellOf(st, k, node)
 	return cell ~= nil and set[cell] or 0
 end
 
@@ -1361,12 +1363,15 @@ local function stepOpen(st, gx, gy, dx, dy, water)
 	if dx < 0 or dy < 0 then
 		ax, ay = gx + dx, gy + dy
 	end
-	local a, b = value(st, ax, ay), value(st, ax + (dx ~= 0 and 1 or 0), ay + (dy ~= 0 and 1 or 0))
+	local C = st.C
+	local a = value(st, ax, ay)
+	-- Read before b's cluster decodes: that decode can yield, and a cluster nothing holds may be evicted meanwhile.
+	local moves = st.moves[floor(ax / C) * st.ny + floor(ay / C)]
+	local b = value(st, ax + (dx ~= 0 and 1 or 0), ay + (dy ~= 0 and 1 or 0))
 	if a == 0 or b == 0 or (not water and (a == 2 or b == 2)) then
 		return false
 	end
-	local C = st.C
-	local f = floor(st.moves[floor(ax / C) * st.ny + floor(ay / C)][(ax % C) * C + ay % C + 1] / 16)
+	local f = floor(moves[(ax % C) * C + ay % C + 1] / 16)
 	if dx ~= 0 then
 		return f % 2 == 0
 	end
@@ -1392,12 +1397,14 @@ local function diagonalBit(st, gx, gy, sx, sy, water)
 	return f >= 8
 end
 
--- The base surface's cell and node in its own cluster, decoded.
+-- The base surface's node in its own cluster, with the cluster's values and heights. A caller keeps these tables,
+-- never st's slots: decoding another cluster can yield, and a paused search resumes after Idle evicted this one.
+-- Every cluster a step reads was decoded by the step's open check, so its grid is never false.
 local function baseAt(st, gx, gy)
 	local C = st.C
 	local k = floor(gx / C) * st.ny + floor(gy / C)
-	grid(st, k)
-	return k, (gx % C) * C + gy % C
+	local val = grid(st, k) --[[@as integer[] ]]
+	return (gx % C) * C + gy % C, val, st.z[k]
 end
 
 -- An L-shaped detour leg: the step is open, and a steep leg feeds a detour only when its two stored heights match,
@@ -1411,14 +1418,14 @@ local function detourStep(st, gx, gy, dx, dy, water)
 	if not steep then
 		return true
 	end
-	local ak, an = baseAt(st, gx, gy)
-	local bk, bn = baseAt(st, gx + dx, gy + dy)
-	if st.val[ak][an + 1] ~= 3 and st.val[bk][bn + 1] ~= 3 then
+	local an, av, az = baseAt(st, gx, gy)
+	local bn, bv, bz = baseAt(st, gx + dx, gy + dy)
+	if av[an + 1] ~= 3 and bv[bn + 1] ~= 3 then
 		-- A detour's leg is an ordinary step too: the stored heights must clear the client's climb limit even
 		-- when the bake left the steep flag off the face (#897).
-		return steep(st.val[ak], st.z[ak], an, st.val[bk], st.z[bk], bn, st.cs)
+		return steep(av, az, an, bv, bz, bn, st.cs)
 	end
-	return st.z[ak][an + 1] == st.z[bk][bn + 1]
+	return az[an + 1] == bz[bn + 1]
 end
 
 -- Is the base surface's diagonal step from (gx, gy) by (dx, dy) walkable in that direction? Either L-shaped detour,
@@ -1443,9 +1450,9 @@ local function diagonalStep(st, gx, gy, dx, dy, water)
 	if not steep then
 		return true
 	end
-	local ak, an = baseAt(st, gx, gy)
-	local bk, bn = baseAt(st, tx, ty)
-	return steep(st.val[ak], st.z[ak], an, st.val[bk], st.z[bk], bn, st.cs * math.sqrt(2))
+	local an, av, az = baseAt(st, gx, gy)
+	local bn, bv, bz = baseAt(st, tx, ty)
+	return steep(av, az, an, bv, bz, bn, st.cs * math.sqrt(2))
 end
 
 -- The node one step (dx, dy) on from node of cluster k at global cell (gx, gy): the base surface's own step first,
@@ -1490,31 +1497,34 @@ local function neighbour(st, k, node, gx, gy, dx, dy, water)
 			open = diagonalStep(st, gx, gy, dx, dy, water)
 		end
 		if open then
-			grid(st, tk)
+			-- The step's checks may have decoded, yielded and seen k evicted: keep k's tables, then tk's, last.
+			local vk = grid(st, k) --[[@as integer[] ]]
+			local zk = st.z[k]
+			local vt = grid(st, tk) --[[@as integer[] ]]
 			local steep = st.steep
 			local distance = math.sqrt(dx * dx + dy * dy) * st.cs
-			if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], tlc, distance) then
+			if not steep or steep(vk, zk, node, vt, st.z[tk], tlc, distance) then
 				return tk, tlc
 			end
 		end
 	end
-	grid(st, k)
-	local l = st.links[k][node + 1]
+	local vk = grid(st, k) --[[@as integer[] ]]
+	local zk, l = st.z[k], st.links[k][node + 1]
 	if not l then
 		return nil
 	end
-	local here, h = st.val[k][node + 1], st.z[k][node + 1]
+	local here, h = vk[node + 1], zk[node + 1]
 	local steep = st.steep
 	for e = 1, #l do
 		if st.fmt >= 2 then
 			-- a format 2 link carries the cell offset it steps to, so a drop of more than a cell matches as well
 			local entry = l[e]
 			if entry % 16 - 8 == dx and floor(entry / 16) % 16 - 8 == dy then
-				grid(st, tk)
+				local vt = grid(st, tk) --[[@as integer[] ]]
 				local v = surface(st, tk, tlc, floor(entry / 256) % 64 - 1, h)
-				if v and (water or (here ~= 2 and st.val[tk][v + 1] ~= 2)) then
+				if v and (water or (here ~= 2 and vt[v + 1] ~= 2)) then
 					local distance = math.sqrt((entry % 16 - 8) ^ 2 + (floor(entry / 16) % 16 - 8) ^ 2) * st.cs
-					if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], v, distance) then
+					if not steep or steep(vk, zk, node, vt, st.z[tk], v, distance) then
 						return tk, v
 					end
 				end
@@ -1522,11 +1532,11 @@ local function neighbour(st, k, node, gx, gy, dx, dy, water)
 		else
 			local d = DIRECTION[(dx + 1) * 3 + dy + 1]
 			if l[e] % 8 == d then
-				grid(st, tk)
+				local vt = grid(st, tk) --[[@as integer[] ]]
 				local v = surface(st, tk, tlc, floor(l[e] / 8) - 1, h)
-				if v and (water or (here ~= 2 and st.val[tk][v + 1] ~= 2)) then
+				if v and (water or (here ~= 2 and vt[v + 1] ~= 2)) then
 					local distance = math.sqrt(DX[d] ^ 2 + DY[d] ^ 2) * st.cs
-					if not steep or steep(st.val[k], st.z[k], node, st.val[tk], st.z[tk], v, distance) then
+					if not steep or steep(vk, zk, node, vt, st.z[tk], v, distance) then
 						return tk, v
 					end
 				end
@@ -1618,7 +1628,7 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 			-- A pulled segment that leaves the road is charged the off-road preference too: a straight cut across a
 			-- field must not beat the road bend the walk took just because its own time is shorter (#891).
 			local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, nk, nn))) or 1
-			local paced = pace(swim, spent, (next2 - at) * span, st.val[nk][nn + 1] == 2, budget, ratio)
+			local paced = pace(swim, spent, (next2 - at) * span, grid(st, nk)[nn + 1] == 2, budget, ratio)
 			if not paced then
 				return false
 			end
@@ -1630,7 +1640,7 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 	end
 	if budget and k == P.k[b] and node == P.n[b] then -- the rest of the segment, inside the far entry's own cell
 		local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, k, node))) or 1
-		local paced = pace(swim, spent, (1 - at) * span, st.val[k][node + 1] == 2, budget, ratio)
+		local paced = pace(swim, spent, (1 - at) * span, grid(st, k)[node + 1] == 2, budget, ratio)
 		if not paced then
 			return false
 		end
@@ -1720,7 +1730,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 				end
 				local wet
 				if nk then
-					wet = st.val[nk][nn + 1] == 2
+					wet = grid(st, nk)[nn + 1] == 2
 				else
 					wet = value(st, x, y) == 2
 				end
@@ -1741,7 +1751,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 		return nil, false
 	end
 	if at < 1 then -- the rest of the segment, inside the end's own cell
-		local wet = not closed and st.val[k][node + 1] == 2
+		local wet = not closed and grid(st, k)[node + 1] == 2
 		local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - (not closed and roadNode(st, k, node) or 0))) or 1
 		local paced = pace(swim, spent, (1 - at) * span, wet, budget, ratio)
 		if not paced then
@@ -1828,14 +1838,24 @@ local pinned = {}
 
 ---@param map number?
 ---@param clusters table<number, true>?
+---@return boolean released whether a cluster pinned before is pinned no longer
 local function Pin(map, clusters)
 	if not map and next(pinned) == nil then
-		return -- outdoors Floor.lua forgets on every tick: nothing pinned, no table to make
+		return false -- Floor.lua forgets on every tick it follows nothing (a taxi, a lift): nothing pinned, no table to make
+	end
+	local released = false
+	for m, keep in pairs(pinned) do
+		for k in pairs(keep) do
+			if m ~= map or not (clusters and clusters[k]) then
+				released = true
+			end
+		end
 	end
 	pinned = {}
 	if map and clusters then
 		pinned[map] = clusters
 	end
+	return released
 end
 
 -- Whether cluster k is decoded, or holds no walking data, so reading it never decodes.

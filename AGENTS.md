@@ -91,7 +91,9 @@ CMaNGOS classic-db where named. Live client values win wherever the client offer
   `tools/bake_walk_zones.lua`.
 - `Data/Services.lua` (food and drink, profession goods, trainers, mage portal trainers, battlemasters): `ItemSparse`,
   `ItemXItemEffect`, `SpellEffect`, `SkillLineAbility` and related tables with classic-db vendor, trainer and
-  battlemaster tables; QuestieDB's `foodType` is 0 for every vendor item and it has no trainer spells.
+  battlemaster tables; QuestieDB's `foodType` is 0 for every vendor item and it has no trainer spells. Forever's own
+  trainers are in neither database nor any client table, so `tools/gen_services.py` types each one's role by NPC ID
+  (`FOREVER_CLASS_TRAINERS`, `FOREVER_PROFESSION_TRAINERS`); without them Zephras Isle listed no trainer (#1082).
 - `Data/SpellTargets.lua` (spells and on-use items that target another unit): `SpellEffect.ImplicitTarget`,
   `SpellMisc`, `SpellRange`; `Routing/Band.lua` asks `C_Spell.IsSpellInRange` and `C_Item.IsItemInRange` only for these.
 - `Data/Heights.lua` and `Data/IdleSpawns.lua` (spawn heights, idle NPCs): classic-db `creature` and `gameobject`
