@@ -689,8 +689,8 @@ ns.Init(function()
 	Binding("ShortestPathForeverTravelToPinButton", ns.JourneyToUserWaypoint)
 	Binding("ShortestPathForeverTravelToTrackedQuestButton", ns.JourneyToTrackedQuest)
 	Binding("ShortestPathForeverClearJourneyButton", ns.ClearJourney)
-	-- Questie owns Shift-click on its icons. While Shift is the journey key, Alt-click observes the map cursor
-	-- through our own event frame, including icons that swallow canvas clicks. When Alt is chosen, that one key
+	-- Questie owns Shift-click on its icons. While Shift is the journey key, Alt-click over a Questie icon plans
+	-- there through our own event frame, and Alt-click anywhere else is left alone. When Alt is chosen, that one key
 	-- plans everywhere, Questie icons included, and Shift no longer plans a journey. TomTom's map overlay passes
 	-- LeftButton through; its waypoint gesture uses RightButton.
 	local clicks = CreateFrame("Frame")
@@ -704,29 +704,24 @@ ns.Init(function()
 		then
 			return
 		end
-		-- Over a Questie icon the journey goes to the spawn it marks, on that spawn's floor.
+		-- Only a Questie icon, whose own frame swallows the click, needs this handler: everywhere else the canvas and
+		-- pin handlers answer the chosen key, and any other modified click is left to other addons (OpenMap's
+		-- Alt-click deletes its markers). Over the icon the journey goes to the spawn it marks, on that spawn's floor.
 		local iconMap, iconX, iconY = QuestieIconSpot()
+		if not (iconMap and iconX and iconY) then
+			return
+		end
 		if JourneyKey() == "shift" then
 			-- Questie keeps Shift-click to untrack its quest; Alt-click plans the journey there.
 			if not IsAltKeyDown() or IsShiftKeyDown() then
 				return
 			end
-		else
-			-- The chosen key plans everywhere. On empty map space the canvas already answers this same click, so
-			-- only a Questie icon, whose own frame swallows it, needs this handler.
-			if not ns.JourneyKeyDown() or not (iconMap and iconX and iconY) then
-				return
-			end
+		elseif not ns.JourneyKeyDown() then
+			return
 		end
-		local point
-		if iconMap and iconX and iconY then
-			point = ns.WorldPoint(iconMap, iconX, iconY)
-			if point and point.z == nil then
-				point.z = ns.SpawnHeight(point.map, point.x, point.y, QUESTIE_ICON_REACH)
-			end
-		else
-			point =
-				ns.WorldPoint(WorldMapFrame:GetMapID() --[[@as number]], WorldMapFrame:GetNormalizedCursorPosition())
+		local point = ns.WorldPoint(iconMap, iconX, iconY)
+		if point and point.z == nil then
+			point.z = ns.SpawnHeight(point.map, point.x, point.y, QUESTIE_ICON_REACH)
 		end
 		if point and OnZone(ns.InstanceEntrance(point)) then
 			ns.StartJourney(point)
