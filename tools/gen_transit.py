@@ -29,7 +29,8 @@ INFLIGHT_URL = f"https://raw.githubusercontent.com/LudiusMaximus/InFlight/{INFLI
 # CMaNGOS mangos-classic src/game/MotionGenerators/PathMovementGenerator.cpp: TAXI_FLIGHT_SPEED.
 TAXI_SPEED = 32.0
 TAXI_POINT_ERROR = 20.0  # World yards; retain bends, without shipping every spline control point.
-LIFTS = {11898, 11899, 4170, 4171, 47296, 47297, 20649, 20652, 20655}
+STEP = 2.0  # The client's step height in yards: a player walks between surfaces this close in height.
+LIFTS = {11898, 11899, 4170, 4171, 47296, 47297, 20649, 20652, 20655, 80023, 149045, 149046}
 TRAMS = {176080, 176081, 176082, 176083, 176084, 176085}
 # Curated landing/approach witnesses, not a proximity classifier or physical lift ownership.
 # Exact classic-db creature GUIDs at DB_REV: Great Lift's upper approach, Freewind's lower approach,
@@ -296,22 +297,35 @@ def transports(animation, spawns, triggers, guarded_factions):
         (206491, "Undercity, west lift", [(20649, 44892)]),
         (206521, "Undercity, east lift", [(20652, 44962)]),
         (206551, "Undercity, south lift", [(20655, 44901)]),
+        (800231, "Gnomeregan lift", [(80023, 9450)]),
+        (1490451, "Searing Gorge, west scaffold lift", [(149045, 6945)]),
+        (1490461, "Searing Gorge, east scaffold lift", [(149046, 6946)]),
     ]
-    for index, (route_id, site, cars) in enumerate(sites):
+    next_dock = 1001
+    for route_id, site, cars in sites:
         car_frames = []
         for template, guid in cars:
             spawn = next(s for s in spawns[template] if s["guid"] == guid)
             frames = world_track(tracks[template], spawn)
             car_frames.append((template, frames))
-        landings = [f for _, frames in car_frames for f in frames if f["depart"] > f["arrive"]]
-        middle = (min(f["pos"][2] for f in landings) + max(f["pos"][2] for f in landings)) / 2
-        for top, name in ((True, "Top"), (False, "Bottom")):
-            members = [f for f in landings if (f["pos"][2] > middle) == top]
-            dock_id = 1001 + index * 2 + (0 if top else 1)
+        landings = sorted(
+            (f for _, frames in car_frames for f in frames if f["depart"] > f["arrive"]), key=lambda f: -f["pos"][2]
+        )
+        # A landing is a floor the car dwells at. Dwells within the player's 2-yard step of the floor above are the
+        # same floor: the scaffold cars settle a yard or so apart on one landing.
+        levels = []
+        for frame in landings:
+            if levels and levels[-1][-1]["pos"][2] - frame["pos"][2] <= STEP:
+                levels[-1].append(frame)
+            else:
+                levels.append([frame])
+        for level, members in enumerate(levels):
+            name = "Top" if level == 0 else "Bottom" if level == len(levels) - 1 else f"Level {len(levels) - level}"
             pos = tuple(sum(f["pos"][axis] for f in members) / len(members) for axis in range(3))
-            docks[dock_id] = {**location(members[0]["map"], pos), "site": site, "name": name}
+            docks[next_dock] = {**location(members[0]["map"], pos), "site": site, "name": name}
             for frame in members:
-                frame["dock"] = dock_id
+                frame["dock"] = next_dock
+            next_dock += 1
         periods = {tracks[template][-1][0] for template, _ in car_frames}
         # TB pairs differ by 33 ms per cycle: separate cars preserve each period and fitted epoch.
         groups = [[car] for car in car_frames] if len(periods) > 1 else [car_frames]
