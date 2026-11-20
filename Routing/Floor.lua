@@ -50,6 +50,12 @@ local FIRST_LIFT = 1001 -- Data/Transports.lua numbers lift and tram landings fr
 
 ---@type SPFFloorState?
 local here
+-- The floor you walked onto a lift's landing on, kept while you stand there: a lift's landings share a spot on the
+-- map, one above the other, so this names the landing you are at (Core.lua's NearestDock). A ride takes you to the
+-- other landing without moving you on the map, so after one it still names the landing you left until you walk off
+-- it, when following starts again.
+---@type { map: number, z: number }?
+local landed
 local decoding -- the queued Path.Decode job, one at a time
 
 -- Cluster and local cell of global cell (gx, gy).
@@ -128,7 +134,7 @@ end
 
 ---Stop following: the floor is unknown and the clusters kept for it can go.
 function Floor.Forget()
-	here = nil
+	here, landed = nil, nil
 	if Path and Path.Pin then
 		Path.Pin()
 	end
@@ -140,9 +146,20 @@ end
 ---@param x number
 ---@param y number
 function Floor.Sample(map, x, y)
-	if not (Grid and Path and Path.HasData(map)) or UnitOnTaxi("player") or NearLift() then
+	if not (Grid and Path and Path.HasData(map)) or UnitOnTaxi("player") then
 		return Floor.Forget()
 	end
+	if NearLift() then
+		-- Arriving at the landing, the floor you walked in on names it; standing there, it is kept as it was.
+		local z = here and Floor.Height(here.map, here.x, here.y)
+		if here then
+			landed = z and { map = here.map, z = z } or nil
+		end
+		here = nil
+		Path.Pin()
+		return
+	end
+	landed = nil
 	if InCombatLockdown() then
 		-- Held, not followed; a knockback seen here still counts once combat ends.
 		if here and IsFalling and IsFalling() then
@@ -291,6 +308,14 @@ function Floor.Sample(map, x, y)
 	end
 	-- Still in the air, the fall is weighed again where you land; landed on a floor the map reaches, it was a jump.
 	here = { map = map, gx = gx, gy = gy, x = x, y = y, nodes = nodes, swam = swimming, fell = falling or nil }
+end
+
+---The height of the floor you walked onto the lift's landing you stand at on map, or nil when it was not known
+---(Floor.Height's rule) or you are not at a landing.
+---@param map number
+---@return number?
+function Floor.Landed(map)
+	return landed and landed.map == map and landed.z or nil
 end
 
 ---The height of the floor you are on at (x, y) on map, when it is known: nil while the surfaces you may be on lie on

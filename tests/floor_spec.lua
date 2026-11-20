@@ -322,9 +322,23 @@ end
 do
 	Floor.Forget()
 	walk(FM, MAGIC, function() end)
+	local walkedIn = assert(Floor.Height(0, MAGIC.x, MAGIC.y))
 	nearDock = 1009
 	Floor.Sample(0, MAGIC.x, MAGIC.y)
 	assert(Floor.Height(0, MAGIC.x, MAGIC.y) == nil, "beside a lift the floor is not followed")
+	-- The floor you walked onto the landing on names the landing (#1059), and holds while you stand there.
+	assert(Floor.Landed(0) == walkedIn, "the landing keeps the floor you walked in on")
+	Floor.Sample(0, MAGIC.x + 1, MAGIC.y)
+	assert(Floor.Landed(0) == walkedIn and Floor.Landed(1) == nil, "standing there it holds, on its own map only")
+	nearDock = nil
+	Floor.Sample(0, MAGIC.x, MAGIC.y)
+	assert(Floor.Landed(0) == nil, "walked off the landing, following starts again")
+	Floor.Forget()
+	walk(FM, MAGIC, function() end)
+	nearDock = 1009
+	Floor.Sample(0, MAGIC.x, MAGIC.y)
+	Floor.Forget()
+	assert(Floor.Landed(0) == nil, "forgotten, it goes too")
 	nearDock = nil
 end
 

@@ -346,29 +346,80 @@ function ns.DockTitle(dockID)
 	return dock.site and dock.site .. ", " .. dock.name or ns.DockPierName(dockID)
 end
 
+-- The landings that share a dock's spot on the map, one above another: a lift's floors (#1059). Built once.
+---@type table<number, number[]>?
+local stacks
+
+-- Which of the landings stacked at the nearest dock you are at. The client gives no player height (UnitPosition's is a
+-- placeholder 0), so it comes from your followed floor (Floor.lua), else the range checks' height band (Band.lua),
+-- else the floor you walked onto the landing on (Floor.Landed). A band that holds more than one landing narrows the
+-- choice to those. With none of them known, the lowest dock ID stands, as before.
+---@param nearest number
+---@param map number
+---@param x number
+---@param y number
+---@return number dockID
+local function Landing(nearest, map, x, y)
+	if not stacks then
+		stacks = {}
+		for id, dock in pairs(ns.Docks) do
+			for other, at in pairs(ns.Docks) do
+				if other ~= id and at.map == dock.map and at.x == dock.x and at.y == dock.y then
+					stacks[id] = stacks[id] or { id }
+					table.insert(stacks[id], other)
+				end
+			end
+		end
+	end
+	local stack = stacks[nearest]
+	local Floor, Band = ns.Floor, ns.Band
+	if not stack or not Floor then
+		return nearest
+	end
+	local z = Floor.Height(map, x, y)
+	local band = not z and Band and Band.Measure(map, x, y)
+	local held = {}
+	for _, id in ipairs(stack) do
+		if not band or Band.Holds(band, ns.Docks[id].z) then
+			held[#held + 1] = id
+		end
+	end
+	if #held == 1 then
+		return held[1]
+	end
+	z = z or Floor.Landed(map)
+	local best, gap = nearest, nil
+	for _, id in ipairs(z and #held > 0 and held or {}) do
+		local d = math.abs(ns.Docks[id].z - z)
+		if not gap or d < gap or (d == gap and id < best) then
+			best, gap = id, d
+		end
+	end
+	return best
+end
+
 local dockX, dockY, dockMap, nearestDock, nearestYards
 ---@return number? dockID, number? yards
 function ns.NearestDock()
-	-- The player's height is unknown (UnitPosition's is a placeholder 0), so a lift's landings tie on the map.
 	local x, y, _, map = ns.JourneyPosition()
 	if not x then
 		return nil
 	end
-	if x == dockX and y == dockY and map == dockMap then
-		return nearestDock, nearestYards
-	end
-	local nearest, yards
-	for dockID, dock in pairs(ns.Docks) do
-		if dock.map == map then
-			local distance = math.sqrt((dock.x - x) ^ 2 + (dock.y - y) ^ 2)
-			if not yards or distance < yards or (distance == yards and dockID < nearest) then
-				nearest, yards = dockID, distance
+	if x ~= dockX or y ~= dockY or map ~= dockMap then
+		local nearest, yards
+		for dockID, dock in pairs(ns.Docks) do
+			if dock.map == map then
+				local distance = math.sqrt((dock.x - x) ^ 2 + (dock.y - y) ^ 2)
+				if not yards or distance < yards or (distance == yards and dockID < nearest) then
+					nearest, yards = dockID, distance
+				end
 			end
 		end
+		dockX, dockY, dockMap = x, y, map
+		nearestDock, nearestYards = nearest, yards
 	end
-	dockX, dockY, dockMap = x, y, map
-	nearestDock, nearestYards = nearest, yards
-	return nearest, yards
+	-- The landing is weighed again each time: a lift moves you between landings without moving you on the map.
+	return nearestDock and Landing(nearestDock, map, x, y), nearestYards
 end
 
 -- Opposing-faction landings can be hostile; showing and using those routes is opt-in.
