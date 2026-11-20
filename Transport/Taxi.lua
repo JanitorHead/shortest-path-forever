@@ -286,6 +286,46 @@ local function ScanFlightMaster()
 	end
 end
 
+-- The world map's query names the points a character has without a flight master (#1155): `isUndiscovered` is
+-- false for each one it has. A continent with no point learned yet takes them from there at login, so a character
+-- whose points predate the addon flies at once. A flight master's scan stays the authority and replaces them.
+local SEED_MAPS = { [0] = 1415, [1] = 1414 }
+
+local function SeedFromWorldMap()
+	local faction = UnitFactionGroup("player")
+	local learned = {}
+	for nodeID in pairs(ns.charDB.taxi) do
+		local node = ns.TaxiNodes[nodeID]
+		if node then
+			learned[node.map] = true
+		end
+	end
+	local changed = false
+	for continent, uiMap in pairs(SEED_MAPS) do
+		if not learned[continent] then
+			for _, info in ipairs(C_TaxiMap.GetTaxiNodesForMap(uiMap) or {}) do
+				local node = ns.TaxiNodes[info.nodeID]
+				if
+					info.isUndiscovered == false
+					and node
+					and node.map == continent
+					and not node.class
+					and (not node.faction or node.faction == faction)
+				then
+					ns.charDB.taxi[info.nodeID] = true
+					if info.name and info.name ~= "" then
+						ns.charDB.taxiNames[info.nodeID] = info.name
+					end
+					changed = true
+				end
+			end
+		end
+	end
+	if changed and ns.TravelPolicyChanged then
+		ns.TravelPolicyChanged()
+	end
+end
+
 -- Empty until the character opens a flight master: the planner then walks rather than guessing at flights.
 ---@return table<number, boolean>
 function ns.KnownTaxiNodes()
@@ -364,7 +404,12 @@ ns.Init(function()
 	-- Learning a node fires this while the flight master's map is open.
 	frame:RegisterEvent("TAXI_NODE_STATUS_CHANGED")
 	frame:RegisterEvent("TAXIMAP_CLOSED")
+	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	frame:SetScript("OnEvent", function(_, event)
+		if event == "PLAYER_ENTERING_WORLD" then
+			SeedFromWorldMap()
+			return
+		end
 		if event == "TAXIMAP_CLOSED" then
 			Closed()
 			return
