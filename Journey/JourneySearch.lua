@@ -39,9 +39,12 @@ Search.Walks = Walks
 ---| "walks" the followed route was retimed and its walks redrawn
 ---| "times" the followed route was retimed
 
--- The journey being searched for, as Start received it. followed is the route Journey is on: the one Start passed
--- or the last one published as "route". progress is Journey's own record, read here and never written.
+-- The journey being searched for, as Start received it, or the nearest ground a player can walk to when nobody can
+-- walk onto it (grounded, #1113). followed is the route Journey is on: the one Start passed or the last one published
+-- as "route". progress is Journey's own record, read here and never written.
 local goal, followed
+---@type {from: SPFPoint, to: SPFPoint}?
+local grounded
 ---@type {index: integer, departed?: boolean}
 local progress
 ---@type fun(route: SPFPlan?, news: SPFSearchNews)
@@ -614,6 +617,22 @@ local function RefreshCosts(includeGoal, forced, replace)
 	local function stale()
 		return version ~= pathVersion or search ~= owner or not goal
 	end
+	-- Does the walk from here reach the goal itself? true when it does (a cost or a successful probe), false once the
+	-- start batch has ruled it out or never measured the goal (another landmass), nil while it may still.
+	local function Direct()
+		for i, point in ipairs(startBatch.targets) do
+			if SamePlace(point, goal) then
+				if startBatch.costs[i] or (startBatch.probes and startBatch.probes[i]) then
+					return true
+				end
+				if startBatch.done then
+					return false
+				end
+				return nil
+			end
+		end
+		return false
+	end
 	local consider, request
 	-- Bounded search callback; splitting adds calls and upvalues on every frontier update. It runs only in the
 	-- search's own path job (request), where each plan pauses at the frame budget; anything a pause let change is
@@ -757,7 +776,11 @@ local function RefreshCosts(includeGoal, forced, replace)
 		local needGoal = planned and planned.needsGoal and ns.Path.HasData(goal.map)
 		-- Missing-map estimates remain the existing terminal fallback, never an endless search.
 		needStart = needStart and not startBatch.done
-		needGoal = needGoal and not goalBatch.done
+		-- A goal no place walks to waits on the walk from here before it moves (Ground).
+		needStart = (needStart or goalBatch.done and goalBatch.job.moved and Direct() == nil) and not startBatch.done
+		-- A goal batch whose frontier is spent is finishing, and one that no place walked to still moves its goal to the
+		-- ground they reach (Ground): it runs to its end rather than leaving the goal where nobody can stand.
+		needGoal = (needGoal or goalBatch.job.radius == math.huge) and not goalBatch.done
 		active(startBatch, needStart)
 		active(goalBatch, needGoal)
 		-- A bind point's walks still being searched, for a teleport that could be faster: settle when they end.
@@ -836,12 +859,38 @@ local function RefreshCosts(includeGoal, forced, replace)
 			end
 		end
 	end
+	-- No place on the goal's landmass walks to it: a plateau ringed by faces past the player's slope and step limits
+	-- (#1113). The route ends instead at the nearest ground those places reach, the closest a player can stand, unless
+	-- the walk from here reaches the goal itself (a player already on the plateau), so the move waits until that walk
+	-- is ruled out. The search starts again toward that ground.
+	local function Ground()
+		local moved = goalBatch.done and goalBatch.job and goalBatch.job.moved
+		if not moved or Direct() ~= false then
+			return false
+		end
+		local point = {}
+		for key, value in pairs(goal) do
+			point[key] = value
+		end
+		point.x, point.y, point.z = moved.x, moved.y, moved.z
+		grounded, goal = { from = goal, to = point }, point
+		-- The rough route already drawn stays until the proved route replaces it, so a journey draws one estimate.
+		local drew = search and search.rough
+		RefreshCosts(true, true, search and search.replace)
+		if search then
+			search.rough = drew
+		end
+		return true
+	end
 	local function attach(batch)
 		local function update(costs, reason, job)
 			if version ~= pathVersion or not goal then
 				return
 			end
 			settle(batch, costs, reason, job)
+			if Ground() then
+				return
+			end
 			request(batch.done)
 		end
 		local job = batch.job
@@ -870,6 +919,11 @@ local function RefreshCosts(includeGoal, forced, replace)
 	end
 	attach(startBatch)
 	attach(goalBatch)
+	-- Both batches may have finished while no search listened (a replan drops queued answers): attach took their
+	-- results from the jobs, so the move a callback would have made is made here.
+	if Ground() then
+		return
+	end
 	Walks.LandingPending(teleports, waterMode, function()
 		request(true)
 	end)
@@ -916,6 +970,8 @@ function Search.Reset()
 	end
 	startBatch, goalBatch = nil, nil
 	search = nil
+	-- A goal moved for this journey is not moved for the next: the player may stand on it by then.
+	grounded = nil
 	-- plannerCache is kept: Planner.Plan rebuilds the graph itself whenever an input it was built from differs (its
 	-- CACHE_KEYS, waterWalking and hazards among them) and rewrites the two endpoints for the new journey, so a
 	-- journey started after this one plans against a warm graph instead of paying the whole build on its first
@@ -971,6 +1027,9 @@ function Search.Start(point, route, state, listener, replace, policy)
 		route = nil
 	end
 	routePolicy = policy
+	if grounded and SamePlace(point, grounded.from) then
+		point = grounded.to
+	end
 	goal, followed, progress, publish = point, route, state, listener
 	search = nil
 	waterMode = (ns.JourneyWaterWalking())
