@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from tools.baker import gen_nav
-from tools.baker.gen_nav import decode_road_runs, drop_cost, pick_surface, walkable
+from tools.baker.gen_nav import decode_road_runs, drop_cost, pick_floor, pick_surface, walkable
 from tools.baker.geometry import plane
 
 
@@ -54,6 +54,18 @@ class PickSurfaceTest(unittest.TestCase):
         layers = {0: [(10.0, 1, (0, (0.0, 0.0))), (20.0, 1, (1, (0.0, 0.0)))]}
         self.assertEqual(pick_surface(layers, polys, [(0, 0, 0)], 0.5, 0.5, 20.2), (0, 1))
         self.assertEqual(pick_surface(layers, polys, [(0, 0, 0)], 0.5, 0.5, 9.8), (0, 0))
+
+
+class PickFloorTest(unittest.TestCase):
+    def test_a_trigger_above_its_floor_finds_the_floor_under_it(self):
+        # Stormwind's Sanctum trigger 702 floats 3.9 yards over the basement floor, past pick_surface's CLIMB; the
+        # tower room 115 yards up is no floor of it.
+        polys = {0: flat(29.6), 1: flat(148.6)}
+        layers = {0: [(29.6, 1, (0, (0.0, 0.0))), (148.6, 1, (1, (0.0, 0.0)))]}
+        self.assertIsNone(pick_surface(layers, polys, [(0, 0, 0)], 0.5, 0.5, 33.5))
+        self.assertEqual(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 33.5, 7.0), (0, 0))
+        self.assertEqual(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 151.6, 7.0), (0, 1))
+        self.assertIsNone(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 40.0, 7.0))
 
 
 class RasterizeLayersTest(unittest.TestCase):
@@ -474,7 +486,7 @@ class AssembleFloorsTest(unittest.TestCase):
 
 
 class ReachableTest(unittest.TestCase):
-    def components(self, spots):
+    def components(self, spots, joins=()):
         # A street and, 40 yards under it, sealed ground with no way between them, as under Stormwind.
         def square(z):
             return [(-8800.0, 800.0, z), (-8790.0, 800.0, z), (-8790.0, 810.0, z), (-8800.0, 810.0, z)]
@@ -486,12 +498,17 @@ class ReachableTest(unittest.TestCase):
             patch.object(gen_nav, "SIZE", array("i")),
             patch.object(gen_nav, "read_tile", lambda rc: (polys, [], [], [])),
         ):
-            gen_nav.components(spots)
+            gen_nav.components(spots, joins)
             return list(gen_nav.SIZE)
 
     def test_ground_no_fixed_place_stands_on_is_dropped(self):
         self.assertEqual(self.components([(-8795.0, 805.0, 101.0)]), [1, 0])
         self.assertEqual(self.components([(-8795.0, 815.0, 58.0)]), [0, 1])
+
+    def test_a_hop_joins_the_ground_it_lands_on(self):
+        # A teleport from the street down to the sealed ground keeps that ground, as one component with the street.
+        hop = ((-8795.0, 805.0, 101.0), 7.0, (-8795.0, 805.0, 60.0))
+        self.assertEqual(self.components([(-8795.0, 805.0, 101.0)], [hop]), [2, 2])
 
     def test_tiles_without_a_fixed_place_are_refused(self):
         with self.assertRaises(SystemExit):

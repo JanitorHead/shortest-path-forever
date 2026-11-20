@@ -8,6 +8,7 @@
 ---@field TaxiPaths SPFTaxiPath[]
 ---@field Portals SPFPortal[]
 ---@field Entrances table<number, SPFEntrance>
+---@field Hops SPFHop[] same-map teleports within one walking place; read only by the nav bake (Data/Portals.lua)
 ---@field Teleports SPFTeleport[]
 ---@field Landmasses SPFLandmass[]
 ---@field Zones table<number, SPFZone>
@@ -204,6 +205,10 @@
 ---@field faction? string
 ---@field requires? string
 ---@field seconds number
+---@class SPFHop
+---@field from SPFPoint the trigger's centre
+---@field radius number
+---@field to SPFPoint
 ---@class SPFEntrance : SPFPoint -- a dungeon's or raid's door, by instance map (Data/Portals.lua)
 ---@field name string
 ---@class SPFTeleport

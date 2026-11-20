@@ -90,6 +90,7 @@ X0 = Y0 = 0.0
 ORD = {}  # (rr, cc) -> canonical tile ordinal (rows outer, cols inner)
 # Set by components(): each tile's first poly id and each poly's component size.
 BASE = {}  # (rr, cc) -> first dense poly id of the tile
+HOPS = []  # ((x, y, z) trigger, radius, (x, y, z) landing): Data/Portals.lua ns.Hops on this map
 SIZE = array("i")  # dense poly id -> poly count of its navmesh component; kept when >= MIN_COMPONENT
 # Nodes are cells (the base surface, ids below GW * GH) and floors (GW * GH + floor index), filled by assemble_floors().
 FLOOR_CELL, FLOOR_VAL, FLOOR_Z, FLOOR_LAYER = array("i"), bytearray(), array("f"), bytearray()  # layer: 1 = lowest
@@ -140,6 +141,15 @@ def places(map_id):
         ["luajit", "tools/baker/places.lua", str(map_id)], cwd=ROOT, check=True, capture_output=True, text=True
     )
     return [tuple(p) for p in json.loads(run.stdout)]
+
+
+def hops(map_id):
+    """The map's hops (Data/Portals.lua ns.Hops): same-map teleports within one walking place, as (trigger, radius,
+    landing)."""
+    run = subprocess.run(
+        ["luajit", "tools/baker/places.lua", str(map_id), "hops"], cwd=ROOT, check=True, capture_output=True, text=True
+    )
+    return [(tuple(h[:3]), h[3], tuple(h[4:])) for h in json.loads(run.stdout)]
 
 
 def decode_road_runs(s):
@@ -277,11 +287,13 @@ def gid(rc, i):
     return ORD[rc] << 16 | i
 
 
-def components(spots):
+def components(spots, joins=()):
     """Pass 1: union-find over every walkable poly of the map; SIZE records each poly's component size, or 0 for a
     component no fixed place in spots stands on. A place stands on its nearest walkable poly in its own or a
-    neighbouring tile, whatever that poly's component."""
+    neighbouring tile, whatever that poly's component. joins are hops, (trigger, radius, landing): the polys a hop's
+    two ends stand on are one component, as the hop's link joins them."""
     global SIZE
+    spots = list(spots) + [h[0] for h in joins] + [h[2] for h in joins]
     parent = array("i")
     border = defaultdict(list)
     dense = {}  # gid -> dense id, only while matching borders
@@ -323,6 +335,11 @@ def components(spots):
             border[key].append((g, lo, hi, z))
     for a, b, _ in match_borders(border):
         parent[find(dense[a])] = find(dense[b])
+    ends = len(spots) - 2 * len(joins)
+    for n in range(len(joins)):
+        a, b = stand[ends + n][1], stand[ends + len(joins) + n][1]
+        if a >= 0 and b >= 0:
+            parent[find(a)] = find(b)
     size = defaultdict(int)
     for x in range(len(parent)):
         size[find(x)] += 1
@@ -488,6 +505,22 @@ def pick_surface(layers, polys, candidates, x, y, z):
             r = (gap, dist, 0 if (dx == 0 and dy == 0) else 1, abs(dx) + abs(dy), dx, dy)
             if rank is None or r < rank:
                 best, rank = (cell, la), r
+    return best
+
+
+def pick_floor(layers, polys, candidates, x, y, z, reach):
+    """The (cell, layer) of the floor under a point: the highest poly within a step of the point whose height there is
+    at most CLIMB above it and at most reach below it. A trigger's centre floats above the floor it covers, by up to
+    its radius, so pick_surface's nearest-height match within CLIMB can miss it."""
+    best, top = None, None
+    for cell, _dx, _dy in candidates:
+        for la, (_h, _v, (pid, _p)) in enumerate(layers.get(cell, ())):
+            poly = polys[pid]
+            if poly_distance2(x, y, poly["pts"]) > MARGIN:
+                continue
+            h = height(poly, x, y)
+            if z - reach <= h <= z + CLIMB and (top is None or h > top):
+                best, top = (cell, la), h
     return best
 
 
@@ -684,6 +717,15 @@ def rasterize_tile(rc):
                             if allows(j, lb, i, la):
                                 links.append((j, zb, i, za, None))
 
+    def around(x, y):
+        gx, gy = int((x - X0) // CS), int((y - Y0) // CS)
+        return [
+            ((gx + dx) * GH + gy + dy, dx, dy)
+            for dx in (-1, 0, 1)
+            for dy in (-1, 0, 1)
+            if ax0 <= gx + dx <= ax1 and ay0 <= gy + dy <= ay1
+        ]
+
     # Ledge drops: the local bake's one-way off-mesh connections, from a ledge to a landing below it, as the surface
     # nodes the local bake's endpoints stand on. The fall costs free fall's time in running yards on top of the
     # horizontal step.
@@ -692,14 +734,7 @@ def rasterize_tile(rc):
         (or is within a step of its simplified outline) and whose own height there is the drop's, not the nearest
         cell anchor. The poly may be rasterized in a neighbouring cell (a narrow ledge, or a landing just across a
         cell boundary), so look one cell out."""
-        gx, gy = int((x - X0) // CS), int((y - Y0) // CS)
-        candidates = []
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                cx, cy = gx + dx, gy + dy
-                if ax0 <= cx <= ax1 and ay0 <= cy <= ay1:
-                    candidates.append((cx * GH + cy, dx, dy))
-        return pick_surface(layers, polys, candidates, x, y, z)
+        return pick_surface(layers, polys, around(x, y), x, y, z)
 
     for (x0, y0, z0), (x1, y1, z1) in read_tile(rc)[3]:
         ledge, landing = surface_at(x0, y0, z0), surface_at(x1, y1, z1)
@@ -713,6 +748,20 @@ def rasterize_tile(rc):
             continue
         cost = drop_cost(math.hypot(x1 - x0, y1 - y0), fall)
         links.append((i, layers[i][la][0], j, layers[j][lb][0], cost))
+    # Hops: a teleport trigger's floor links one way to its landing's. The teleport is near instant, so the link
+    # costs its horizontal span, the least the A* heuristic may charge for it. The tile owning the trigger's cell
+    # writes it.
+    for (x0, y0, z0), radius, (x1, y1, z1) in HOPS:
+        if not (tx0 <= int((x0 - X0) // CS) <= tx1 and ty0 <= int((y0 - Y0) // CS) <= ty1):
+            continue
+        source = pick_floor(layers, polys, around(x0, y0), x0, y0, z0, radius)
+        landing = pick_floor(layers, polys, around(x1, y1), x1, y1, z1, CLIMB)
+        if source is None or landing is None:
+            sys.exit(
+                f"hop at {x0:.1f}, {y0:.1f}, {z0:.1f}: no floor under its {'trigger' if source is None else 'landing'}"
+            )
+        (i, la), (j, lb) = source, landing
+        links.append((i, layers[i][la][0], j, layers[j][lb][0], math.hypot(x1 - x0, y1 - y0)))
     vals = bytes(g(gx, gy) for gx in range(tx0, tx1 + 1) for gy in range(ty0, ty1 + 1))
     zs = [
         layers[gx * GH + gy][0][0] if gx * GH + gy in layers else None
@@ -1596,7 +1645,8 @@ def main():
     )
     inputs = tile_hashes(TILES.values()) if args.metrics else {}
     code = tile_hashes(Path(__file__).parent.glob("*.py")) if args.metrics else {}
-    components(places(map_id))
+    HOPS[:] = hops(map_id)
+    components(places(map_id), HOPS)
     phases["components"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
     grid, cuts = bytearray(GW * GH), set()

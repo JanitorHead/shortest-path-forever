@@ -56,6 +56,9 @@ RESTRICTED_NODES = {84, 85, 86, 87}
 CLASS_NODES = {62: "DRUID", 63: "DRUID"}
 # Continents with walking maps: the only places a route can continue from.
 MAPS = (0, 1, 2991)
+# A hop's landing is at most this far across the map from its trigger: gen_nav bakes a hop as one link whose landing
+# must lie within DROP_COLUMNS (4) of its 7.96-yard cells, and 30 yd never spans more than 4 cells.
+HOP_REACH = 30
 # SpellEffect.Effect TELEPORT_UNITS (the classic number, and the number this client uses) and its destinations:
 # ImplicitTarget DEST_HOME (the bind point) and DEST_DB (the server's spell_target_position row).
 TELEPORT_EFFECTS = {5, 252}
@@ -176,14 +179,13 @@ def classicdb(refresh=False, offline=False):
             elif line.startswith("INSERT INTO `areatrigger_teleport` VALUES "):
                 for match in tuples.finditer(line):
                     row = next(csv.reader([match[1]], quotechar="'", escapechar="\\"))
-                    if int(row[0]) in PORTAL_NAMES:
-                        teleports[int(row[0])] = location(int(row[6]), map(float, row[7:10]))
+                    teleports[int(row[0])] = location(int(row[6]), map(float, row[7:10]))
                     instances[int(row[0])] = int(row[6])
             elif line.startswith("INSERT INTO `spell_target_position` VALUES "):
                 for match in tuples.finditer(line):
                     row = match[1].split(",")
                     positions[int(row[0])] = location(int(row[1]), map(float, row[2:5]))
-    if set(spawns) != LIFTS | TRAMS or set(teleports) != set(PORTAL_NAMES) or not positions or not instances:
+    if set(spawns) != LIFTS | TRAMS or not set(PORTAL_NAMES) <= set(teleports) or not positions or not instances:
         raise ValueError("classic-db: missing expected transport spawn, public passage, spell position or trigger")
     return spawns, teleports, positions, instances
 
@@ -609,6 +611,22 @@ def portals(triggers, teleports):
     ]
 
 
+def hops(triggers, teleports):
+    """Teleports that move a player within one walking place, such as Stormwind's Wizard's Sanctum basement and its
+    tower room: a trigger on a walking continent whose landing is on the same map within HOP_REACH yards. They are
+    no journey of their own, so they are not portals; gen_nav bakes each one as a one-way link between the floors
+    it joins, which keeps ground reached only through it (the Sanctum's trainers) and lets a walk take it."""
+    found = []
+    for key, to in sorted(teleports.items()):
+        row = triggers.get(key)
+        if not row or key in PORTAL_NAMES or int(row["ContinentID"]) != to["map"] or to["map"] not in MAPS:
+            continue
+        x, y, z = point(row)
+        if math.hypot(to["x"] - x, to["y"] - y) <= HOP_REACH:
+            found.append((key, {"from": location(to["map"], (x, y, z)), "radius": float(row["Radius"]), "to": to}))
+    return found
+
+
 def zones_of(assignments, door):
     """The outdoor zone maps whose UiMapAssignment region holds a door, leaving out the world and continent maps
     (no area) and indoor (WMO) assignments. Zone regions are rectangles and overlap, so a door may sit in several."""
@@ -825,6 +843,7 @@ def main():
     nodes, paths = taxis(tables["TaxiNodes"], tables["TaxiPath"], tables["TaxiPathNode"], durations)
     islands = landmasses(tables["UiMapAssignment"], {int(r["ID"]): r for r in tables["Map"]})
     passages = portals(triggers, teleports)
+    walks = hops(triggers, teleports)
     instance_maps = {int(r["ID"]): r for r in tables["Map"]}
     doors = entrances(triggers, instance_triggers, instance_maps, tables["UiMapAssignment"])
     transport_lines = transport_output(docks, routes)
@@ -854,9 +873,9 @@ def main():
     portal_lines += [
         "-- Loading-screen allowance: 5 s. Only these public transitions are included.",
         "-- Excludes GM/test 1103/1104 and dungeon/raid triggers (Blizzard's own map shows those entrances).",
-        "-- Excludes Stormwind's Wizard's Sanctum 702/704: a hop up and down one tower, 12 yd apart on the map,",
-        "-- that never shortens a flat route and would stack two pins. Also the unused vault 107/109 (map 35), the",
-        "-- Leap of Faith fall 943, and PvP barracks 2527-2534, which have no AreaTrigger in this build.",
+        "-- Hops within one walking place (Stormwind's Wizard's Sanctum 702/704) are ns.Hops below, not portals.",
+        "-- Also excludes the unused vault 107/109 (map 35), the Leap of Faith fall 943, and PvP barracks",
+        "-- 2527-2534, which have no AreaTrigger in this build.",
         "-- Skyborne Dalaran -> Stormwind: manually mapped Alliance-only portal; the return portal was removed.",
         "-- https://wow-travelcraft.com/guide.html (Alliance portal; Horde Skyborne has no Dalaran portal).",
         "",
@@ -878,6 +897,18 @@ def main():
         "",
     ]
     portal_lines += assignment("ns.Entrances", doors)
+    portal_lines += [
+        f"-- Hops: same-map teleports landing within {HOP_REACH} yd on a walking continent (AreaTrigger source and",
+        "-- radius, classic-db areatrigger_teleport landing). gen_nav bakes each as a one-way link between the floors",
+        "-- it joins; the planner reads them only through the baked nav.",
+        "",
+        "-- stylua: ignore",
+        "ns.Hops = {",
+    ]
+    for trigger, hop in walks:
+        portal_lines += [f"\t-- Source: AreaTrigger {trigger} -> classic-db areatrigger_teleport {trigger}."]
+        portal_lines += ["\t" + render(hop, 1) + ","]
+    portal_lines += ["}", ""]
     zone_rows, unranged = zones(tables["UiMap"], tables["UiMapAssignment"], tables["AreaTable"])
     zone_lines = [
         "-- Generated by tools/gen_transit.py — do not edit.",
