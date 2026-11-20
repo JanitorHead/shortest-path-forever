@@ -1,6 +1,6 @@
 -- A lift's landings share a spot on the map, one above the other (#1059). The nearest dock must be the landing you
--- are at, from your followed floor, the range checks' height band, or the floor you walked onto the landing on, and
--- only with none of them known the lowest dock ID, as before.
+-- are at: from your followed floor, else at the landing from the range checks' height band, then the floor you walked
+-- onto it on; with none of them known, the lowest dock ID.
 local ForeverCore = dofile("tests/forever_core.lua")
 local env = setmetatable({
 	ShortestPathForeverDB = {},
@@ -31,16 +31,18 @@ ns.JourneyPosition = function()
 	return at.x, at.y, nil, at.map
 end
 local height, landed, band
+local atLanding, measured = true, 0
 ns.Floor = {
 	Height = function()
 		return height
 	end,
-	Landed = function()
-		return landed
+	Landing = function()
+		return atLanding, landed
 	end,
 }
 ns.Band = {
 	Measure = function()
+		measured = measured + 1
 		return band
 	end,
 	Holds = function(b, z)
@@ -69,6 +71,15 @@ assert(nearest() == BOTTOM, "a followed floor names the landing")
 -- The same spot asked again after a ride: the landing is weighed afresh, not cached with the position.
 height, band = top.z, nil
 assert(nearest() == TOP, "a ride changes the landing without moving you on the map")
+-- A ride drops the walked-in floor (Floor.Landing), and the band measured at the landing you reach names it.
+height, landed, band = nil, nil, { lo = bottom.z - 10, hi = bottom.z + 10 }
+assert(nearest() == BOTTOM, "after a ride the band names the landing you reached")
+-- Away from a landing with the floor unknown, no band is measured: it costs range checks and is not needed there.
+atLanding, band, measured = false, { lo = bottom.z - 10, hi = bottom.z + 10 }, 0
+assert(nearest() == TOP and measured == 0, "away from a landing the band is not measured")
+height = bottom.z
+assert(nearest() == BOTTOM and measured == 0, "and a followed floor needs no band")
+atLanding = true
 
 -- Every stacked pair in the data resolves both ways.
 local pairs_ = 0

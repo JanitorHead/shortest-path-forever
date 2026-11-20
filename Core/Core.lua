@@ -351,9 +351,10 @@ end
 local stacks
 
 -- Which of the landings stacked at the nearest dock you are at. The client gives no player height (UnitPosition's is a
--- placeholder 0), so it comes from your followed floor (Floor.lua), else the range checks' height band (Band.lua),
--- else the floor you walked onto the landing on (Floor.Landed). A band that holds more than one landing narrows the
--- choice to those. With none of them known, the lowest dock ID stands, as before.
+-- placeholder 0), so it comes from your followed floor (Floor.lua). At a landing, where the floor is not followed, the
+-- range checks' height band (Band.lua) names it, and a band that holds more than one landing leaves the floor you
+-- walked onto it on (Floor.Landing) to choose among those. Band is measured only there: away from a landing it is
+-- not needed to follow the floor. With none of them known, the lowest dock ID stands.
 ---@param nearest number
 ---@param map number
 ---@param x number
@@ -376,20 +377,29 @@ local function Landing(nearest, map, x, y)
 	if not stack or not Floor then
 		return nearest
 	end
+	local held = stack
 	local z = Floor.Height(map, x, y)
-	local band = not z and Band and Band.Measure(map, x, y)
-	local held = {}
-	for _, id in ipairs(stack) do
-		if not band or Band.Holds(band, ns.Docks[id].z) then
-			held[#held + 1] = id
+	if not z then
+		local at, walked = Floor.Landing(map)
+		if not at then
+			return nearest
 		end
+		local band = Band and Band.Measure(map, x, y)
+		if band then
+			held = {}
+			for _, id in ipairs(stack) do
+				if Band.Holds(band, ns.Docks[id].z) then
+					held[#held + 1] = id
+				end
+			end
+			if #held == 1 then
+				return held[1]
+			end
+		end
+		z = walked
 	end
-	if #held == 1 then
-		return held[1]
-	end
-	z = z or Floor.Landed(map)
 	local best, gap = nearest, nil
-	for _, id in ipairs(z and #held > 0 and held or {}) do
+	for _, id in ipairs(z and held or {}) do
 		local d = math.abs(ns.Docks[id].z - z)
 		if not gap or d < gap or (d == gap and id < best) then
 			best, gap = id, d
