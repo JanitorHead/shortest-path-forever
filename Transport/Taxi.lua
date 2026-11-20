@@ -296,7 +296,8 @@ local function SeedFromWorldMap()
 	local learned = {}
 	for nodeID in pairs(ns.charDB.taxi) do
 		local node = ns.TaxiNodes[nodeID]
-		if node then
+		-- A class flight master is known to its class without a scan, so it says nothing about the others.
+		if node and not node.class then
 			learned[node.map] = true
 		end
 	end

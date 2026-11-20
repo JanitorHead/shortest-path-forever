@@ -85,6 +85,19 @@ assert(
 )
 assert(ns.charDB.taxiNames[2] == "Stormwind", "a seeded point keeps the client's name")
 assert(policyChanges == 1, "seeding replans once")
+-- A zone change fires the event again: every continent now has its points, so nothing changes and nothing replans.
+eventFrame.onEvent(eventFrame, "PLAYER_ENTERING_WORLD")
+assert(policyChanges == 1, "a later zone change neither seeds again nor replans")
+
+-- A druid's Moonglade (62, a class flight master) is known without a scan, so Kalimdor still takes its points.
+policyChanges = 0
+known = Load({ [62] = true }, function(uiMap)
+	return reports[uiMap]
+end)
+assert(
+	Sorted(known) == "2,4,6,7,8,26,27,62",
+	"a class flight master does not count as Kalimdor learned: " .. Sorted(known)
+)
 
 -- A client that leaves isUndiscovered unset (as GetAllTaxiNodes does at a flight master) seeds nothing.
 policyChanges = 0
