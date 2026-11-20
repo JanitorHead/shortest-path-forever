@@ -436,7 +436,7 @@ end
 ---@return number? dockID, number? yards
 function ns.NearestDock()
 	local nearest, yards, x, y, map = ns.NearestDockSpot()
-	if not nearest then
+	if not (nearest and x and y and map) then
 		return nil
 	end
 	-- The landing is weighed again each time: a lift moves you between landings without moving you on the map.
