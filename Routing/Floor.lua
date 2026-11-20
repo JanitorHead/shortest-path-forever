@@ -125,10 +125,10 @@ end
 
 -- A lift changes floor without moving you on the map.
 local function NearLift()
-	if not ns.NearestDock then
+	if not ns.NearestDockSpot then
 		return false
 	end
-	local dock, yards = ns.NearestDock()
+	local dock, yards = ns.NearestDockSpot()
 	return dock ~= nil and dock >= FIRST_LIFT and yards ~= nil and yards <= LIFT
 end
 

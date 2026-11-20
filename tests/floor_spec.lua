@@ -24,7 +24,7 @@ ns.JourneyPosition = function()
 		return journeyAt.x, journeyAt.y, nil, 0
 	end
 end
-ns.NearestDock = function()
+ns.NearestDockSpot = function()
 	if nearDock then
 		return nearDock, 5
 	end

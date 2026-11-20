@@ -80,6 +80,9 @@ assert(nearest() == TOP and measured == 0, "away from a landing the band is not 
 height = bottom.z
 assert(nearest() == BOTTOM and measured == 0, "and a followed floor needs no band")
 atLanding = true
+-- Telling you are beside a lift (Floor.lua, many times a second on a journey) weighs no landing.
+measured = 0
+assert(ns.NearestDockSpot() == TOP and measured == 0, "the spot alone measures no band")
 
 -- Every stacked pair in the data resolves both ways.
 local pairs_ = 0

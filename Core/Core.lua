@@ -409,8 +409,10 @@ local function Landing(nearest, map, x, y)
 end
 
 local dockX, dockY, dockMap, nearestDock, nearestYards
----@return number? dockID, number? yards
-function ns.NearestDock()
+-- The nearest dock spot by map distance, a lift's stacked landings tied at the lowest ID: enough to tell you are
+-- beside a lift (Floor.lua), without weighing which landing.
+---@return number? dockID, number? yards, number? x, number? y, number? map
+function ns.NearestDockSpot()
 	local x, y, _, map = ns.JourneyPosition()
 	if not x then
 		return nil
@@ -428,8 +430,17 @@ function ns.NearestDock()
 		dockX, dockY, dockMap = x, y, map
 		nearestDock, nearestYards = nearest, yards
 	end
+	return nearestDock, nearestYards, x, y, map
+end
+
+---@return number? dockID, number? yards
+function ns.NearestDock()
+	local nearest, yards, x, y, map = ns.NearestDockSpot()
+	if not nearest then
+		return nil
+	end
 	-- The landing is weighed again each time: a lift moves you between landings without moving you on the map.
-	return nearestDock and Landing(nearestDock, map, x, y), nearestYards
+	return Landing(nearest, map, x, y), yards
 end
 
 -- Opposing-faction landings can be hostile; showing and using those routes is opt-in.
