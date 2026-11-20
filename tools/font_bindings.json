@@ -51,13 +51,13 @@
     },
     {
       "source": "UI/Settings.lua",
-      "sha256": "939312bb8df8d108f8a15178b6b5e54d8970cddd80209a1cf297d6321473971f",
+      "sha256": "65258cca8c1c0d00090627e72d8b7bb54da8071a2bd4be3362b1eb39ba96dec4",
       "review": "Read Page, Checkbox, Scale, Dropdown and Saving and their registration calls. Settings rows, index buttons and option labels delegate to Blizzard secure initializers; this file creates no FontString and establishes no explicit FontObject. Minimap button text, tooltip text, chat output and helper arguments are excluded rather than assigned an assumed settings font. Reviewed #1094: the Tracker heading's Attach to quest tracker row is ForeverCore.SettingsSections.RegisterTrackerAttach, a core-owned initializer, registered only when the running core has it (an older adopted standalone does not); excluded with the other settings fonts.",
       "bindings": []
     },
     {
       "source": "UI/SettingsMapMarks.lua",
-      "sha256": "a21c13724aaa60ab271f42f40feac0d2eebbdc985dae77a26fc744fde09d3116",
+      "sha256": "47aae122ec6f13d244b1cec4196122ad703ee4d4f44d9e49bbe86eed67541f26",
       "review": "Read Register and every rows builder call. All phrases are helper arguments to Settings.lua builders and Blizzard settings initializers, with no explicit FontObject in this producer. Tooltip descriptions and dynamic choice labels have no coverage claim.",
       "bindings": []
     },
