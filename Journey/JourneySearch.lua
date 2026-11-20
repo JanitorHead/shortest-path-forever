@@ -86,6 +86,7 @@ local function Here()
 	local z = ns.Floor and ns.Floor.Height(map, x, y) or nil
 	return { map = map, x = x, y = y, z = z, band = z == nil and ns.Band and ns.Band.At(map, x, y) or nil }
 end
+Search.Here = Here
 
 -- Cancelled searches leave both batches paused with their settled costs.
 local function CancelPaths()

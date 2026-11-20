@@ -38,6 +38,7 @@
 ---@field NearbyRoles SPFNearbyRolesAPI the class, portal and battlemaster groups (UI/NearbyRoles.lua)
 ---@field NearbyProfessions SPFNearbyProfessionsAPI the "Only my professions" shop rule (UI/NearbyProfessions.lua)
 ---@field NearbyServices SPFNearbyServices
+---@field NearbyRank SPFNearbyRankAPI the travel-time ranking and the walks it is built on (UI/NearbyRank.lua)
 ---@field NearbyGroups SPFNearbyGroups the vendor and service groups the list and the map share (UI/NearbyGroups.lua)
 ---@field TownServiceChoices SPFTownServiceChoice[] the town services' four levels (UI/TownServices.lua)
 ---@field RefreshTownServices fun() redraws the town services on the world map (UI/TownServices.lua)
@@ -535,8 +536,10 @@ ShortestPathForeverPathData = nil
 ---@class SPFPlanOptions : SPFPlaceOptions
 ---@field withoutHearth? boolean
 ---@field feasibleOnly? boolean
+---@field withoutOpening? SPFLeg plan as if this step, from where it leaves, were not there
 ---@field incumbent? number
 ---@field incumbentPlan? SPFPlan
+---@field lowerBound? boolean the soonest any route could arrive, before the hearth, teleport and ride preferences
 ---@field hearthMinimumSavings? number
 ---@field teleportMinimumSavings? number
 ---@field otherFaction? boolean
@@ -617,6 +620,7 @@ ShortestPathForeverPathData = nil
 ---@field count? number
 
 ---@class SPFPathJob
+---@field walking? table<SPFPathJob, true> a Nearby measure's walking searches (NearbyRank.lua)
 ---@field map number
 ---@field from SPFPoint
 ---@field to? SPFPoint
