@@ -561,17 +561,26 @@ def pick_surface(layers, polys, candidates, x, y, z):
 
 def pick_floor(layers, polys, candidates, x, y, z, reach):
     """The (cell, layer) of the floor under a point: the highest poly within a step of the point whose height there is
-    at most CLIMB above it and at most reach below it. A trigger's centre floats above the floor it covers, by up to
-    its radius, so pick_surface's nearest-height match within CLIMB can miss it."""
-    best, top = None, None
-    for cell, _dx, _dy in candidates:
-        for la, (_h, _v, (pid, _p)) in enumerate(layers.get(cell, ())):
-            poly = polys[pid]
-            if poly_distance2(x, y, poly["pts"]) > MARGIN:
-                continue
+    at most CLIMB above it and at most reach below it, as the layer at that height, the point's own cell first. A
+    trigger's centre floats above the floor it covers, by up to its radius, so pick_surface's nearest-height match
+    within CLIMB can miss it. The floor is found among every poly, not only the layers' anchors: a layer is one piece
+    of surface anchored on one of its polys, which can lie farther from the point than MARGIN (the Wizard's Sanctum
+    basement under trigger 702)."""
+    top = None
+    for poly in polys.values():
+        if poly_distance2(x, y, poly["pts"]) <= MARGIN:
             h = height(poly, x, y)
             if z - reach <= h <= z + CLIMB and (top is None or h > top):
-                best, top = (cell, la), h
+                top = h
+    if top is None:
+        return None
+    best, rank = None, None
+    for cell, dx, dy in candidates:
+        for la, (h, _v, _anchor) in enumerate(layers.get(cell, ())):
+            gap = abs(h - top)
+            r = (0 if (dx == 0 and dy == 0) else 1, gap)
+            if gap <= CLIMB and (rank is None or r < rank):
+                best, rank = (cell, la), r
     return best
 
 

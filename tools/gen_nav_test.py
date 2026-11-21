@@ -68,6 +68,17 @@ class PickFloorTest(unittest.TestCase):
         self.assertEqual(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 151.6, 7.0), (0, 1))
         self.assertIsNone(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 40.0, 7.0))
 
+    def test_the_floor_is_any_poly_under_the_trigger_not_only_the_layer_anchor(self):
+        # The basement layer's anchor lies 1.8 yards from trigger 702; another poly of that floor lies under it.
+        def square(x0, z):
+            pts = [(x0, -1.0, z), (x0 + 2.0, -1.0, z), (x0 + 2.0, 2.0, z), (x0, 2.0, z)]
+            c = tuple(sum(p[a] for p in pts) / len(pts) for a in range(3))
+            return {"pts": [(p[0], p[1]) for p in pts], "plane": plane(pts, c), "steep": False}
+
+        polys = {0: square(3.0, 29.6), 1: square(-0.5, 29.8), 2: flat(148.6)}
+        layers = {0: [(29.6, 1, (0, (4.0, 0.5))), (148.6, 1, (2, (0.0, 0.0)))], 1: [(29.7, 1, (1, (0.5, 0.5)))]}
+        self.assertEqual(pick_floor(layers, polys, [(0, 0, 0), (1, 1, 0)], 0.5, 0.5, 33.5, 7.0), (0, 0))
+
 
 class RasterizeLayersTest(unittest.TestCase):
     """A cell's layers are the pieces of surface it stands on, not every time the bake sampled one."""
