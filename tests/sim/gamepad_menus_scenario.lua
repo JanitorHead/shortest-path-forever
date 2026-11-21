@@ -78,11 +78,16 @@ scenario(
 
 		-- Drive the real tracker's transport line with a settled snapshot. The route and Undo search are covered
 		-- in plan_context_spec; here the real menu must open on this line without taking Blizzard gamepad focus.
-		local journeyInfo, blocks = ns.JourneyInfo, tracker.blocks
+		local journeyInfo, journeyPlan, blocks = ns.JourneyInfo, ns.JourneyPlan, tracker.blocks
 		local boat = { mode = "boat", route = 1 }
 		local rows = { { key = 1, text = "Boat to the next dock" } }
+		local plan = { legs = { boat } }
 		ns.JourneyInfo = function()
-			return "Journey", rows, { legs = { boat } }, 1
+			return "Journey", rows, plan, 1
+		end
+		-- Not yet aboard, so the boat may be avoided.
+		ns.JourneyPlan = function()
+			return plan, 1, false
 		end
 		tracker.blocks = { { key = "journey", title = "Journey", rows = rows } }
 		tracker:MarkDirty()
@@ -90,20 +95,26 @@ scenario(
 		local journeyBlock = assert(tracker:GetExistingBlock("journey"))
 		local line = assert(journeyBlock:GetExistingLine(1), "the transport line is laid out")
 		local contextMenu = G.ForeverCore.ContextMenu
+		-- Core's ContextMenu returns nothing, so record the first entry the line's generator creates.
 		local opened
 		G.ForeverCore.ContextMenu = function(owner, generator)
-			local menu = contextMenu(owner, generator)
-			if owner == line then
-				opened = menu
-			end
-			return menu
+			return contextMenu(owner, function(menuOwner, root)
+				if owner == line then
+					local createButton = root.CreateButton
+					root.CreateButton = function(self, text, ...)
+						opened = opened or text
+						return createButton(self, text, ...)
+					end
+				end
+				return generator(menuOwner, root)
+			end)
 		end
 		sim:input(function()
 			line:GetScript("OnMouseUp")(line, "RightButton")
 		end)
-		assert(opened and opened.entries[1].text == "Avoid this boat", "the transport line opens its Avoid menu")
+		assert(opened == "Avoid this boat", "the transport line opens its Avoid menu")
 		G.ForeverCore.ContextMenu = contextMenu
-		ns.JourneyInfo, tracker.blocks = journeyInfo, blocks
+		ns.JourneyInfo, ns.JourneyPlan, tracker.blocks = journeyInfo, journeyPlan, blocks
 		tracker:MarkDirty()
 
 		local tainted = {}
