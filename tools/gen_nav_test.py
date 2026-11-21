@@ -57,6 +57,17 @@ class PickSurfaceTest(unittest.TestCase):
         self.assertEqual(pick_surface(layers, polys, [(0, 0, 0)], 0.5, 0.5, 9.8), (0, 0))
 
 
+def square(x0, y0, side, z):
+    """A square poly from (x0, y0) at height z."""
+    pts = [(x0, y0, z), (x0 + side, y0, z), (x0 + side, y0 + side, z), (x0, y0 + side, z)]
+    c = tuple(sum(p[a] for p in pts) / len(pts) for a in range(3))
+    return {"pts": [(p[0], p[1]) for p in pts], "plane": plane(pts, c), "steep": False}
+
+
+def one_cell(_x, _y):
+    return [(0, 0, 0)]
+
+
 class PickFloorTest(unittest.TestCase):
     def test_a_trigger_above_its_floor_finds_the_floor_under_it(self):
         # Stormwind's Sanctum trigger 702 floats 3.9 yards over the basement floor, past pick_surface's CLIMB; the
@@ -64,20 +75,27 @@ class PickFloorTest(unittest.TestCase):
         polys = {0: flat(29.6), 1: flat(148.6)}
         layers = {0: [(29.6, 1, (0, (0.0, 0.0))), (148.6, 1, (1, (0.0, 0.0)))]}
         self.assertIsNone(pick_surface(layers, polys, [(0, 0, 0)], 0.5, 0.5, 33.5))
-        self.assertEqual(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 33.5, 7.0), (0, 0))
-        self.assertEqual(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 151.6, 7.0), (0, 1))
-        self.assertIsNone(pick_floor(layers, polys, [(0, 0, 0)], 0.5, 0.5, 40.0, 7.0))
+        self.assertEqual(pick_floor(layers, polys, one_cell, 0.5, 0.5, 33.5, 7.0), (0, 0))
+        self.assertEqual(pick_floor(layers, polys, one_cell, 0.5, 0.5, 151.6, 7.0), (0, 1))
+        self.assertIsNone(pick_floor(layers, polys, one_cell, 0.5, 0.5, 40.0, 7.0))
 
     def test_the_floor_is_any_poly_under_the_trigger_not_only_the_layer_anchor(self):
         # The basement layer's anchor lies 1.8 yards from trigger 702; another poly of that floor lies under it.
-        def square(x0, z):
-            pts = [(x0, -1.0, z), (x0 + 2.0, -1.0, z), (x0 + 2.0, 2.0, z), (x0, 2.0, z)]
-            c = tuple(sum(p[a] for p in pts) / len(pts) for a in range(3))
-            return {"pts": [(p[0], p[1]) for p in pts], "plane": plane(pts, c), "steep": False}
-
-        polys = {0: square(3.0, 29.6), 1: square(-0.5, 29.8), 2: flat(148.6)}
+        polys = {0: square(3.0, -1.0, 2.0, 29.6), 1: square(-0.5, -1.0, 2.0, 29.8), 2: flat(148.6)}
         layers = {0: [(29.6, 1, (0, (4.0, 0.5))), (148.6, 1, (2, (0.0, 0.0)))], 1: [(29.7, 1, (1, (0.5, 0.5)))]}
-        self.assertEqual(pick_floor(layers, polys, [(0, 0, 0), (1, 1, 0)], 0.5, 0.5, 33.5, 7.0), (0, 0))
+        self.assertEqual(pick_floor(layers, polys, lambda x, y: [(0, 0, 0), (1, 1, 0)], 0.5, 0.5, 33.5, 7.0), (0, 0))
+
+    def test_a_trigger_over_a_hole_finds_the_floor_around_it(self):
+        # Trigger 704's centre floats over the tower portal, where the navmesh has a hole; the floor beside it, inside
+        # the trigger's radius, is its floor, in the cell of the floor's nearest point.
+        polys = {0: square(4.0, -2.0, 4.0, 148.7), 1: square(-2.0, -2.0, 1.0, 30.0)}
+        layers = {0: [(30.0, 1, (1, (0.0, 0.0)))], 1: [(148.7, 1, (0, (5.0, 0.0)))]}
+
+        def around(x, _y):
+            return [(1 if x >= 4.0 else 0, 0, 0)]
+
+        self.assertEqual(pick_floor(layers, polys, around, 0.0, 0.0, 151.6, 7.0), (1, 0))
+        self.assertIsNone(pick_floor(layers, polys, around, 0.0, 0.0, 151.6, 3.0))
 
 
 class RasterizeLayersTest(unittest.TestCase):

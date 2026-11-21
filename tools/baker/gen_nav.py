@@ -41,6 +41,7 @@ from baker.geometry import (
     clip_convex,
     clip_segment,
     height,
+    nearest_point2,
     plane,
     point_in_convex,
     poly_distance,
@@ -559,23 +560,28 @@ def pick_surface(layers, polys, candidates, x, y, z):
     return best
 
 
-def pick_floor(layers, polys, candidates, x, y, z, reach):
-    """The (cell, layer) of the floor under a point: the highest poly within a step of the point whose height there is
-    at most CLIMB above it and at most reach below it, as the layer at that height, the point's own cell first. A
-    trigger's centre floats above the floor it covers, by up to its radius, so pick_surface's nearest-height match
-    within CLIMB can miss it. The floor is found among every poly, not only the layers' anchors: a layer is one piece
-    of surface anchored on one of its polys, which can lie farther from the point than MARGIN (the Wizard's Sanctum
-    basement under trigger 702)."""
-    top = None
+def pick_floor(layers, polys, around, x, y, z, radius):
+    """The (cell, layer) of the floor a sphere touches: the navmesh poly nearest the centre within radius, as the layer
+    at its height in the cell of its nearest point, that cell first, then those around(x, y) gives. A teleport trigger
+    is a sphere the player enters anywhere, and its centre can float over a hole in the floor (the portal in the
+    Wizard's Sanctum tower, trigger 704) or above the floor by more than CLIMB (the basement, trigger 702), so neither
+    pick_surface's match within CLIMB nor the poly under the centre finds it. Every poly counts, not only the layers'
+    anchors: a layer is one piece of surface anchored on one of its polys, which can lie yards from the floor's
+    nearest point."""
+    near = None
     for poly in polys.values():
-        if poly_distance2(x, y, poly["pts"]) <= MARGIN:
-            h = height(poly, x, y)
-            if z - reach <= h <= z + CLIMB and (top is None or h > top):
-                top = h
-    if top is None:
+        if poly_distance2(x, y, poly["pts"]) > radius:
+            continue
+        qx, qy = nearest_point2(x, y, poly["pts"])
+        h = height(poly, qx, qy)
+        d = math.hypot(math.hypot(qx - x, qy - y), h - z)
+        if d <= radius and (near is None or d < near[0]):
+            near = (d, qx, qy, h)
+    if near is None:
         return None
+    _d, qx, qy, top = near
     best, rank = None, None
-    for cell, dx, dy in candidates:
+    for cell, dx, dy in around(qx, qy):
         for la, (h, _v, _anchor) in enumerate(layers.get(cell, ())):
             gap = abs(h - top)
             r = (0 if (dx == 0 and dy == 0) else 1, gap)
@@ -810,10 +816,11 @@ def rasterize_tile(rc):
     for (x0, y0, z0), radius, (x1, y1, z1) in HOPS:
         if not (tx0 <= int((x0 - X0) // CS) <= tx1 and ty0 <= int((y0 - Y0) // CS) <= ty1):
             continue
-        source = pick_floor(layers, polys, around(x0, y0), x0, y0, z0, radius)
-        landing = pick_floor(layers, polys, around(x1, y1), x1, y1, z1, CLIMB)
+        source = pick_floor(layers, polys, around, x0, y0, z0, radius)
+        landing = pick_floor(layers, polys, around, x1, y1, z1, CLIMB)
         if source is None or landing is None:
-            sys.exit(
+            # raised, not sys.exit: a pool worker that exits leaves its task unfinished and the bake waiting forever
+            raise RuntimeError(
                 f"hop at {x0:.1f}, {y0:.1f}, {z0:.1f}: no floor under its {'trigger' if source is None else 'landing'}"
             )
         (i, la), (j, lb) = source, landing
