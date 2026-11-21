@@ -8,7 +8,7 @@
 ---@field TaxiPaths SPFTaxiPath[]
 ---@field Portals SPFPortal[]
 ---@field Entrances table<number, SPFEntrance>
----@field Hops SPFHop[] same-map teleports within one walking place; read only by the nav bake (Data/Portals.lua)
+---@field Hops SPFTeleportHop[] same-map teleports within one walking place; read only by the nav bake (Data/Portals.lua)
 ---@field Teleports SPFTeleport[]
 ---@field Landmasses SPFLandmass[]
 ---@field Zones table<number, SPFZone>
@@ -205,7 +205,7 @@
 ---@field faction? string
 ---@field requires? string
 ---@field seconds number
----@class SPFHop
+---@class SPFTeleportHop
 ---@field from SPFPoint the trigger's centre
 ---@field radius number
 ---@field to SPFPoint

@@ -268,9 +268,14 @@ def animation_tracks(rows, spawns):
             tracks[int(row["TransportID"])].append((int(row["TimeIndex"]), point(row)))
     for template, track in tracks.items():
         track.sort()
-        if len({t for t, _ in track}) != len(track) or math.dist(track[0][1], track[-1][1]) > 0.01:
+        if len({t for t, _ in track}) != len(track) or math.dist(track[0][1], track[-1][1]) > HOLD:
             raise ValueError(f"animation {template}: timestamps overlap or loop does not close")
     return tracks
+
+
+# A car that drifts less than this from where it stopped is holding at the landing, the same tolerance a loop closes
+# within: the east scaffold car creeps 0.009 yd over its five-second stop at the bottom.
+HOLD = 0.01
 
 
 def world_track(track, spawn):
@@ -280,11 +285,37 @@ def world_track(track, spawn):
     frames = []
     for time, (x, y, z) in track:
         pos = (spawn["pos"][0] + x, spawn["pos"][1] - y, spawn["pos"][2] + z)
-        if frames and math.dist(frames[-1]["pos"], pos) < 0.001:
+        if frames and math.dist(frames[-1]["pos"], pos) < HOLD:
             frames[-1]["depart"] = time
         else:
             frames.append({"arrive": time, "depart": time, "pos": pos, "map": spawn["map"]})
     return frames
+
+
+def ride_fit(cars, period, speed):
+    """How many 1 Hz sightings identify a ride: at most five over four seconds, fewer when a ride is shorter.
+
+    A sighting counts only while the car moves at `speed` or faster, so the shortest ride's fast time bounds the
+    samples a player can see on every ride: UC's whole ride is 3.5 s, Gnomeregan's drop 4.3 s.
+    """
+    shortest = math.inf
+    for car in cars:
+        start = next(i for i, f in enumerate(car) if f["depart"] > f["arrive"])
+        origin, fast = car[start]["dock"], 0
+        for k in range(len(car)):
+            a, b = car[(start + k) % len(car)], car[(start + k + 1) % len(car)]
+            # A ride ends at another floor; a car resettling on its own landing is still waiting there.
+            if a["depart"] > a["arrive"] and a["dock"] != origin:
+                shortest, origin, fast = min(shortest, fast), a["dock"], 0
+            time = (b["arrive"] - a["depart"]) % period
+            if time and math.dist(a["pos"], b["pos"]) * 1000 / time >= speed:
+                fast += time
+        if origin != car[start]["dock"]:
+            shortest = min(shortest, fast)
+    samples = min(5, int(shortest // 1000)) if shortest < math.inf else 0
+    # A car slower than `speed` (the scaffold lifts climb at about 4 yd/s, slower than a player runs) cannot be told
+    # from a player walking by, so it gets no fit and is never sighted.
+    return {"samples": samples, "span": (samples - 1) * 1000, "speed": speed} if samples >= 2 else None
 
 
 def transports(animation, spawns, triggers, guarded_factions):
@@ -338,17 +369,14 @@ def transports(animation, spawns, triggers, guarded_factions):
             for _, car in group:
                 car[-1]["jump"] = 1
                 frames.extend(car)
-            # UC's entire ride is 3.5 s; TB is slower than the Great Lift during its cruise.
-            fit = (
-                {"samples": 3, "span": 2000, "speed": 8}
-                if template in (20649, 20652, 20655)
-                else {"samples": 5, "span": 4000, "speed": 6 if template in (4170, 4171, 47296, 47297) else 8}
-            )
+            # TB is slower than the Great Lift during its cruise.
+            speed = 6 if template in (4170, 4171, 47296, 47297) else 8
+            fit = ride_fit([car for _, car in group], tracks[template][-1][0], speed)
             routes[key] = {
                 "kind": "lift",
                 "site": site,
                 "period": tracks[template][-1][0],
-                "fit": fit,
+                **({"fit": fit} if fit else {}),
                 "stops": stops_of(frames, tracks[template][-1][0]),
                 "frames": frames,
             }
