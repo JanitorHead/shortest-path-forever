@@ -101,6 +101,7 @@ env.C_Spell = {
 }
 ns.Art = { Icon = function() end }
 driver.load("UI/Mover.lua")
+driver.load("UI/CastButton.lua")
 driver.load("UI/Arrow.lua")
 
 local hearth = { item = 6948, spell = 8690, bind = true }

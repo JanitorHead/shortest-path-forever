@@ -806,82 +806,13 @@ end
 ---@class SPFCastPromptFrame : Frame
 ---@field Icon Texture
 ---@field Action FontString
----@type Button?
-local castButton
----@type SPFTeleportPlace?
-local appliedCast
-
-local function HideCastTooltip(button)
-	if GameTooltip:IsOwned(button) then
-		GameTooltip:Hide()
-	end
-end
-
-local function ShowCastTooltip(button)
-	local teleport = appliedCast
-	if not teleport then
-		return
-	end
-	local hint
-	if teleport.item then
-		hint = L["Click to use %s"]:format(C_Item.GetItemNameByID(teleport.item) or UNKNOWN)
-	else
-		hint = L["Click to cast %s"]:format(C_Spell.GetSpellName(teleport.spell) or UNKNOWN)
-	end
-	GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
-	GameTooltip:SetText(hint)
-	if InCombatLockdown() and (teleport ~= castTarget or not ns.CastPromptShown()) then
-		GameTooltip:AddLine(L["The travel action will update after combat."])
-	end
-	GameTooltip:Show()
-end
-
--- Called only out of combat. The secure button anchors to UIParent in screen coordinates.
--- The button copies the prompt's screen position onto UIParent, and nothing anchors to it: a frame anchored to a
--- protected frame turns protected, and the prompt and the movable arrow must stay free to move in combat.
+-- Out of combat only: the clickable icon takes the step's action, or drops it while the prompt cannot be clicked.
 local function ApplyCastButton()
-	local prompt, teleport = castPrompt, castTarget
-	if not prompt or not teleport or teleport.partyMage or moving or not ns.CastPromptShown() then
-		if castButton and appliedCast then
-			castButton:Hide()
-			castButton:SetAttribute("type", nil)
-			castButton:SetAttribute("item", nil)
-			castButton:SetAttribute("spell", nil)
-			appliedCast = nil
-		end
-		return
-	end
-
-	local x, top = prompt:GetCenter(), prompt:GetTop()
-	if not x or not top then
-		return
-	end
-	local button = castButton
-	if not button then
-		button = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
-		button:SetSize(ICON_SIZE, ICON_SIZE)
-		button:SetFrameStrata("MEDIUM")
-		button:SetFrameLevel(prompt:GetFrameLevel() + 1)
-		button:EnableMouse(true)
-		-- Let the secure handler honour ActionButtonUseKeyDown on either transition.
-		button:RegisterForClicks("AnyUp", "AnyDown")
-		button:SetScript("OnEnter", ShowCastTooltip)
-		button:SetScript("OnLeave", HideCastTooltip)
-		button:SetScript("OnHide", HideCastTooltip)
-		castButton = button
-	end
-
-	local scale = (ns.db.arrowScale or 100) / 100
-	button:SetScale(scale)
-	button:ClearAllPoints()
-	button:SetPoint("TOP", UIParent, "BOTTOMLEFT", x, top)
-	button:SetAttribute("type", teleport.item and "item" or "spell")
-	button:SetAttribute("item", teleport.item and ("item:" .. teleport.item) or nil)
-	button:SetAttribute("spell", not teleport.item and teleport.spell or nil)
-	appliedCast = teleport
-	button:Show()
-	if GameTooltip:IsOwned(button) then
-		ShowCastTooltip(button)
+	local teleport = castTarget
+	if not castPrompt or not teleport or teleport.partyMage or moving or not ns.CastPromptShown() then
+		ns.CastButton.Apply(nil)
+	else
+		ns.CastButton.Apply(castPrompt, teleport, (ns.db.arrowScale or 100) / 100)
 	end
 end
 
@@ -889,7 +820,7 @@ local function RenderCastPrompt()
 	if not castPrompt or not castTarget or not ns.CastPromptShown() then
 		return
 	end
-	if appliedCast and InCombatLockdown() then
+	if ns.CastButton.Applied() and InCombatLockdown() then
 		castPrompt:RegisterEvent("PLAYER_REGEN_ENABLED")
 		return
 	end
@@ -940,13 +871,11 @@ end
 function ns.PointCastPrompt(teleport)
 	castTarget = teleport
 	NotifyLead()
+	ns.CastButton.Shows(ns.CastPromptShown() and teleport or nil)
 	local locked = InCombatLockdown()
-	if locked and appliedCast and castPrompt then
+	if locked and ns.CastButton.Applied() and castPrompt then
 		-- Keep the displayed label and icon paired with the action the button still performs.
 		castPrompt:RegisterEvent("PLAYER_REGEN_ENABLED")
-		if castButton and GameTooltip:IsOwned(castButton) then
-			ShowCastTooltip(castButton)
-		end
 		return
 	end
 	if not teleport or not ns.CastPromptShown() then
@@ -981,9 +910,7 @@ function ns.PointCastPrompt(teleport)
 				ns.PointCastPrompt(castTarget)
 			elseif event ~= "GET_ITEM_INFO_RECEIVED" or castTarget and itemID == castTarget.item then
 				RenderCastPrompt()
-				if castButton and appliedCast and GameTooltip:IsOwned(castButton) then
-					ShowCastTooltip(castButton)
-				end
+				ns.CastButton.Refresh()
 			end
 		end)
 	end
