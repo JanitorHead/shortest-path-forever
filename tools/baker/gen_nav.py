@@ -73,6 +73,7 @@ ROAD_FACTOR_MAX = (
 )
 PRUNE = 1.02  # drop an intra edge when a two-hop path is within 2%
 MIN_COMPONENT = 500
+DROP_BUCKET = 8.0  # yards: the bucket a drop's ledge and landing find their nearest poly through
 DIRS = {(1, 0): 0, (-1, 0): 1, (0, 1): 2, (0, -1): 3, (1, 1): 4, (1, -1): 5, (-1, 1): 6, (-1, -1): 7}
 MARGIN = 1.0  # a step between cells may use navmesh this far outside the two cells (yd)
 CLIMB = 3.0  # two surfaces at one point are the same layer within this height (yd)
@@ -338,17 +339,36 @@ def components(spots, joins=()):
             x = parent[x]
         return x
 
-    def nearest(polys, base, point):
-        """The dense id of the poly of a tile nearest a point, or -1 for a tile with none."""
-        best = (math.inf, -1)
+    def nearest(polys, base, points):
+        """The dense id of the poly of a tile nearest each point, or -1 for a tile with none. Polys are bucketed by
+        their horizontal bounds and searched ring by ring outward, as a continent has tens of thousands of drops."""
+        if not points or not polys:
+            return [-1] * len(points)
+        buckets = defaultdict(list)
         for n, (_, pts, _, _) in enumerate(polys):
-            # the gap to the poly's bounding box never exceeds the distance to the poly
-            gap = max(max(min(p[a] for p in pts) - point[a], point[a] - max(p[a] for p in pts)) for a in (0, 1, 2))
-            if gap < best[0]:
-                d = poly_distance(point, pts)
-                if d < best[0]:
-                    best = (d, base + n)
-        return best[1]
+            xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+            for bx in range(int(min(xs) // DROP_BUCKET), int(max(xs) // DROP_BUCKET) + 1):
+                for by in range(int(min(ys) // DROP_BUCKET), int(max(ys) // DROP_BUCKET) + 1):
+                    buckets[(bx, by)].append(n)
+        found = []
+        for point in points:
+            cx, cy = int(point[0] // DROP_BUCKET), int(point[1] // DROP_BUCKET)
+            best, seen, ring = (math.inf, -1), set(), 0
+            # a poly first met in ring k is at least (k - 1) buckets away horizontally
+            while (ring - 1) * DROP_BUCKET <= best[0]:
+                for bx in range(cx - ring, cx + ring + 1):
+                    for by in range(cy - ring, cy + ring + 1):
+                        if max(abs(bx - cx), abs(by - cy)) != ring:
+                            continue
+                        for n in buckets.get((bx, by), ()):
+                            if n not in seen:
+                                seen.add(n)
+                                d = poly_distance(point, polys[n][1])
+                                if d < best[0]:
+                                    best = (d, base + n)
+                ring += 1
+            found.append(best[1])
+        return found
 
     def tile_of(point):
         return int(32 - point[0] / T), int(32 - point[1] / T)
@@ -357,11 +377,11 @@ def components(spots, joins=()):
         polys, links, edges, drops = read_tile(rc)
         BASE[rc] = base = len(parent)
         loc = {i: base + n for n, (i, _, _, _) in enumerate(polys)}
-        for ledge, land in drops:
-            if tile_of(land) in TILES:
-                landing[tile_of(land)].append((nearest(polys, base, ledge), land))
-        for a, land in landing.pop(rc, ()):
-            arcs.append((a, nearest(polys, base, land)))
+        drops = [(ledge, land) for ledge, land in drops if tile_of(land) in TILES]
+        for (_, land), a in zip(drops, nearest(polys, base, [ledge for ledge, _ in drops]), strict=True):
+            landing[tile_of(land)].append((a, land))
+        ends = landing.pop(rc, [])
+        arcs += zip([a for a, _ in ends], nearest(polys, base, [land for _, land in ends]), strict=True)
         parent.extend(range(base, base + len(polys)))
         for i, j, _, _ in links:
             parent[find(loc[i])] = find(loc[j])
@@ -380,8 +400,8 @@ def components(spots, joins=()):
             dense[g] = loc[i]
             border[key].append((g, lo, hi, z))
     for rc in sorted(landing):  # drops landing in a tile read before the ledge's
-        polys = read_tile(rc)[0]
-        arcs += [(a, nearest(polys, BASE[rc], land)) for a, land in landing[rc]]
+        ends = landing[rc]
+        arcs += zip([a for a, _ in ends], nearest(read_tile(rc)[0], BASE[rc], [land for _, land in ends]), strict=True)
     for a, b, _ in match_borders(border):
         parent[find(dense[a])] = find(dense[b])
     ends = len(spots) - 2 * len(joins)
