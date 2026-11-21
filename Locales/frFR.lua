@@ -158,6 +158,10 @@ L["Only use the Hearthstone when it saves at least this much time."] =
 L["Open"] = "Ouvrir"
 L["Open Nearby services"] = "Ouvrir Services à proximité"
 L["Open the world map to see it."] = "Ouvrez la carte du monde pour le voir." -- mt
+L["Rides to spend less time walking through %s (level %s)"] =
+	"Prend un transport pour moins marcher dans %s (niveau %s)" -- mt
+L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."] =
+	"Réduit les trajets à pied dans les zones dont le niveau minimum dépasse le vôtre d’au moins 4, même si votre destination s’y trouve." -- mt
 L["Turn the world map to %s to see it."] = "Tournez la carte du monde vers %s pour le voir." -- mt
 L["This menu needs mouse and keyboard."] = "Ce menu nécessite la souris et le clavier." -- mt
 L["Other Faction's Routes"] = "Routes de l'autre faction" -- mt
@@ -251,8 +255,6 @@ L["Use class teleports"] = "Utiliser les téléportations de classe" -- mt
 L["Vendors"] = "Marchands"
 L["W"] = "O" -- mt
 L["Walk to %s"] = "Marcher jusqu'à %s" -- mt
-L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."] =
-	"Les trajets à pied contournent les zones dont le niveau minimum dépasse le vôtre de 4 ou plus, mais jamais celles de départ ou d'arrivée." -- mt
 L["Weapons and armour"] = "Armes et armures"
 L["What's new after an update"] = "Nouveautés après une mise à jour"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
@@ -442,11 +444,11 @@ L["Off, the game's own quest markers stay beside your journey's pins, showing th
 	"Désactivé, les marqueurs de quête du jeu restent à côté de ceux de votre trajet, pour que vous voyiez les autres endroits où une quête peut être accomplie." -- mt
 L["Shift"] = "Maj" -- mt
 L["Alt"] = "Alt" -- mt
-L["Click the map to plan journeys"] = "Cliquez sur la carte pour planifier des trajets" -- mt
-L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
-	"Maintenez votre touche de trajet et cliquez sur la carte du monde ou la minicarte pour y planifier un trajet." -- mt
-L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
-	"Les trajets sont désactivés. Activez « Cliquez sur la carte pour planifier des trajets » dans les options." -- mt
+L["Enable journeys"] = "Activer les trajets" -- mt
+L["Off clears your journey, and map clicks, quests, guides and waypoints no longer start one."] =
+	"Désactivé, votre trajet est effacé et ni les clics sur la carte, ni les quêtes, guides ou points de passage n'en lancent." -- mt
+L["Journeys are off. Turn on Enable journeys in settings."] =
+	"Les trajets sont désactivés. Activez « Activer les trajets » dans les options." -- mt
 L["Key to plan a journey"] = "Touche pour planifier un trajet" -- mt
 L["The key you hold to plan a journey from the world map or the minimap."] =
 	"La touche à maintenir pour planifier un trajet depuis la carte du monde ou la minicarte." -- mt
@@ -475,6 +477,7 @@ L["Farming tour running."] = "Circuit de récolte en cours." -- mt
 L["Farming tour paused."] = "Circuit de récolte en pause." -- mt
 L["Farming tour stopped."] = "Circuit de récolte arrêté." -- mt
 L["Farming tour waiting."] = "Circuit de récolte en attente." -- mt
+L["Or choose %s in the journey tracker menu."] = "Ou choisissez « %s » dans le menu du suivi du trajet." -- mt
 L["Ordering recorded locations..."] = "Organisation des emplacements enregistrés..." -- mt
 L["Farming needs the GatherMate2 addon."] = "La récolte nécessite l'addon GatherMate2." -- mt
 L["Your current zone is unavailable."] = "Votre zone actuelle est indisponible." -- mt

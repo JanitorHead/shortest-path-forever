@@ -19,7 +19,7 @@ local LOADING = 5000
 -- A Hearthstone spends a long cooldown, so it must save at least 20 s over walking before it is chosen.
 local HEARTH_MINIMUM_SAVING = 20
 -- A journey that would be one walk of at least LONG_WALK takes a ride instead when that arrives within RIDE_MARGIN
--- of the walk's time.
+-- of the walk's time and spends less than half its elapsed time walking (#1102).
 local LONG_WALK, RIDE_MARGIN = 600000, 1.1
 
 ---@param node SPFPoint
@@ -505,6 +505,8 @@ local function Solve(options, cache, check, weigh)
 			})
 		end
 	end
+	-- The walk straight from the start to the goal pays the charge on the goal's high-level zone (Hazards.Profile).
+	local direct
 	for pair = 1, #topology.pairs, 2 do
 		check()
 		local from, to = topology.pairs[pair], topology.pairs[pair + 1]
@@ -518,15 +520,23 @@ local function Solve(options, cache, check, weigh)
 					yards, estimated, apart = WalkCost(options, origin, destination, walkIndex)
 				end
 				if yards then
-					Edge(first, last, {
+					local factor = 1
+					if first == start and last == goal and options.hazards and options.hazards.goalZone then
+						factor = options.hazards.Direct(origin.map, origin.x, origin.y, destination.x, destination.y)
+					end
+					local edge = {
 						mode = "walk",
-						duration = yards / speed * 1000,
+						duration = yards * factor / speed * 1000,
 						yards = yards,
 						estimated = estimated,
 						-- Zero yards join two walks unless the walk's batch knows the ends are on different nodes: an
 						-- estimate of zero is then only a lower bound on a real walk.
 						transfer = yards == 0 and not apart or nil,
-					})
+					}
+					Edge(first, last, edge)
+					if factor > 1 then
+						direct = edge
+					end
 				end
 			end
 		end
@@ -580,6 +590,7 @@ local function Solve(options, cache, check, weigh)
 			node = {},
 			state = {},
 			time = {},
+			walking = {},
 			key = {},
 			parent = {},
 			edge = {},
@@ -596,11 +607,13 @@ local function Solve(options, cache, check, weigh)
 		else
 			labels = topology.labels or NewLabels()
 			for i = 1, labels.count or 0 do
-				labels.discarded[i], labels.edge[i] = nil, nil
+				labels.discarded[i], labels.edge[i], labels.walking[i] = nil, nil, nil
 			end
 			topology.labels = labels
 		end
 		labels.node[1], labels.state[1], labels.time[1] = start, start, options.now
+		labels.walking[1] = 0
+		local walkingLimit = ridden and (cutoff - options.now) / 2
 		labels.key[1], labels.parent[1] = options.now + (lower[start] or math.huge), nil
 		local labelCount = 1
 		labels.count = 1
@@ -712,6 +725,18 @@ local function Solve(options, cache, check, weigh)
 						-- A label that cannot arrive before the cutoff leads nowhere, and dominates nothing that could: a peer
 						-- at the same node has the same remaining bound.
 						local dominated = cutoff ~= nil and finish + lower[edge.to] >= cutoff
+						local walking
+						if ridden and not dominated then
+							walking = labels.walking[current] + (edge.mode == "walk" and finish - earliest or 0)
+							-- A short flight that leaves most of the trip on foot is still a long walk (#86, #1102).
+							-- Reject those goals before they can dominate a qualifying arrival (#1104).
+							dominated = walking >= walkingLimit
+								or (edge.to == goal and walking * 2 >= finish - options.now)
+						end
+						-- A ridden label dominates only by arriving at the same time with no more walking. An earlier arrival can
+						-- catch an earlier boat, and the later label's wait for the next one counts as riding, so arriving first
+						-- does not keep the walking share below half. At the goal there is no suffix: first and least walking wins.
+						local sameTime = ridden and edge.to ~= goal
 						if not dominated then
 							-- The first offer only needs a valid incumbent. The exact proof retains the visited-set
 							-- alternatives that this preliminary search can discard.
@@ -719,6 +744,8 @@ local function Solve(options, cache, check, weigh)
 								if
 									not labels.discarded[peer]
 									and labels.time[peer] <= finish
+									and (not ridden or labels.walking[peer] <= walking)
+									and (not sameTime or labels.time[peer] == finish)
 									and (options.feasibleOnly or Subset(labels, peer, current, edge.to))
 								then
 									dominated = true
@@ -731,12 +758,17 @@ local function Solve(options, cache, check, weigh)
 							labels.count = labelCount
 							local id = labelCount
 							labels.node[id], labels.state[id], labels.time[id] = edge.to, target, finish
+							if ridden then
+								labels.walking[id] = walking
+							end
 							labels.key[id], labels.parent[id], labels.edge[id] = finish + lower[edge.to], current, edge
 							labels.depart[id], labels.wait[id], labels.estimated[id] = depart, wait, estimated
 							for _, peer in ipairs(peers) do
 								if
 									not labels.discarded[peer]
 									and finish <= labels.time[peer]
+									and (not ridden or walking <= labels.walking[peer])
+									and (not sameTime or finish == labels.time[peer])
 									and (options.feasibleOnly or Subset(labels, id, peer))
 								then
 									labels.discarded[peer] = true
@@ -811,8 +843,17 @@ local function Solve(options, cache, check, weigh)
 				legs[#legs + 1] = leg
 			end
 		end
+		local arrive, charged = labels.time[finishAt], nil
+		if #legs == 1 and labels.edge[finishAt] == direct then
+			-- The charge only weighs the choice: the walk itself takes its real time. A later search bounded by this plan
+			-- compares charged labels, so it is bounded by the charged arrival.
+			charged = arrive
+			arrive = legs[1].depart + direct.yards / speed * 1000
+			legs[1].arrive = arrive
+		end
 		return {
-			arrive = labels.time[finishAt],
+			arrive = arrive,
+			charged = charged,
 			legs = legs,
 			needsStart = needsStart,
 			needsGoal = needsGoal,
@@ -893,6 +934,17 @@ local function Solve(options, cache, check, weigh)
 	end
 	if planned then
 		MarkUnknownFlight(planned)
+		-- The charge decided it when walking straight there would have won on real time, by the same margin a long walk
+		-- gives a ride, but the ride won once the yards inside the goal's zone were charged. A teleport is no ride.
+		local walked = direct and direct.yards / speed * 1000
+		local margin = walked and walked >= LONG_WALK and RIDE_MARGIN or 1
+		local rides = #planned.legs > 1
+		for _, leg in ipairs(planned.legs) do
+			rides = rides and leg.mode ~= "teleport"
+		end
+		if walked and rides and walked * margin < planned.arrive - options.now then
+			planned.rideNote = ns.Hazards.RideNote(options.hazards)
+		end
 	end
 	return planned
 end

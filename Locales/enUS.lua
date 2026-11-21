@@ -30,3 +30,6 @@ L["Avoided transport"] = "Avoided transport"
 L["Clear avoided transport (%d)"] = "Clear avoided transport (%d)"
 L["Clear this character's avoided transport so the planner can use it again."] =
 	"Clear this character's avoided transport so the planner can use it again."
+L["Rides to spend less time walking through %s (level %s)"] = "Rides to spend less time walking through %s (level %s)"
+L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."] =
+	"Walk less in zones with a minimum level 4 or more above yours, even at your destination."

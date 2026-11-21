@@ -154,6 +154,9 @@ L["Only use the Hearthstone when it saves at least this much time."] =
 L["Open"] = "Abrir"
 L["Open Nearby services"] = "Abrir serviços próximos"
 L["Open the world map to see it."] = "Abra o mapa-múndi para ver."
+L["Rides to spend less time walking through %s (level %s)"] = "Usa transporte para caminhar menos por %s (nível %s)"
+L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."] =
+	"Reduz o percurso a pé em áreas cujo nível mínimo é pelo menos 4 acima do seu, mesmo se o destino estiver lá."
 L["Turn the world map to %s to see it."] = "Mude o mapa-múndi para %s para ver." -- mt
 L["This menu needs mouse and keyboard."] = "Este menu precisa de mouse e teclado." -- mt
 L["Other Faction's Routes"] = "Rotas da outra facção"
@@ -246,8 +249,6 @@ L["Use class teleports"] = "Usar teleportes de classe"
 L["Vendors"] = "Vendedores"
 L["W"] = "O"
 L["Walk to %s"] = "Caminhar até %s"
-L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."] =
-	"As caminhadas contornam zonas cujo nível mínimo é 4 ou mais acima do seu, mas nunca aquelas onde você começa ou termina."
 L["Weapons and armour"] = "Armas e armaduras"
 L["What's new after an update"] = "Novidades após uma atualização"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
@@ -437,11 +438,11 @@ L["Off, the game's own quest markers stay beside your journey's pins, showing th
 	"Desativado, os marcadores de missão do jogo ficam ao lado dos marcadores da sua jornada, para você ver os outros lugares onde uma missão pode ser concluída." -- mt
 L["Shift"] = "Shift" -- mt
 L["Alt"] = "Alt" -- mt
-L["Click the map to plan journeys"] = "Clique no mapa para planejar jornadas" -- mt
-L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
-	"Mantenha sua tecla de jornada pressionada e clique no mapa-múndi ou no minimapa para planejar uma jornada até lá." -- mt
-L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
-	'As jornadas estão desativadas. Ative "Clique no mapa para planejar jornadas" nas configurações.' -- mt
+L["Enable journeys"] = "Ativar jornadas" -- mt
+L["Off clears your journey, and map clicks, quests, guides and waypoints no longer start one."] =
+	"Desativado, apaga sua jornada e cliques no mapa, missões, guias e pontos de rota não iniciam outra." -- mt
+L["Journeys are off. Turn on Enable journeys in settings."] =
+	'As jornadas estão desativadas. Ative "Ativar jornadas" nas configurações.' -- mt
 L["Key to plan a journey"] = "Tecla para planejar uma jornada" -- mt
 L["The key you hold to plan a journey from the world map or the minimap."] =
 	"A tecla que você mantém para planejar uma jornada a partir do mapa-múndi ou do minimapa." -- mt
@@ -470,6 +471,7 @@ L["Farming tour running."] = "Circuito de coleta em andamento." -- mt
 L["Farming tour paused."] = "Circuito de coleta pausado." -- mt
 L["Farming tour stopped."] = "Circuito de coleta parado." -- mt
 L["Farming tour waiting."] = "Circuito de coleta em espera." -- mt
+L["Or choose %s in the journey tracker menu."] = "Ou escolha «%s» no menu do rastreador de jornada." -- mt
 L["Ordering recorded locations..."] = "Ordenando locais registrados..." -- mt
 L["Farming needs the GatherMate2 addon."] = "A coleta precisa do addon GatherMate2." -- mt
 L["Your current zone is unavailable."] = "Sua zona atual está indisponível." -- mt

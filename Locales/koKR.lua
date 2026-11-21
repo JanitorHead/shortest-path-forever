@@ -160,6 +160,10 @@ L["Only use the Hearthstone when it saves at least this much time."] =
 L["Open"] = "열기"
 L["Open Nearby services"] = "주변 편의시설 열기"
 L["Open the world map to see it."] = "세계 지도를 열어 확인하십시오."
+L["Rides to spend less time walking through %s (level %s)"] =
+	"이동 수단을 이용해 %s (레벨 %s)에서 걷는 구간을 줄임"
+L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."] =
+	"최소 레벨이 내 레벨보다 4 이상 높은 지역에서는 걷는 구간을 줄입니다. 목적지가 그 지역에 있어도 적용됩니다."
 L["Turn the world map to %s to see it."] = "%s 지역으로 세계 지도를 돌려 확인하십시오." -- mt
 L["This menu needs mouse and keyboard."] = "이 메뉴는 마우스와 키보드가 필요합니다." -- mt
 L["Other Faction's Routes"] = "다른 진영의 노선"
@@ -254,8 +258,6 @@ L["Use class teleports"] = "직업 순간이동 사용"
 L["Vendors"] = "상인"
 L["W"] = "서"
 L["Walk to %s"] = "%s까지 걷기"
-L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."] =
-	"최저 레벨이 내 레벨보다 4 이상 높은 지역은 걸어서 돌아가지만, 출발 지역과 도착 지역은 예외입니다."
 L["Weapons and armour"] = "무기 및 방어구"
 L["What's new after an update"] = "업데이트 후 새로운 소식"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
@@ -446,11 +448,11 @@ L["Off, the game's own quest markers stay beside your journey's pins, showing th
 	"끄면 게임의 퀘스트 표시가 여정 표시 옆에 그대로 남아, 퀘스트를 완료할 수 있는 다른 장소를 볼 수 있습니다." -- mt
 L["Shift"] = "Shift" -- mt
 L["Alt"] = "Alt" -- mt
-L["Click the map to plan journeys"] = "지도를 클릭하여 여정 계획" -- mt
-L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
-	"여정 키를 누른 채 세계 지도나 미니맵을 클릭하면 그곳까지 여정을 계획합니다." -- mt
-L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
-	"여정이 꺼져 있습니다. 설정에서 '지도를 클릭하여 여정 계획'을 켜십시오." -- mt
+L["Enable journeys"] = "여정 사용" -- mt
+L["Off clears your journey, and map clicks, quests, guides and waypoints no longer start one."] =
+	"끄면 현재 여정이 지워지고, 지도 클릭, 퀘스트, 가이드, 웨이포인트로 여정이 시작되지 않습니다." -- mt
+L["Journeys are off. Turn on Enable journeys in settings."] =
+	"여정이 꺼져 있습니다. 설정에서 '여정 사용'을 켜십시오." -- mt
 L["Key to plan a journey"] = "여정 계획 키" -- mt
 L["The key you hold to plan a journey from the world map or the minimap."] =
 	"세계 지도나 미니맵에서 여정을 계획하려면 누르고 있는 키입니다." -- mt
@@ -479,6 +481,7 @@ L["Farming tour running."] = "채집 순회 진행 중입니다." -- mt
 L["Farming tour paused."] = "채집 순회가 일시 정지되었습니다." -- mt
 L["Farming tour stopped."] = "채집 순회가 중지되었습니다." -- mt
 L["Farming tour waiting."] = "채집 순회 대기 중입니다." -- mt
+L["Or choose %s in the journey tracker menu."] = "또는 여정 추적기 메뉴에서 ‘%s’를 선택하세요." -- mt
 L["Ordering recorded locations..."] = "기록된 위치의 순서를 정하는 중..." -- mt
 L["Farming needs the GatherMate2 addon."] = "채집하려면 GatherMate2 애드온이 필요합니다." -- mt
 L["Your current zone is unavailable."] = "현재 지역을 확인할 수 없습니다." -- mt

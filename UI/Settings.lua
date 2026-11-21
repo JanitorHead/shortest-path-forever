@@ -298,8 +298,8 @@ ns.Init(function()
 	Section(L["Planning"])
 	Checkbox(
 		"journey",
-		L["Click the map to plan journeys"],
-		L["Hold your journey key and click the world map or the minimap to plan a journey there."],
+		L["Enable journeys"],
+		L["Off clears your journey, and map clicks, quests, guides and waypoints no longer start one."],
 		function()
 			if not ns.db.journey then
 				ns.ClearJourney()
@@ -500,7 +500,7 @@ ns.Init(function()
 	Checkbox(
 		"avoidHighZones",
 		L["Avoid zones far above my level"],
-		L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."],
+		L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."],
 		ns.TravelPolicyChanged
 	)
 	Checkbox(
