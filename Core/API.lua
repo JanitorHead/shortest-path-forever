@@ -435,13 +435,14 @@ end
 ---@param job SPFPathJob
 ---@param walk? number|false
 ---@param bound? boolean
----@return number?, ("combat"|"invalid"|"unreachable"|"loading")?
+---@return number?, ("combat"|"invalid"|"unreachable"|"loading")?, SPFLeg[]?
 function ns.EstimateIn(job, fromMap, fromX, fromY, toMap, toX, toY, walk, bound)
 	local entry, reason = Lookup(fromMap, fromX, fromY, toMap, toX, toY, job, walk, bound)
 	if not entry then
 		return nil, reason
 	end
-	return entry.seconds --[[@as number]]
+	local seconds = entry.seconds --[[@as number]]
+	return seconds, nil, entry.legs
 end
 
 function API.Estimate(fromMap, fromX, fromY, toMap, toX, toY)
