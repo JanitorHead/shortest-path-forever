@@ -893,7 +893,7 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 		P.factor = factorOf(st, hz)
 	end
 	if roadsOn then
-		P.roads, P.r, P.roadFactor = true, {}, offroad
+		P.distance, P.field, P.r, P.roadFactor = {}, {}, {}, offroad
 	end
 	local seen = {}
 	local function add(k, node)
@@ -903,8 +903,8 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 			for j = #P.x, at + 1, -1 do
 				seen[P.k[j] * 1048576 + P.n[j]] = nil
 				P.x[j], P.y[j], P.z[j], P.w[j], P.t[j], P.k[j], P.n[j] = nil, nil, nil, nil, nil, nil, nil
-				if P.r then
-					P.r[j] = nil
+				if P.r and P.distance and P.field then
+					P.r[j], P.distance[j], P.field[j] = nil, nil, nil
 				end
 			end
 			return
@@ -918,15 +918,28 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 		P.w[n + 1] = (P.w[n] or 0) + (wet and 1 or 0)
 		-- The walk's own time to this entry, charged as the search charges a step: the cell it enters, land at run
 		-- speed and water at the map's swim.
-		local time = P.t[n] or 0
+		local dx, dy = 0, 0
 		if n > 0 then
-			local dx, dy = P.x[n + 1] - P.x[n], P.y[n + 1] - P.y[n]
-			time = time + sqrt(dx * dx + dy * dy) * st.cs * (wet and swim or 1)
+			dx, dy = P.x[n + 1] - P.x[n], P.y[n + 1] - P.y[n]
 		end
-		P.t[n + 1] = time
-		if P.r then
+		local length = sqrt(dx * dx + dy * dy)
+		P.t[n + 1] = (P.t[n] or 0) + length * st.cs * (wet and swim or 1)
+		if P.r and P.distance and P.field then
 			local roadSet = Grid.roads(st, k)
-			P.r[n + 1] = (P.r[n] or 0) + ((not roadSet or not roadSet[cell]) and 1 or 0)
+			local outside = (not roadSet or not roadSet[cell]) and 1 or 0
+			P.r[n + 1] = (P.r[n] or 0) + outside
+			local field = 0
+			if n > 0 then
+				if abs(dx) <= 1 and abs(dy) <= 1 then
+					-- A step between adjacent centres spends half its length in each cell.
+					field = length * (outside + P.r[n] - (P.r[n - 1] or 0)) / 2
+				else
+					length, field =
+						Grid.roadDistance(st, P.x[n] + 0.5, P.y[n] + 0.5, P.x[n + 1] + 0.5, P.y[n + 1] + 0.5)
+				end
+			end
+			P.distance[n + 1] = (P.distance[n] or 0) + length
+			P.field[n + 1] = (P.field[n] or 0) + field
 		end
 		seen[id] = n + 1
 	end
@@ -984,11 +997,41 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 		clearEnd(st, P, n, to, false, P.w[n] - (P.w[n - 1] or 0) > 0, limitOver(P, n, n), nil, true)
 	-- P.t is the refined walk's real running-yard prefix, independent of reported/cached search cost.
 	local chordBudget = startOK and goalOK and startTime + P.t[n] - P.t[1] + goalTime
+	local sx, sy = (from.x - x0) / cs, (from.y - y0) / cs
+	local gx, gy = (to.x - x0) / cs, (to.y - y0) / cs
+	local startLength, startField, goalLength, goalField = 0, 0, 0, 0
+	if P.distance and P.field then
+		startLength, startField = Grid.roadDistance(st, sx, sy, P.x[1] + 0.5, P.y[1] + 0.5)
+		goalLength, goalField = Grid.roadDistance(st, P.x[n] + 0.5, P.y[n] + 0.5, gx, gy)
+		local length = startLength + P.distance[n] + goalLength
+		P.fieldShare = length > 0 and (startField + P.field[n] + goalField) / length or 0
+	end
+	local function roadClear(ax, ay, bx, by, first, last, length, field)
+		local distance, off = P.distance, P.field
+		return not distance
+			or not off
+			or Grid.roadClear(
+				st,
+				ax,
+				ay,
+				bx,
+				by,
+				length + distance[last] - distance[first],
+				field + off[last] - off[first],
+				P.fieldShare or 0
+			)
+	end
 	-- The end segments the line is drawn with, for the pull to measure and check as drawn.
 	local function startClear(j)
+		if not roadClear(sx, sy, P.x[j] + 0.5, P.y[j] + 0.5, 1, j, startLength, startField) then
+			return false
+		end
 		return clearEnd(st, P, j, from, true, P.w[j] > 0, limitOver(P, 1, j), startTime + P.t[j] - P.t[1])
 	end
 	local function goalClear(j)
+		if not roadClear(P.x[j] + 0.5, P.y[j] + 0.5, gx, gy, j, n, goalLength, goalField) then
+			return false
+		end
 		return clearEnd(
 			st,
 			P,
@@ -1001,14 +1044,16 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 		)
 	end
 	local keep, startDetour, goalDetour = smooth(st, P, {
-		sx = (from.x - x0) / cs,
-		sy = (from.y - y0) / cs,
-		gx = (to.x - x0) / cs,
-		gy = (to.y - y0) / cs,
+		sx = sx,
+		sy = sy,
+		gx = gx,
+		gy = gy,
 		start = startOK and startClear,
 		goal = goalOK and goalClear,
 		chord = function()
-			return chordBudget and clearChord(st, P, from, to, P.w[n] > 0, limitOver(P, 1, n), chordBudget)
+			return chordBudget
+				and roadClear(sx, sy, gx, gy, 1, n, startLength + goalLength, startField + goalField)
+				and clearChord(st, P, from, to, P.w[n] > 0, limitOver(P, 1, n), chordBudget)
 		end,
 	})
 	-- The pull chose whether each end is drawn through its end entry's centre: a start or goal segment that is not
@@ -1393,6 +1438,8 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 		end
 		tick()
 	end
+	-- A reverse frontier spent is a proof: closed holds every entrance that walks into from, and nothing else does.
+	local exhausted = reverse and hn == 0
 	local any = false
 	for i = 1, #targets do
 		if costs[i] == nil then
@@ -1405,6 +1452,10 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 		-- no target is settled yet, and the move below may take several frames: the batch is still running
 		if job then
 			job.radius = huge
+			-- kept only for a goal no target reaches, where it is the small pocket that walks into it
+			if exhausted then
+				job.into, job.revision = closed, job.revision + 1
+			end
 		end
 		-- Every entrance the targets walk to. Entrance-graph components join ground that is only walked downhill, so
 		-- sharing one proves nothing: the walk is followed edge by edge, as the forward search would.
@@ -1432,7 +1483,8 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 				while list[i] do
 					local u = list[i]
 					i = i + 1
-					local adj = adjacent(st, u, true)
+					-- the edges the walks themselves take, or the flood names ground they never reach (#1149)
+					local adj = adjacent(st, u, roadsOn == true)
 					for e = 1, #adj, 3 do
 						local v = adj[e]
 						if not reach[v] and climbNodes(st, u, v) then
@@ -1472,6 +1524,46 @@ local function runMany(map, from, targets, waterWalking, reverse, job, hz)
 		end
 	end
 	return costs, nil, moved
+end
+
+-- Does a walk from point reach the goal of an exhausted reverse batch? Every such walk either leaves point's cluster
+-- through an entrance that walks into the goal, which the batch closed, or stays in the goal's own cluster. It
+-- answers from the batch and one local search, never a search of the continent.
+local function walksInto(st, job, point)
+	local k, node = pointNode(st, point)
+	if not node then
+		return nil
+	end
+	local hz = job.hazards
+	local roadsOn = hz and hz.roads and hz.roadFactor ~= 1
+	local swim = job.waterWalking and 1 or st.swim
+	local into = job.into
+	local keys, values, size = hk, hv, hn
+	hk, hv, hn = {}, {}, 0
+	local _, out = connectPoint(st, swim, k, node, point, roadsOn, hz, false)
+	local found = false
+	for id in pairs(out) do
+		found = found or into[id] == true
+	end
+	hk, hv, hn = keys, values, size
+	-- A walk that never leaves the goal's own cluster passes no entrance, so there the batch proves nothing.
+	if found or k ~= job.sourceCluster then
+		return found
+	end
+end
+
+-- For a reverse batch none of whose targets is reached: true when a walk from point reaches its goal, false when none
+-- does, nil while the batch has not proved it.
+---@param job SPFPathJob?
+---@param point SPFPoint
+---@return boolean?
+function Path.WalksInto(job, point)
+	local st = job and job.into and job.map == point.map and State(job.map)
+	if not st then
+		return nil
+	end
+	-- One cluster's search at most, and the point's own connection is cached by the batch that walked from it.
+	return (Grid.Quiet(walksInto, st, job, point))
 end
 
 -- Does this cluster's grid contain water? Walking with water walking and swimming costs the same over a grid with

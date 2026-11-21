@@ -153,6 +153,10 @@ L["Only use the Hearthstone when it saves at least this much time."] =
 L["Open"] = "打开"
 L["Open Nearby services"] = "打开附近服务"
 L["Open the world map to see it."] = "打开世界地图查看。"
+L["Rides to spend less time walking through %s (level %s)"] =
+	"搭乘交通工具以减少在%s（等级%s）内步行的路程"
+L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."] =
+	"尽量缩短在最低等级比你高至少4级的区域内步行的路程，即使目的地也在该区域内。"
 L["Turn the world map to %s to see it."] = "将世界地图切换到%s查看。" -- mt
 L["This menu needs mouse and keyboard."] = "此菜单需要鼠标和键盘。" -- mt
 L["Other Faction's Routes"] = "另一阵营的航线"
@@ -243,8 +247,6 @@ L["Use class teleports"] = "使用职业传送"
 L["Vendors"] = "商人"
 L["W"] = "西"
 L["Walk to %s"] = "步行前往%s"
-L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."] =
-	"步行路线会绕开最低等级比你高 4 级或以上的区域，但不会绕开起点和终点所在的区域。"
 L["Weapons and armour"] = "武器和护甲"
 L["What's new after an update"] = "更新后的新内容"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
@@ -432,11 +434,11 @@ L["Off, the game's own quest markers stay beside your journey's pins, showing th
 	"关闭后，游戏自带的任务标记会留在旅程标记旁边，让你看到任务还能在哪些地方完成。" -- mt
 L["Shift"] = "Shift" -- mt
 L["Alt"] = "Alt" -- mt
-L["Click the map to plan journeys"] = "点击地图规划旅程" -- mt
-L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
-	"按住旅程按键并点击世界地图或微缩地图，即可规划前往该处的旅程。" -- mt
-L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
-	"旅程已关闭。请在设置中开启“点击地图规划旅程”。" -- mt
+L["Enable journeys"] = "启用旅程" -- mt
+L["Off clears your journey, and map clicks, quests, guides and waypoints no longer start one."] =
+	"关闭后会清除当前旅程，点击地图、任务、指南和路径点也不会再开始旅程。" -- mt
+L["Journeys are off. Turn on Enable journeys in settings."] =
+	"旅程已关闭。请在设置中开启“启用旅程”。" -- mt
 L["Key to plan a journey"] = "规划旅程的按键" -- mt
 L["The key you hold to plan a journey from the world map or the minimap."] =
 	"在世界地图或微缩地图上规划旅程时按住的按键。" -- mt
@@ -465,6 +467,7 @@ L["Farming tour running."] = "采集巡回进行中。" -- mt
 L["Farming tour paused."] = "采集巡回已暂停。" -- mt
 L["Farming tour stopped."] = "采集巡回已停止。" -- mt
 L["Farming tour waiting."] = "采集巡回等待中。" -- mt
+L["Or choose %s in the journey tracker menu."] = "也可以在旅程追踪器菜单中选择“%s”。" -- mt
 L["Ordering recorded locations..."] = "正在排列已记录的位置..." -- mt
 L["Farming needs the GatherMate2 addon."] = "采集需要 GatherMate2 插件。" -- mt
 L["Your current zone is unavailable."] = "无法获取你当前所在的区域。" -- mt

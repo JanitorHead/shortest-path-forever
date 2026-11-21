@@ -53,6 +53,7 @@ local CONTEXT_KEYS = {
 local Input = assert(ns.APIInput, "Core/APIInput.lua loads first")
 local Number, Point, Place, ID = Input.Number, Input.Point, Input.Place, Input.ID
 local DetailLines, Shapes, Quests = Input.DetailLines, Input.Shapes, Input.Quests
+local Stops = assert(ns.APIStops, "Core/APIStops.lua loads first")
 local Loaded, Ready, Loading, None, Owner = Input.Loaded, Input.Ready, Input.Loading, Input.None, Input.Owner
 
 -- Only this module owns the caller's itinerary. Journey handles one destination at a time.
@@ -168,6 +169,7 @@ function ns.JourneyChanged(point, reason)
 		Settle()
 		return
 	end
+	point = point and (point.stop or point)
 	if point and point == route.points[route.index + 1] then
 		route.index = route.index + 1
 	elseif not point or point ~= route.points[route.index] then
@@ -181,25 +183,15 @@ function ns.JourneyChanged(point, reason)
 	ns.ItineraryChanged()
 end
 
--- Private synchronous proof channel. Public subscribers still receive coalesced lifecycle changes.
-local farmingObservers = {}
-function ns.ObserveFarmingJourney(owner, callback)
-	local entry = { owner = owner, callback = callback }
-	farmingObservers[entry] = true
-	return function()
-		farmingObservers[entry] = nil
-	end
-end
-
-function ns.FarmingJourneyProof(phase, point, plan)
-	if not route or route.policy ~= "walking" or route.points[route.index] ~= point then
-		return
-	end
-	for entry in pairs(farmingObservers) do
-		if entry.owner == route.owner then
-			entry.callback(phase, route.index, point, plan)
-		end
-	end
+-- Journey.lua: the stop under way was reached ("arrived") or the planner settled a plan for it ("settled"), inside the
+-- same call that did it (Core/APIStops.lua).
+---@param phase "arrived"|"settled"
+---@param point SPFPoint
+---@return boolean? alive false when an observer replaced or ended the route, so the caller must not go on with it
+function ns.JourneyStopObserved(phase, point)
+	return Stops.Dispatch(phase, point, function()
+		return route
+	end)
 end
 
 -- A running route's stop was relabelled in place (API.RenameStop, from a guide renaming its step): the tracker names
@@ -243,7 +235,7 @@ function ns.JourneyStops()
 end
 
 ---@class SPFPublicAPI
-local API = { version = 2, minor = 4 }
+local API = { version = 2, minor = 6 }
 
 local function Differs(a, b)
 	for key, value in pairs(a) do
@@ -355,7 +347,8 @@ end
 ---@param walk? number|false the walk from `from` to `to` the journey's own search measured, in running yards; false
 ---when it found none. Without one the walk is the planner's lower bound.
 ---@param bound? boolean the soonest any route could arrive, `walk` being only a lower bound on the walk
-local function Answer(from, to, key, job, walk, bound)
+---@param place? SPFNearbyPlace a Nearby place, whose ride endpoint walks are measured on its NPC's floor
+local function Answer(from, to, key, job, walk, bound, place)
 	local options, now = Options(from, to)
 	options.walks = walk ~= nil and { { from = from, to = to, cost = walk } } or nil
 	options.lowerBound = bound or nil
@@ -367,7 +360,13 @@ local function Answer(from, to, key, job, walk, bound)
 		return nil, "unreachable"
 	end
 	local generation = estimates
-	local plan = ns.Planner.Plan(options, job)
+	local plan
+	if place then
+		-- Only a Nearby ranking job passes a place.
+		plan = ns.NearbyRank.Plan(job --[[@as SPFPathJob]], options, place, walk, bound)
+	else
+		plan = ns.Planner.Plan(options, job)
+	end
 	local seconds = plan and math.max(0, (plan.arrive - now) / 1000) or nil
 	local entry = { at = now, seconds = seconds or false, legs = plan and plan.legs }
 	-- A plan that paused may answer for inputs another estimate has since replaced: it keeps its answer
@@ -391,7 +390,7 @@ end
 -- The reason tells a caller whether asking again later can help: "combat" after combat, "loading" when the addon is
 -- still building its data, "invalid" never for bad input, "unreachable" when known flight paths or boat timings change.
 ---@return { at: number, seconds: number|false, legs?: SPFLeg[] }?, ("combat"|"invalid"|"unreachable"|"loading")?
-local function Lookup(fromMap, fromX, fromY, toMap, toX, toY, job, walk, bound)
+local function Lookup(fromMap, fromX, fromY, toMap, toX, toY, job, walk, bound, place)
 	if not Ready() then
 		if InCombatLockdown() then
 			return nil, "combat"
@@ -400,10 +399,10 @@ local function Lookup(fromMap, fromX, fromY, toMap, toX, toY, job, walk, bound)
 	end
 	local from, to = Point(fromMap, fromX, fromY), Point(toMap, toX, toY)
 	if not from or not to then
-		return nil, "invalid"
+		return APIKit.Invalid()
 	end
 	local key = string.format(
-		"%d:%.4f:%.4f:%d:%.17g:%.17g:%s:%s",
+		"%d:%.4f:%.4f:%d:%.17g:%.17g:%s:%s:%s",
 		fromMap,
 		fromX,
 		fromY,
@@ -411,9 +410,10 @@ local function Lookup(fromMap, fromX, fromY, toMap, toX, toY, job, walk, bound)
 		toX,
 		toY,
 		tostring(walk),
-		tostring(bound == true)
+		tostring(bound == true),
+		tostring(place ~= nil)
 	)
-	return Answer(from, to, key, job, walk, bound)
+	return Answer(from, to, key, job, walk, bound, place)
 end
 
 -- Itinerary.lua draws the hops between later stops with this cheap planner; no terrain searches. It keeps each
@@ -435,9 +435,10 @@ end
 ---@param job SPFPathJob
 ---@param walk? number|false
 ---@param bound? boolean
+---@param place? SPFNearbyPlace refine Nearby's transit endpoint walks on the NPC's floor
 ---@return number?, ("combat"|"invalid"|"unreachable"|"loading")?
-function ns.EstimateIn(job, fromMap, fromX, fromY, toMap, toX, toY, walk, bound)
-	local entry, reason = Lookup(fromMap, fromX, fromY, toMap, toX, toY, job, walk, bound)
+function ns.EstimateIn(job, fromMap, fromX, fromY, toMap, toX, toY, walk, bound, place)
+	local entry, reason = Lookup(fromMap, fromX, fromY, toMap, toX, toY, job, walk, bound, place)
 	if not entry then
 		return nil, reason
 	end
@@ -529,6 +530,8 @@ local function NavigateRoute(owner, stops, policy)
 			return false
 		end
 		point.label = stop.title
+		-- The place as submitted: what a stop observer hears even where the world cannot be projected back to it.
+		point.submitted = { map = stop.map, x = stop.x, y = stop.y, z = stop.z }
 		point.details = DetailLines(stop.tooltip)
 		-- A caller's world height lets the stop pin compare its surface with the terrain under that spot.
 		if stop.z ~= nil then
@@ -601,13 +604,14 @@ local function NavigateRoute(owner, stops, policy)
 		and not (ns.Corpse and ns.Corpse.Active())
 	then
 		local goal = ns.JourneyGoal and ns.JourneyGoal()
+		goal = goal and (goal.stop or goal)
 		local stop = points[1]
 		if goal and goal.map == stop.map and goal.x == stop.x and goal.y == stop.y then
 			if route then
 				ended[route.owner] = { reason = "replaced", at = GetTime() }
 			end
 			ended[owner] = nil
-			-- The stop the journey follows stays the object it is: Journey.lua recognises its own goal by identity.
+			-- Keep the tracked stop's identity so journey events still match it after the handover.
 			route = { owner = owner, points = { goal }, index = 1, policy = policy }
 			Settle()
 			return true
@@ -635,17 +639,50 @@ local function NavigateRoute(owner, stops, policy)
 	return ns.StartJourney(points[1], policy)
 end
 
-function API.NavigateRoute(owner, stops)
-	return NavigateRoute(owner, stops, "normal")
+-- A route's options: its travel policy, "normal" or "walking". Anything else is the caller's mistake, answered as one.
+---@param options any
+---@return SPFRoutePolicy?
+local function RoutePolicy(options)
+	if not canaccessvalue(options) then
+		return nil
+	end
+	if options == nil then
+		return "normal"
+	end
+	if type(options) ~= "table" then
+		return nil
+	end
+	for key in pairs(options) do
+		if not canaccessvalue(key) or key ~= "policy" then
+			return nil
+		end
+	end
+	local policy = rawget(options, "policy")
+	if not canaccessvalue(policy) then
+		return nil
+	end
+	if policy == nil then
+		return "normal"
+	end
+	if policy == "normal" or policy == "walking" then
+		return policy
+	end
 end
 
--- Internal farming submissions share every validation and copy rule with the public API.
-function ns.NavigateFarmingRoute(owner, stops)
-	return NavigateRoute(owner, stops, "walking")
+---@param owner string
+---@param stops SPFAPIStop[]
+---@param options? SPFAPIRouteOptions
+---@return boolean|nil, ForeverCoreAPIInvalid?
+function API.NavigateRoute(owner, stops, options)
+	local policy = RoutePolicy(options)
+	if not policy then
+		return APIKit.Invalid()
+	end
+	return NavigateRoute(owner, stops, policy)
 end
 
 function API.Navigate(owner, map, x, y, title, kind)
-	return API.NavigateRoute(owner, { { map = map, x = x, y = y, title = title, kind = kind } })
+	return NavigateRoute(owner, { { map = map, x = x, y = y, title = title, kind = kind } }, "normal")
 end
 
 function API.CurrentStop(owner)
@@ -725,6 +762,28 @@ function API.Journey()
 	}
 end
 
+-- What a consumer driving its own route reads to tell busy, still working, failed and blocked apart.
+---@return SPFAPIJourneyState?, SPFAPINotReady?
+function API.JourneyState()
+	if not Loaded() then
+		return Loading()
+	end
+	return Stops.State(route)
+end
+
+-- A synchronous, owner-scoped per-stop observer: called inside the planner's own step, so what it reads is what the
+-- phase is about. Subscribe's coalesced next-frame changes cannot say which stop, or whether the plan behind an
+-- arrival was a measured one.
+---@param owner string
+---@param callback fun(phase: "arrived"|"settled", index: integer, stop: SPFAPIObservedStop, state: SPFAPIJourneyState)
+---@return (fun())?, ForeverCoreAPIInvalid?
+function API.ObserveStops(owner, callback)
+	if not Owner(owner) or type(callback) ~= "function" then
+		return APIKit.Invalid()
+	end
+	return Stops.Observe(owner, callback)
+end
+
 ---@return SPFAPIGuidance?, SPFAPIGuidanceReason?
 function API.Guidance()
 	if not Loaded() then
@@ -778,16 +837,16 @@ function API.SkipLeg(owner, index)
 end
 
 -- Resume the displayed RestedXP guide through the same action as its tracker menu.
----@return true?, ("invalid"|"unavailable")?
+---@return true?, ("none"|"combat")?
 function API.ResumeRestedXP()
 	if not Loaded() then
-		return nil, "unavailable"
+		return nil, "none"
 	end
 	if InCombatLockdown() then
-		return nil, "invalid"
+		return nil, "combat"
 	end
 	if ns.ResumeRestedXP() ~= true then
-		return nil, "unavailable"
+		return nil, "none"
 	end
 	return true
 end

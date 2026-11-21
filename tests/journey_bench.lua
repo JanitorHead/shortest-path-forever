@@ -18,6 +18,7 @@ if arg[2] == "continent" then
 		},
 	}
 end
+local eplEarly
 for _, case in ipairs(cases) do
 	local driver = assert(loadfile("tests/journey_driver.lua"))(root)
 	local ns = driver.ns
@@ -37,9 +38,13 @@ for _, case in ipairs(cases) do
 	}) do
 		driver.load(file)
 	end
+	local loadStarted = os.clock()
 	for _, map in ipairs({ 0, 1, 2991 }) do
-		assert(loadfile("tools/load_nav.lua"))(map)
+		-- Packed, as the client loads them: each cluster is inflated and decoded when a search first reads it, so
+		-- the search times include that work.
+		assert(loadfile("tools/load_nav.lua"))(map, nil, driver.env, true)
 	end
+	local loadMS = (os.clock() - loadStarted) * 1000
 	local fromName, toName = case[1]:match("^(.-) %-> (.+)$")
 	local from, to = case[2], case[3]
 	if type(from) == "number" then
@@ -69,11 +74,16 @@ for _, case in ipairs(cases) do
 		error(message)
 	end
 	local jobs, nextFrame, rounds, resets, plannerCPU = {}, nil, 0, 0, 0
-	local frames, usable, worst = 0, nil, 0
+	local frames, worst = 0, 0
+	local firstDraw, usable
 	local drawn = {}
 	local draw = ns.SetJourneyRoute
 	ns.SetJourneyRoute = function(g, r)
-		local first = r and r.legs[1]
+		if r and #r.legs > 0 then
+			firstDraw = firstDraw or frames
+		end
+		local followed = ns.JourneyPlan()
+		local first = followed and followed.legs[1]
 		if usable == nil and first and (first.mode ~= "walk" or first.measured) then
 			usable = frames
 		end
@@ -132,14 +142,17 @@ for _, case in ipairs(cases) do
 			print(string.format("  FindMany map %d: %.1f ms, %d slices", job.map, job.cpu, job.frames))
 		end
 	end
+	collectgarbage("collect")
+	local residentKB = collectgarbage("count")
 	local settling, round = ns.JourneyStatus()
 	assert(not settling)
 	assert(driver.shown(), "expected reachable journey")
 	print(
 		string.format(
 			"%s: %d searches (%d many, %d probes), %d planner calls, %d settle rounds, %d frames, "
-				.. "%.1f ms search, %.1f ms planner, %d straight resets, usable frame %s, %.3f ms worst frame, "
-				.. "%d client zone lookups",
+				.. "%.1f ms search, %.1f ms planner, %d straight resets, first drawn frame %s, "
+				.. "first followable frame %s, %.3f ms worst frame, "
+				.. "%d client zone lookups, %.1f ms map load, %.1f MB Lua heap after it",
 			case[1],
 			#jobs,
 			many,
@@ -150,14 +163,21 @@ for _, case in ipairs(cases) do
 			cpu,
 			plannerCPU,
 			resets,
+			tostring(firstDraw),
 			tostring(usable),
 			worst,
-			lookups
+			lookups,
+			loadMS,
+			residentKB / 1024
 		)
 	)
-	assert(many == 2 and round == 1 and rounds >= 2, "one committed route")
+	assert(many == 2 and round == 1 and rounds >= 2, "one completed proof")
 	assert(resets == 0, "drawn walks cannot revert to straight lines")
 	-- Hazards.Profile asks for the zone of each of the journey's own ends (at most four); every walk reads the cells.
 	assert(lookups <= 4, lookups .. " zone lookups reach the client")
+	if case[3] == 67 then
+		eplEarly = usable ~= nil and usable <= 0.75 * frames
+	end
 	ns.ClearJourney()
 end
+assert(eplEarly ~= false, "Eastern Plaguelands must be followable before the proof settles")
