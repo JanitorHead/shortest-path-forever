@@ -25,6 +25,7 @@
 ---@field WalkPlaces table<number, table<string, number[]>>
 ---@field WalkZones table<number, table<string, number[]>>? each baked walk's zone shares (Data/WalkZones.lua)
 ---@field RoadCells table<number, table<number, string>>
+---@field RoadNodeCoverage table<number, table<number, string>>
 ---@field RoadEdges table<number, table<number, string>>
 ---@field SpawnHeights table<number, table<number, string>> spawns over or under another surface (Data/Heights.lua)
 ---@field TownAreas table<number, SPFTownArea> the client's town ground per flight master (Data/TownAreas.lua)
@@ -68,6 +69,7 @@
 ---@field APIStops SPFAPIStops the public API journey state and stop observers (Core/APIStops.lua)
 ---@field APIInput SPFAPIInput the public API's argument checks and answers (Core/APIInput.lua)
 ---@field EstimateWalks fun(owner: string, from: SPFAPIPlace, targets: SPFAPIPlace[], callback: fun(costs: (number|false)[], reason: SPFAPIWalkReason?), opts?: SPFAPIWalkOptions): cancel: fun()?, reason: SPFAPIWalkRefusal? one walking search to every target on the from point's walking map (#913)
+---@field WalkPath fun(owner: string, from: SPFAPIPlace, to: SPFAPIPlace, callback: fun(path: SPFAPIWalkPath?, reason: SPFAPIWalkReason?), opts?: SPFAPIWalkOptions): cancel: fun()?, reason: SPFAPIWalkRefusal?
 ---@field NavVersion fun(): string the walking data this build ships, for dropping cached walk costs
 ---@field DestinationPinScale fun(): number the world map journey goal pin's share of its stock size (UI/StopPin.lua)
 ---@field RefreshDestinationPinSize fun() redraws the world map goal pins at the player's size (UI/Route.lua)
@@ -351,7 +353,6 @@
 ---@field focusedQuest? boolean -- a super-tracked quest or the player's map pin starts a journey (JourneyInput.lua)
 ---@field compassTime? boolean -- the whole journey's time left under the compass distance (Compass.lua)
 ---@field arrivalSound? boolean -- the map ping when a journey the player planned reaches its goal (Alert.lua)
----@field resumeJourney? boolean -- start the player's own journey again after a reload or relog (Resume.lua)
 ---@field restedxp? boolean -- follow RestedXP guide targets
 ---@field restedxpHideArrow? boolean -- Shortest Path's arrow replaces the guide's while a guide target is followed (RestedXP.lua)
 ---@field guidelime? boolean -- follow Guidelime's current guide step (Guidelime.lua)
@@ -433,7 +434,7 @@
 ---@field flightsTaken number
 ---@field portalsUsed number
 ---@field milestones table<string, number>
--- A journey's goal as Resume.lua keeps it, with the GetServerTime() it was planned.
+-- A journey's goal as Resume.lua keeps it.
 ---@class SPFKeptJourney
 ---@field map number
 ---@field x number
@@ -442,7 +443,6 @@
 ---@field label? string
 ---@field questID? number
 ---@field handins? number[] -- the quests handed in at the kept stop, validated on the way in and out (Resume.lua)
----@field at number
 -- Where the character stood when it last bound at an inn, with GetBindLocation's name then.
 ---@class SPFBindPoint : SPFPoint
 ---@field name string
@@ -647,6 +647,7 @@ ShortestPathForeverPathData = nil
 ---@field hazards? SPFHazards
 ---@field reverse? boolean
 ---@field costOnly? boolean
+---@field snapGoal? boolean
 ---@field decode? number[] -- clusters a Path.Decode job decodes for Floor.lua; it searches nothing
 ---@field cancelled? boolean
 ---@field paused? boolean

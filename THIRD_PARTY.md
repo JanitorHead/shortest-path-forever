@@ -13,6 +13,8 @@ it, so a data refresh that moves the pin never leaves this file behind. The addo
 | [CMaNGOS classic-db](https://github.com/cmangos/classic-db) | Portal and teleport destinations, transport spawns and periods, trainer NPCs and spells, vendor inventories, and the heights of NPC and quest object spawns in `Data/*.lua` | `DB_REV` in `tools/gen_transit.py` (`tools/gen_services.py` and `tools/gen_heights.py` import it) | GPL-3.0 |
 | [CMaNGOS mangos-classic](https://github.com/cmangos/mangos-classic) | The transport timetable model and flight speed, reimplemented in `tools/gen_routes.py` and `tools/gen_transit.py` | Cited by source file in those scripts; no code copied | GPL-2.0-or-later |
 | [InFlight](https://github.com/LudiusMaximus/InFlight) | Recorded flight durations in `Data/Taxi.lua` | `INFLIGHT_REV` in `tools/gen_transit.py` | MIT |
+| [Polestar](https://github.com/fitzforge/polestar) by Fitz | Player-recorded capital trails in `addon/Polestar_Nav/Trails/Trails.lua`, used with permission to generate `tools/RoadTrails.lua` and bake node coverage in `Data/RoadEdges.lua` | `POLESTAR_REV` in `tools/gen_roads.py`: `6f27c95cba66f8be6b6687b3a62afc3dbfa17cae` | GPL-3.0-or-later |
+| [Polestar](https://github.com/fitzforge/polestar) by Fitz | Reviewed road texture list in `data/road-textures.json`, used with permission as the road textures in `tools/gen_roads.py` | `data/road-textures.json` at build 1.60.1.70425 | GPL-3.0-or-later |
 | Local client terrain, baked with TrinityCore's tools and the player's collision limits from benilla-re | The walkable cells, their steep down-only ground, steps and ledge drops in `Nav/*.lua` (`tools/baker/README.md`) | `TRINITY_REV` in `tools/baker/bake.sh` and the client build baked | Derived data, GPL-3.0-or-later; Blizzard's EULA applies to the client files |
 
 No embedded libraries ship. `media/` is this addon's own: the icon is drawn in `media/icon.svg`, the feathered
@@ -71,6 +73,7 @@ Credit for the reports and requests behind the addon.
 | Hatemost | Resume the RestedXP guide from a macro | CurseForge thread 8697686; #786 |
 | JaidyEU | Resume the RestedXP guide from a macro | CurseForge thread 8722510; #786 |
 | [Chulf58](https://github.com/Chulf58) | Walking times between places for other addons | GitHub; #913 |
+| [Chulf58](https://github.com/Chulf58) | Walking paths for other addons to guide along | GitHub; #1026 |
 | [embiem](https://github.com/embiem) | Separate Hearthstone and class teleport switches | GitHub; #775 |
 | [InfamousMunky](https://github.com/InfamousMunky) | The Hearthstone switch outside settings | GitHub; cjber/adventure-guide-forever#707 |
 | A player | Journeys avoid opposing-faction guarded lifts | CurseForge thread 8726893, #911 |

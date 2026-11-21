@@ -199,7 +199,8 @@ local function search(st, k, swim, source, tree, goal, targets, left, roads, hz,
 		local entered = reverse and u or v
 		local step = override or length * cs * (val[entered + 1] == 2 and swim or 1)
 		local base = entered < N and entered or at[entered + 1]
-		local choice = roadsOn and step * (1 + (offroad - 1) * (1 - (roads and roads[base] or 0))) or step
+		local choice = roadsOn and step * (1 + (offroad - 1) * (1 - (roads and (roads[entered] or roads[base]) or 0)))
+			or step
 		if factor then
 			local f = factor[base]
 			if not f then
@@ -925,8 +926,7 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 		local length = sqrt(dx * dx + dy * dy)
 		P.t[n + 1] = (P.t[n] or 0) + length * st.cs * (wet and swim or 1)
 		if P.r and P.distance and P.field then
-			local roadSet = Grid.roads(st, k)
-			local outside = (not roadSet or not roadSet[cell]) and 1 or 0
+			local outside = Grid.roadNode(st, k, node) == 0 and 1 or 0
 			P.r[n + 1] = (P.r[n] or 0) + outside
 			local field = 0
 			if n > 0 then
@@ -995,6 +995,11 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 	local startOK, startTime = clearEnd(st, P, 1, from, true, P.w[1] > 0, limitOver(P, 1, 1), nil, true)
 	local goalOK, goalTime =
 		clearEnd(st, P, n, to, false, P.w[n] - (P.w[n - 1] or 0) > 0, limitOver(P, n, n), nil, true)
+	local snappedGoal = false
+	if job.snapGoal then
+		local _, _, _, goalNode = own(st, to)
+		snappedGoal = not goalOK or not goalNode
+	end
 	-- P.t is the refined walk's real running-yard prefix, independent of reported/cached search cost.
 	local chordBudget = startOK and goalOK and startTime + P.t[n] - P.t[1] + goalTime
 	local sx, sy = (from.x - x0) / cs, (from.y - y0) / cs
@@ -1049,7 +1054,7 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 		gx = gx,
 		gy = gy,
 		start = startOK and startClear,
-		goal = goalOK and goalClear,
+		goal = not snappedGoal and goalOK and goalClear,
 		chord = function()
 			return chordBudget
 				and roadClear(sx, sy, gx, gy, 1, n, startLength + goalLength, startField + goalField)
@@ -1059,14 +1064,14 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 	-- The pull chose whether each end is drawn through its end entry's centre: a start or goal segment that is not
 	-- clear detours that way, so the rest of the line holds as it was pulled.
 	local drawn = { 1 }
-	if startDetour then
+	if startDetour and not (snappedGoal and n == 1) then
 		drawn[#drawn + 1] = 1
 	end
 	for i = 2, #keep - 1 do
 		drawn[#drawn + 1] = keep[i]
 	end
 	-- Both ends on one node already pass through its centre once the start has detoured.
-	if goalDetour and not (startDetour and n == 1) then
+	if goalDetour and not snappedGoal and not (startDetour and n == 1) then
 		drawn[#drawn + 1] = n
 	end
 	drawn[#drawn + 1] = n
@@ -1080,7 +1085,10 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 			z = P.z[j],
 		}
 	end
-	points[#points + 1] = { map = map, x = to.x, y = to.y, z = to.z }
+	-- A steering caller needs a walkable end even when the requested point has no clear final segment.
+	points[#points + 1] = snappedGoal
+			and { map = map, x = x0 + (P.x[n] + 0.5) * cs, y = y0 + (P.y[n] + 0.5) * cs, z = P.z[n] }
+		or { map = map, x = to.x, y = to.y, z = to.z }
 	local wetYards = 0
 	for i = 2, #points do
 		local p, q = drawn[i - 1], drawn[i]
@@ -1618,7 +1626,7 @@ local function bakeEdges(st, k, road)
 		local base = v < N and v or at[i]
 		size = size + 4
 		flat[size - 3], flat[size - 2], flat[size - 1], flat[size] =
-			v, step, wet, 1 + (OFFROAD - 1) * (1 - (road[base] or 0))
+			v, step, wet, 1 + (OFFROAD - 1) * (1 - (road[v] or road[base] or 0))
 	end
 	for node = 0, top - 1 do
 		head[node + 1] = size + 1
@@ -1844,15 +1852,10 @@ function Path.BakeRoadEdges(map)
 							q1, q2, q3, q4 = 63, 0, 63, 0
 						end
 					else
-						-- A cluster with no road cells answers false however its neighbour decodes, so the grid of a
-						-- cross-cluster edge's far end is only read when that cluster paints roads.
-						local coverage = 0
-						local other = Grid.roads(st, floor(v / 4096))
-						if other then
-							-- A landing that the neighbour's grid cannot place is no road, as before.
-							local cell = metadata(st, v)
-							coverage = cell ~= nil and nodeAt(v) ~= nil and other[cell] or 0
-						end
+						local otherK = floor(v / 4096)
+						local other = Grid.roads(st, otherK)
+						local landing = other and nodeAt(v)
+						local coverage = landing and Grid.roadNode(st, otherK, landing) or 0
 						if c1 == 0 then
 							q1, q2 = 63, 0
 						else
