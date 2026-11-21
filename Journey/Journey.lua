@@ -15,7 +15,7 @@ local REPLAN_DUE = REPLAN_EVERY - 0.5 -- from here Itinerary.lua leaves the fram
 local DRAW_EVERY = 0.5
 
 local goal, result
-local policyChanged
+local policyChanged, transportChanged
 local nextPoint
 local progress = { index = 1 }
 local withoutHearth = false
@@ -156,6 +156,13 @@ function ns.TravelPolicyChanged()
 		ns.ItineraryChanged(true)
 	end
 	ns.WakeTravel()
+end
+
+-- An avoided transport (Journey/AvoidTransport.lua) changed the planner's inputs: replan, and drop a route that
+-- may use it.
+function ns.TransportAvoided()
+	transportChanged = goal ~= nil
+	ns.TravelPolicyChanged()
 end
 
 -- Whether journeys may use the Hearthstone. The saved switch, flipped from the tracker's journey menu and the map's
@@ -324,6 +331,8 @@ local journeyPolicy = "normal"
 local function EndJourney(reason)
 	Search.Reset()
 	goal, result, nextPoint = nil, nil, nil
+	transportChanged = nil
+	ns.AvoidTransport.Forget()
 	journeyPolicy = "normal"
 	withoutHearth = false
 	if ns.JourneyChanged then
@@ -477,6 +486,8 @@ function ns.JourneyInfo(formatPlace)
 		ns.StepRows(rows, result, progress.index, formatPlace, loading)
 	elseif loading then
 		rows[1] = { key = "searching", text = L["Finding the fastest way…"], grey = true }
+	elseif ns.AvoidTransport.Row(goal) then
+		rows[1] = ns.AvoidTransport.Row(goal)
 	else
 		rows[1] = { key = "unreachable", text = costError and WALK_FAILURE[costError] or L["No way there from here."] }
 	end
@@ -658,6 +669,9 @@ local function Follow(route, news)
 	end
 	if news == "route" then
 		result, rough = route, nil
+		if route and not transportChanged then
+			ns.AvoidTransport.Forget()
+		end
 		progress.index, progress.departed = 1, false
 		Guide.Retarget()
 		if not result then
@@ -740,9 +754,9 @@ local function Update(self, elapsed)
 	if ns.Floor and y and map then
 		ns.Floor.Sample(map, x, y)
 	end
-	local changed = policyChanged
-	policyChanged = nil
-	Search.Poll(changed)
+	local changed, replace = policyChanged, transportChanged
+	policyChanged, transportChanged = nil, nil
+	Search.Poll(changed, replace)
 	local index = progress.index
 	UpdateProgress()
 	if nextPoint then

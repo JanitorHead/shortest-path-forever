@@ -47,6 +47,7 @@ local expected = {
 	"followRoads",
 	"roadDetour",
 	"useWaterWalking",
+	"@Avoided transport",
 	"useHearthstone",
 	"hearthMinimumSavings",
 	"teleports",

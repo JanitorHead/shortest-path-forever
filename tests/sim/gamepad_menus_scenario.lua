@@ -76,6 +76,36 @@ scenario(
 		sim:advance(0.1)
 		sim:gamepadNavigate()
 
+		-- Drive the real tracker's transport line with a settled snapshot. The route and Undo search are covered
+		-- in plan_context_spec; here the real menu must open on this line without taking Blizzard gamepad focus.
+		local journeyInfo, blocks = ns.JourneyInfo, tracker.blocks
+		local boat = { mode = "boat", route = 1 }
+		local rows = { { key = 1, text = "Boat to the next dock" } }
+		ns.JourneyInfo = function()
+			return "Journey", rows, { legs = { boat } }, 1
+		end
+		tracker.blocks = { { key = "journey", title = "Journey", rows = rows } }
+		tracker:MarkDirty()
+		tracker:Update(600, false)
+		local journeyBlock = assert(tracker:GetExistingBlock("journey"))
+		local line = assert(journeyBlock:GetExistingLine(1), "the transport line is laid out")
+		local contextMenu = G.ForeverCore.ContextMenu
+		local opened
+		G.ForeverCore.ContextMenu = function(owner, generator)
+			local menu = contextMenu(owner, generator)
+			if owner == line then
+				opened = menu
+			end
+			return menu
+		end
+		sim:input(function()
+			line:GetScript("OnMouseUp")(line, "RightButton")
+		end)
+		assert(opened and opened.entries[1].text == "Avoid this boat", "the transport line opens its Avoid menu")
+		G.ForeverCore.ContextMenu = contextMenu
+		ns.JourneyInfo, tracker.blocks = journeyInfo, blocks
+		tracker:MarkDirty()
+
 		local tainted = {}
 		for _, f in ipairs(focused) do
 			if f.taint then
