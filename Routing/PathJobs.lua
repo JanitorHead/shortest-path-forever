@@ -135,6 +135,9 @@ pump = function()
 			if ok then
 				notify(job, job.callback, points, cost)
 			end
+		elseif points == "wait" then
+			-- A plain job waiting for a search callback gives up its queue slot until resumed.
+			job.paused = true
 		else
 			if points == "load" then
 				finish = 0
@@ -327,6 +330,11 @@ function Path.Run(fn, callback)
 	table.insert(queue, 1, job)
 	schedule()
 	return job
+end
+
+-- A Path.Run job with work outstanding elsewhere in this queue. Its callback resumes it once it can proceed.
+function Path.Wait()
+	coroutine.yield("wait")
 end
 
 ---@param job SPFPathJob
