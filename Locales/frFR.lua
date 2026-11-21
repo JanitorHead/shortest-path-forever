@@ -583,3 +583,22 @@ L["In the tracker while you are near a dock, lift or tram."] =
 L["Town service icons"] = "Icônes des services de ville" -- mt
 L["Off hides them. Otherwise one icon per town, or one per service as you zoom in."] =
 	"Désactivé les masque. Sinon, une icône par ville ou par service en zoomant." -- mt
+L["%s-right-click the map to mark a road or wall for a report."] =
+	"Maintenez %s et faites un clic droit sur la carte pour signaler une route ou un mur." -- mt
+L["Mark: road missing here"] = "Marquer : il manque une route ici" -- mt
+L["Mark: wall here"] = "Marquer : il y a un mur ici" -- mt
+L["%s-right-click the map to copy the report or clear its marks."] =
+	"Maintenez %s et faites un clic droit sur la carte pour copier le rapport ou effacer ses repères." -- mt
+L["Save this spot in the report to help fix the walking map."] =
+	"Enregistre cet endroit dans le rapport pour aider à corriger la carte des trajets à pied." -- mt
+L["This spot has no world coordinates. Choose another spot."] =
+	"Cet endroit n’a pas de coordonnées dans le monde. Choisissez un autre endroit." -- mt
+L["Copy road and wall report"] = "Copier le rapport sur les routes et les murs" -- mt
+L["Open the report so you can copy and paste it into a bug report."] =
+	"Ouvre le rapport pour que vous puissiez le copier et le coller dans un signalement de bug." -- mt
+L["Clear marks"] = "Effacer les repères" -- mt
+L["Remove all saved road and wall marks from the map and report."] =
+	"Supprime tous les repères de routes et de murs de la carte et du rapport." -- mt
+L["Road and wall report"] = "Rapport sur les routes et les murs" -- mt
+L["Journey start: %s"] = "Départ du trajet : %s" -- mt
+L["Journey goal: %s"] = "Destination du trajet : %s" -- mt

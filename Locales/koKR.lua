@@ -587,3 +587,22 @@ L["In the tracker while you are near a dock, lift or tram."] =
 L["Town service icons"] = "도시 서비스 아이콘" -- mt
 L["Off hides them. Otherwise one icon per town, or one per service as you zoom in."] =
 	"끄면 숨깁니다. 켜면 확대할 때 도시당 아이콘 하나 또는 서비스당 아이콘 하나가 표시됩니다." -- mt
+L["%s-right-click the map to mark a road or wall for a report."] =
+	"%s 키를 누른 채 지도를 우클릭하면 보고서에 길이나 벽을 표시할 수 있습니다." -- mt
+L["Mark: road missing here"] = "표시: 이곳에 길이 누락됨" -- mt
+L["Mark: wall here"] = "표시: 이곳에 벽이 있음" -- mt
+L["%s-right-click the map to copy the report or clear its marks."] =
+	"%s 키를 누른 채 지도를 우클릭하면 보고서를 복사하거나 표시를 지울 수 있습니다." -- mt
+L["Save this spot in the report to help fix the walking map."] =
+	"도보 경로 지도를 수정할 수 있도록 이 위치를 보고서에 저장합니다." -- mt
+L["This spot has no world coordinates. Choose another spot."] =
+	"이 위치에는 월드 좌표가 없습니다. 다른 위치를 선택하세요." -- mt
+L["Copy road and wall report"] = "길 및 벽 보고서 복사" -- mt
+L["Open the report so you can copy and paste it into a bug report."] =
+	"버그 제보에 복사해 붙여넣을 수 있도록 보고서를 엽니다." -- mt
+L["Clear marks"] = "표시 지우기" -- mt
+L["Remove all saved road and wall marks from the map and report."] =
+	"지도와 보고서에서 저장된 길 및 벽 표시를 모두 지웁니다." -- mt
+L["Road and wall report"] = "길 및 벽 보고서" -- mt
+L["Journey start: %s"] = "여정 출발지: %s" -- mt
+L["Journey goal: %s"] = "여정 목적지: %s" -- mt

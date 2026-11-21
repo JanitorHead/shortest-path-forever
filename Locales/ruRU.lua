@@ -611,3 +611,22 @@ L["In the tracker while you are near a dock, lift or tram."] =
 L["Town service icons"] = "Значки городских служб" -- mt
 L["Off hides them. Otherwise one icon per town, or one per service as you zoom in."] =
 	"Если выключено, значки скрыты. Иначе один значок на город или на службу при приближении." -- mt
+L["%s-right-click the map to mark a road or wall for a report."] =
+	"Удерживая %s, щёлкните правой кнопкой мыши по карте, чтобы отметить дорогу или стену для отчёта." -- mt
+L["Mark: road missing here"] = "Отметить: здесь не хватает дороги" -- mt
+L["Mark: wall here"] = "Отметить: здесь есть стена" -- mt
+L["%s-right-click the map to copy the report or clear its marks."] =
+	"Удерживая %s, щёлкните правой кнопкой мыши по карте, чтобы скопировать отчёт или удалить отметки." -- mt
+L["Save this spot in the report to help fix the walking map."] =
+	"Сохраняет это место в отчёте, чтобы помочь исправить карту пеших маршрутов." -- mt
+L["This spot has no world coordinates. Choose another spot."] =
+	"У этого места нет мировых координат. Выберите другое место." -- mt
+L["Copy road and wall report"] = "Скопировать отчёт о дорогах и стенах" -- mt
+L["Open the report so you can copy and paste it into a bug report."] =
+	"Открывает отчёт, чтобы его можно было скопировать и вставить в сообщение об ошибке." -- mt
+L["Clear marks"] = "Удалить отметки" -- mt
+L["Remove all saved road and wall marks from the map and report."] =
+	"Удаляет все сохранённые отметки дорог и стен с карты и из отчёта." -- mt
+L["Road and wall report"] = "Отчёт о дорогах и стенах" -- mt
+L["Journey start: %s"] = "Начало путешествия: %s" -- mt
+L["Journey goal: %s"] = "Цель путешествия: %s" -- mt

@@ -478,6 +478,9 @@ frame:SetScript("OnEvent", function(self, _, name)
 	self:UnregisterEvent("ADDON_LOADED")
 	ShortestPathForeverDB = ShortestPathForeverDB or {}
 	ns.db = ShortestPathForeverDB
+	ShortestPathForeverCharDB = ShortestPathForeverCharDB or {}
+	ns.charDB = ShortestPathForeverCharDB
+	ns.charDB.mapReportMarks = ns.charDB.mapReportMarks or {}
 	-- `teleports` once covered the Hearthstone too, so a save that turned it off gets the Hearthstone off once.
 	-- `teleportSplit` records that this move ran: whatever the player sets afterwards stands, and a save from
 	-- before the split has no `teleports` key to move.

@@ -567,3 +567,21 @@ L["In the tracker while you are near a dock, lift or tram."] =
 L["Town service icons"] = "城镇服务图标" -- mt
 L["Off hides them. Otherwise one icon per town, or one per service as you zoom in."] =
 	"关闭则隐藏。否则放大时每个城镇一个图标，或每项服务一个图标。" -- mt
+L["%s-right-click the map to mark a road or wall for a report."] =
+	"按住 %s 并右键点击地图，将道路或墙壁标记到报告中。" -- mt
+L["Mark: road missing here"] = "标记：此处缺少道路" -- mt
+L["Mark: wall here"] = "标记：此处有墙" -- mt
+L["%s-right-click the map to copy the report or clear its marks."] =
+	"按住 %s 并右键点击地图，可复制报告或清除标记。" -- mt
+L["Save this spot in the report to help fix the walking map."] =
+	"将此位置保存到报告中，帮助修正步行路线地图。" -- mt
+L["This spot has no world coordinates. Choose another spot."] = "此位置没有世界坐标。请选择另一处。" -- mt
+L["Copy road and wall report"] = "复制道路和墙壁报告" -- mt
+L["Open the report so you can copy and paste it into a bug report."] =
+	"打开报告，以便复制并粘贴到错误报告中。" -- mt
+L["Clear marks"] = "清除标记" -- mt
+L["Remove all saved road and wall marks from the map and report."] =
+	"从地图和报告中移除所有已保存的道路和墙壁标记。" -- mt
+L["Road and wall report"] = "道路和墙壁报告" -- mt
+L["Journey start: %s"] = "旅程起点：%s" -- mt
+L["Journey goal: %s"] = "旅程目的地：%s" -- mt
