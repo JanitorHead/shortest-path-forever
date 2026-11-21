@@ -90,7 +90,7 @@ function CastButton.Apply(prompt, teleport, scale)
 	end
 	local frame = button
 	if not frame then
-		frame = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
+		frame = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate") --[[@as Button]]
 		frame:SetSize(ICON_SIZE, ICON_SIZE)
 		frame:SetFrameStrata("MEDIUM")
 		frame:SetFrameLevel(prompt:GetFrameLevel() + 1)
