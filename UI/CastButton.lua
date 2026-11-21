@@ -14,7 +14,7 @@ local L = ns.L
 
 local ICON_SIZE = 36
 
----@type SecureActionButtonTemplate?
+---@type Button?
 local button
 -- The action a click performs now, and the teleport the prompt shows now.
 ---@type SPFTeleportPlace?
@@ -88,25 +88,27 @@ function CastButton.Apply(prompt, teleport, scale)
 	if not x or not top then
 		return
 	end
-	if not button then
-		button = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
-		button:SetSize(ICON_SIZE, ICON_SIZE)
-		button:SetFrameStrata("MEDIUM")
-		button:SetFrameLevel(prompt:GetFrameLevel() + 1)
-		button:EnableMouse(true)
+	local frame = button
+	if not frame then
+		frame = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
+		frame:SetSize(ICON_SIZE, ICON_SIZE)
+		frame:SetFrameStrata("MEDIUM")
+		frame:SetFrameLevel(prompt:GetFrameLevel() + 1)
+		frame:EnableMouse(true)
 		-- Let the secure handler honour ActionButtonUseKeyDown on either transition.
-		button:RegisterForClicks("AnyUp", "AnyDown")
-		button:SetScript("OnEnter", ShowTooltip)
-		button:SetScript("OnLeave", HideTooltip)
-		button:SetScript("OnHide", HideTooltip)
+		frame:RegisterForClicks("AnyUp", "AnyDown")
+		frame:SetScript("OnEnter", ShowTooltip)
+		frame:SetScript("OnLeave", HideTooltip)
+		frame:SetScript("OnHide", HideTooltip)
+		button = frame
 	end
-	button:SetScale(scale or 1)
-	button:ClearAllPoints()
-	button:SetPoint("TOP", UIParent, "BOTTOMLEFT", x, top)
-	button:SetAttribute("type", teleport.item and "item" or "spell")
-	button:SetAttribute("item", teleport.item and ("item:" .. teleport.item) or nil)
-	button:SetAttribute("spell", not teleport.item and teleport.spell or nil)
+	frame:SetScale(scale or 1)
+	frame:ClearAllPoints()
+	frame:SetPoint("TOP", UIParent, "BOTTOMLEFT", x, top)
+	frame:SetAttribute("type", teleport.item and "item" or "spell")
+	frame:SetAttribute("item", teleport.item and ("item:" .. teleport.item) or nil)
+	frame:SetAttribute("spell", not teleport.item and teleport.spell or nil)
 	applied = teleport
-	button:Show()
+	frame:Show()
 	CastButton.Refresh()
 end
