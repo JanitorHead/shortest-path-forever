@@ -14,3 +14,6 @@ L["stop guiding"] = "stop guiding"
 L["guide this journey"] = "guide this journey"
 L["show it on the map"] = "show it on the map"
 L["That guide has no step to follow."] = "That guide has no step to follow."
+L["Off-path tolerance"] = "Off-path tolerance"
+L["How far you can stray from a walking path before a new one is searched."] =
+	"How far you can stray from a walking path before a new one is searched."
