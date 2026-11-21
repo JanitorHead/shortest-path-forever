@@ -1,7 +1,9 @@
 -- A goal no place walks to moves once to the nearest ground the places reach (#1113). That ground is found by a flood
 -- over cluster entrances, which can name ground the walks themselves never reach: in the Arathi hills above Refuge
--- Pointe the moved goal is no more reachable than the click. The search then moved the goal onto itself and started
+-- Pointe the moved goal was no more reachable than the click. The search then moved the goal onto itself and started
 -- again forever, so the rough line stayed and the journey never left loading (#1141). A goal moves at most once.
+-- The map baked for #1011 walks up that hill as the raw navmesh does (5191 yards from Refuge Pointe), so the click
+-- there no longer moves; the journey to it must still settle.
 local driver = assert(loadfile("tests/journey_driver.lua"))()
 local ns = driver.ns
 for _, file in ipairs({
@@ -29,13 +31,14 @@ for _, node in pairs(ns.TaxiNodes) do
 		places[#places + 1] = { map = 0, x = node.x, y = node.y, z = node.z }
 	end
 end
--- The case itself: the flood names ground for the click, and no place walks to that ground either.
-local _, _, _, moved = Path.FindManySync(0, HILLS, places, false, true)
-assert(moved, "no place walks to the click")
-local again = Path.FindManySync(0, moved, places, false, true)
+-- The hill is ground the places walk to, so the goal stays where it was clicked.
+local costs, _, _, moved = Path.FindManySync(0, HILLS, places, false, true)
+assert(not moved, "the goal moved off ground the places walk to")
+local reached = 0
 for i = 1, #places do
-	assert(again[i] == false, "a place walks to the moved goal: the case no longer applies")
+	reached = reached + (costs[i] and 1 or 0)
 end
+assert(reached > 0, "no place walks up the hill the raw navmesh climbs")
 
 ns.faction, ns.level = "Alliance", 40
 local nextFrame
