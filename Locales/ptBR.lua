@@ -48,6 +48,8 @@ L["Avoids %s (level %s)"] = "Contorna %s (nível %s)"
 L["Bags"] = "Bolsas"
 L["Bank"] = "Banco"
 L["Battlemaster"] = "Mestre de batalha"
+L["Click to cast %s"] = "Clique para lançar %s"
+L["Click to use %s"] = "Clique para usar %s"
 L["Journeys can start with your Hearthstone or Astral Recall. Turn it off to save it for later; class teleports are still offered."] =
 	"As jornadas podem começar com sua Pedra de Regresso ou Astral Recall. Desative-a para guardá-la para depois; os teleportes de classe continuam disponíveis."
 L["Journeys, and other addons' estimates from here, can start with a mage's city teleport or Teleport: Moonglade, cooldown counted."] =
@@ -154,6 +156,7 @@ L["Only use the Hearthstone when it saves at least this much time."] =
 L["Open"] = "Abrir"
 L["Open Nearby services"] = "Abrir serviços próximos"
 L["Open the world map to see it."] = "Abra o mapa-múndi para ver."
+L["The travel action will update after combat."] = "A ação de viagem será atualizada após o combate."
 L["Turn the world map to %s to see it."] = "Mude o mapa-múndi para %s para ver." -- mt
 L["This menu needs mouse and keyboard."] = "Este menu precisa de mouse e teclado." -- mt
 L["Other Faction's Routes"] = "Rotas da outra facção"

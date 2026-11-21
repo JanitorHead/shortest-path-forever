@@ -82,6 +82,8 @@ local moving = false
 local OnUpdate
 ---@type SPFCastPromptFrame?
 local castPrompt
+---@type SPFTeleportPlace?
+local castTarget
 -- The stop whose area the player is in, drawn as a pin with what to do there (#627).
 ---@type SPFPoint?
 local arrival
@@ -745,6 +747,9 @@ function ns.MoveArrow(value)
 	elseif (not path and not arrival) or ns.db.arrow == false then
 		frame:Hide()
 	end
+	if castTarget then
+		ns.PointCastPrompt(castTarget)
+	end
 end
 
 -- "Arrow label": a new choice reads at once, without waiting for its second or the next bend.
@@ -768,8 +773,8 @@ function ns.SetArrowScale(value)
 		frame:SetScale((ns.db.arrowScale or 100) / 100)
 		Anchor(frame)
 	end
-	if castPrompt then
-		castPrompt:SetScale((ns.db.arrowScale or 100) / 100)
+	if castTarget then
+		ns.PointCastPrompt(castTarget)
 	end
 end
 
@@ -801,11 +806,92 @@ end
 ---@class SPFCastPromptFrame : Frame
 ---@field Icon Texture
 ---@field Action FontString
+---@type Button?
+local castButton
 ---@type SPFTeleportPlace?
-local castTarget
+local appliedCast
+
+local function HideCastTooltip(button)
+	if GameTooltip:IsOwned(button) then
+		GameTooltip:Hide()
+	end
+end
+
+local function ShowCastTooltip(button)
+	local teleport = appliedCast
+	if not teleport then
+		return
+	end
+	local hint
+	if teleport.item then
+		hint = L["Click to use %s"]:format(C_Item.GetItemNameByID(teleport.item) or UNKNOWN)
+	else
+		hint = L["Click to cast %s"]:format(C_Spell.GetSpellName(teleport.spell) or UNKNOWN)
+	end
+	GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+	GameTooltip:SetText(hint)
+	if InCombatLockdown() and (teleport ~= castTarget or not ns.CastPromptShown()) then
+		GameTooltip:AddLine(L["The travel action will update after combat."])
+	end
+	GameTooltip:Show()
+end
+
+-- Called only out of combat. The secure button anchors to UIParent in screen coordinates.
+-- The prompt anchors to the button, so protection cannot spread to the prompt or moving arrow.
+local function ApplyCastButton()
+	local prompt, teleport = castPrompt, castTarget
+	if not prompt or not teleport or teleport.partyMage or moving or not ns.CastPromptShown() then
+		if castButton and appliedCast then
+			castButton:Hide()
+			castButton:SetAttribute("type", nil)
+			castButton:SetAttribute("item", nil)
+			castButton:SetAttribute("spell", nil)
+			appliedCast = nil
+		end
+		return
+	end
+
+	local x, top = prompt:GetCenter(), prompt:GetTop()
+	if not x or not top then
+		return
+	end
+	local button = castButton
+	if not button then
+		button = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
+		button:SetSize(ICON_SIZE, ICON_SIZE)
+		button:SetFrameStrata("MEDIUM")
+		button:SetFrameLevel(prompt:GetFrameLevel() + 1)
+		button:EnableMouse(true)
+		-- Let the secure handler honour ActionButtonUseKeyDown on either transition.
+		button:RegisterForClicks("AnyUp", "AnyDown")
+		button:SetScript("OnEnter", ShowCastTooltip)
+		button:SetScript("OnLeave", HideCastTooltip)
+		button:SetScript("OnHide", HideCastTooltip)
+		castButton = button
+	end
+
+	local scale = (ns.db.arrowScale or 100) / 100
+	button:SetScale(scale)
+	button:ClearAllPoints()
+	button:SetPoint("TOP", UIParent, "BOTTOMLEFT", x, top)
+	prompt:ClearAllPoints()
+	prompt:SetPoint("TOP", button, "TOP")
+	button:SetAttribute("type", teleport.item and "item" or "spell")
+	button:SetAttribute("item", teleport.item and ("item:" .. teleport.item) or nil)
+	button:SetAttribute("spell", not teleport.item and teleport.spell or nil)
+	appliedCast = teleport
+	button:Show()
+	if GameTooltip:IsOwned(button) then
+		ShowCastTooltip(button)
+	end
+end
 
 local function RenderCastPrompt()
 	if not castPrompt or not castTarget or not ns.CastPromptShown() then
+		return
+	end
+	if appliedCast and InCombatLockdown() then
+		castPrompt:RegisterEvent("PLAYER_REGEN_ENABLED")
 		return
 	end
 	-- Until the client has the item's name and icon it says "Use Unknown"; its own answer for that item redraws.
@@ -855,10 +941,22 @@ end
 function ns.PointCastPrompt(teleport)
 	castTarget = teleport
 	NotifyLead()
+	local locked = InCombatLockdown()
+	if locked and appliedCast and castPrompt then
+		-- Keep the displayed label and icon paired with the action the button still performs.
+		castPrompt:RegisterEvent("PLAYER_REGEN_ENABLED")
+		if castButton and GameTooltip:IsOwned(castButton) then
+			ShowCastTooltip(castButton)
+		end
+		return
+	end
 	if not teleport or not ns.CastPromptShown() then
 		if castPrompt then
 			castPrompt:UnregisterAllEvents()
 			castPrompt:Hide()
+		end
+		if not locked then
+			ApplyCastButton()
 		end
 		return
 	end
@@ -871,9 +969,6 @@ function ns.PointCastPrompt(teleport)
 		---@cast created SPFCastPromptFrame
 		castPrompt = created
 		created:SetSize(320, 70)
-		created:SetScale((ns.db.arrowScale or 100) / 100)
-		-- In the arrow's place, wherever it was dragged, and kept on screen though it is wider.
-		created:SetPoint("TOP", frame, "TOP")
 		created:SetClampedToScreen(true)
 		created:SetFrameStrata("MEDIUM")
 		created.Icon = created:CreateTexture(nil, "ARTWORK")
@@ -883,12 +978,27 @@ function ns.PointCastPrompt(teleport)
 		created.Action:SetWidth(320)
 		created:SetScript("OnEvent", function(_, event, itemID)
 			-- Item answers arrive for every item any addon asks about: only the prompt's own redraws it.
-			if event ~= "GET_ITEM_INFO_RECEIVED" or castTarget and itemID == castTarget.item then
+			if event == "PLAYER_REGEN_ENABLED" then
+				ns.PointCastPrompt(castTarget)
+			elseif event ~= "GET_ITEM_INFO_RECEIVED" or castTarget and itemID == castTarget.item then
 				RenderCastPrompt()
+				if castButton and appliedCast and GameTooltip:IsOwned(castButton) then
+					ShowCastTooltip(castButton)
+				end
 			end
 		end)
 	end
+	-- In the arrow's place, wherever it was dragged, and kept on screen though it is wider.
+	castPrompt:SetScale((ns.db.arrowScale or 100) / 100)
+	castPrompt:ClearAllPoints()
+	castPrompt:SetPoint("TOP", frame, "TOP")
 	castPrompt:RegisterEvent("SPELLS_CHANGED")
 	RenderCastPrompt()
 	castPrompt:Show()
+	if locked then
+		castPrompt:RegisterEvent("PLAYER_REGEN_ENABLED")
+	else
+		castPrompt:UnregisterEvent("PLAYER_REGEN_ENABLED")
+		ApplyCastButton()
+	end
 end
