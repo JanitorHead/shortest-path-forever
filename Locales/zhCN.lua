@@ -156,6 +156,10 @@ L["Open"] = "打开"
 L["Open Nearby services"] = "打开附近服务"
 L["Open the world map to see it."] = "打开世界地图查看。"
 L["The travel action will update after combat."] = "旅行操作将在战斗结束后更新。"
+L["Rides to spend less time walking through %s (level %s)"] =
+	"搭乘交通工具以减少在%s（等级%s）内步行的路程"
+L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."] =
+	"尽量缩短在最低等级比你高至少4级的区域内步行的路程，即使目的地也在该区域内。"
 L["Turn the world map to %s to see it."] = "将世界地图切换到%s查看。" -- mt
 L["This menu needs mouse and keyboard."] = "此菜单需要鼠标和键盘。" -- mt
 L["Other Faction's Routes"] = "另一阵营的航线"
@@ -246,8 +250,6 @@ L["Use class teleports"] = "使用职业传送"
 L["Vendors"] = "商人"
 L["W"] = "西"
 L["Walk to %s"] = "步行前往%s"
-L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."] =
-	"步行路线会绕开最低等级比你高 4 级或以上的区域，但不会绕开起点和终点所在的区域。"
 L["Weapons and armour"] = "武器和护甲"
 L["What's new after an update"] = "更新后的新内容"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
