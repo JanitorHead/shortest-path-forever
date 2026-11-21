@@ -427,16 +427,18 @@ local function decodeLinks(st, k, val, z, at, links, s, pos, masks, last, lpos)
 			into[node + 1] = { entry }
 		end
 	end
-	local function link(node, dx, dy, layer, cost, both, free)
+	local function link(node, dx, dy, layer, cost, both, free, target)
 		local flag = free and FREE or 0
 		local entry = dx + 8 + 16 * (dy + 8) + 256 * (layer + 1) + 16384 * cost + flag
 		add(links, node, entry)
 		local cell = node < N and node or at[node + 1]
-		local tx, ty = floor(cell / C) + dx, cell % C + dy
-		if tx < 0 or ty < 0 or tx >= C or ty >= C then
-			return
+		if target == nil then
+			local tx, ty = floor(cell / C) + dx, cell % C + dy
+			if tx < 0 or ty < 0 or tx >= C or ty >= C then
+				return
+			end
+			target = surface(st, k, tx * C + ty, layer, z[node + 1], val, z, at)
 		end
-		local target = surface(st, k, tx * C + ty, layer, z[node + 1], val, z, at)
 		if not target then
 			return
 		end
@@ -466,26 +468,80 @@ local function decodeLinks(st, k, val, z, at, links, s, pos, masks, last, lpos)
 			base[i], masks[node + 1] = node, num(s, pos, 2)
 			pos = pos + 2
 		end
+		local implicit = st.D.floorFormat == 1
+		local override, overrideEnd, ordinal, nextOverride = pos + 3, pos, 0, 0
+		local function advanceOverride()
+			if override >= overrideEnd then
+				nextOverride = math.huge
+				return
+			end
+			local delta = B64[byte(s, override)]
+			override = override + 1
+			if delta == 63 then
+				delta, override = 63 + num(s, override, 3), override + 3
+			end
+			nextOverride = nextOverride + delta
+		end
+		if implicit then
+			overrideEnd = override + num(s, pos, 3)
+			pos = overrideEnd
+			advanceOverride()
+		end
+		local function readLanding(from, dx, dy, p)
+			local layers = B64[byte(s, p)]
+			p = p + 1
+			if layers == 0 then
+				local n = num(s, p, 2)
+				p = p + 2
+				for _ = 1, n do
+					link(from, dx, dy, B64[byte(s, p)], 0, false)
+					p = p + 1
+				end
+			else
+				local layer = 0
+				while layers > 0 do
+					if layers % 2 == 1 then
+						link(from, dx, dy, layer, 0, false)
+					end
+					layer, layers = layer + 1, floor(layers / 2)
+				end
+			end
+			return p
+		end
 		local function directedMask(from)
 			local bits = masks[from + 1]
+			if bits == 0 then
+				return
+			end
+			local cell = from < N and from or at[from + 1]
+			local x, y = floor(cell / C), cell % C
 			for d = 0, 7 do
 				if bits % 2 == 1 then
-					local layers = B64[byte(s, pos)]
-					pos = pos + 1
-					if layers == 0 then
-						local n = num(s, pos, 2)
-						pos = pos + 2
-						for _ = 1, n do
-							link(from, DX[d], DY[d], B64[byte(s, pos)], 0, false)
-							pos = pos + 1
-						end
-					else
-						local layer = 0
-						while layers > 0 do
-							if layers % 2 == 1 then
-								link(from, DX[d], DY[d], layer, 0, false)
+					local dx, dy = DX[d], DY[d]
+					local layer, landing
+					if implicit then
+						local tx, ty = x + dx, y + dy
+						if tx >= 0 and ty >= 0 and tx < C and ty < C then
+							local target = tx * C + ty
+							local first = at[-(target + 1)]
+							if from < N then
+								if first and at[first + 2] ~= target then
+									layer, landing = 1, first
+								end
+							elseif not first then
+								layer, landing = 0, val[target + 1] ~= 0 and target
 							end
-							layer, layers = layer + 1, floor(layers / 2)
+						end
+					end
+					if layer == nil then
+						pos = readLanding(from, dx, dy, pos)
+					else
+						ordinal = ordinal + 1
+						if ordinal == nextOverride then
+							override = readLanding(from, dx, dy, override)
+							advanceOverride()
+						else
+							link(from, dx, dy, layer, 0, false, nil, landing)
 						end
 					end
 				end
@@ -573,7 +629,7 @@ local function decodeLinks(st, k, val, z, at, links, s, pos, masks, last, lpos)
 		at_drop = at_drop + 8
 	end
 	if fmt >= 4 and at_drop <= #s then
-		local wet, node, records = {}, 0, 0
+		local node, records = 0, 0
 		while at_drop <= #s do
 			if records % 64 == 0 then
 				slice()
@@ -585,10 +641,12 @@ local function decodeLinks(st, k, val, z, at, links, s, pos, masks, last, lpos)
 				delta, at_drop = 63 + num(s, at_drop, 3), at_drop + 3
 			end
 			node = node + delta
-			wet[node * 512 + num(s, at_drop, 2)] = true
+			local code = num(s, at_drop, 2)
+			local list = code >= 512 and "narrow" or "dryBlocked"
+			links[list] = links[list] or {}
+			links[list][node * 512 + code % 512] = true
 			at_drop = at_drop + 2
 		end
-		links.dryBlocked = wet
 	end
 	return back
 end
@@ -853,7 +911,7 @@ local function gridSize(val, at, links, back)
 	end
 	for node, link in pairs(links) do
 		bytes = bytes + 128 + #link * 32
-		if node == "dryBlocked" then
+		if node == "dryBlocked" or node == "narrow" then
 			for _ in pairs(link) do
 				bytes = bytes + 64
 			end
@@ -1082,11 +1140,12 @@ local function indexedEdges(st, k, s, rows, row, roads, out, wanted)
 	local offsets, targets, walking, swimming = rows[row + 6], rows[row + 7], rows[row + 8], rows[row + 9]
 	local cell, C, cs = rows[row + 1], st.C, st.cs
 	local x, y = floor(cell / C), cell % C
-	local ordinal, previous = row / GRAPH_ROW, {}
+	local ordinal = row / GRAPH_ROW
+	local localTarget, previous = ordinal, nil
 	local used = 0
 	for e = 0, count - 1 do
 		if e == base then
-			previous = {}
+			localTarget, previous = ordinal, nil
 		end
 		local offset = byte(s, offsets + e)
 		local target, walk, swim
@@ -1094,18 +1153,24 @@ local function indexedEdges(st, k, s, rows, row, roads, out, wanted)
 		walk, walking = varint(s, walking)
 		swim, swimming = varint(s, swimming)
 		if wanted == nil or offset == wanted then
-			target = signed(target) + (previous[offset] or (offset == 4 and ordinal or 0))
-			previous[offset] = target
-			local dx, dy = floor(offset / 3) - 1, offset % 3 - 1
-			local distance = dx ~= 0 and dy ~= 0 and GRAPH_DIAGONAL or 1
+			local destCluster, distance = k
+			target = signed(target)
 			if offset == 4 then
+				target = target + localTarget
+				localTarget = target
 				local dest = rows[target * GRAPH_ROW + 1]
 				local tx, ty = abs(floor(dest / C) - x), abs(dest % C - y)
 				distance = max(tx, ty) + (GRAPH_DIAGONAL - 1) * min(tx, ty)
+			else
+				previous = previous or {}
+				target = target + (previous[offset] or 0)
+				previous[offset] = target
+				local dx, dy = floor(offset / 3) - 1, offset % 3 - 1
+				destCluster = k + dx * st.ny + dy
+				distance = dx ~= 0 and dy ~= 0 and GRAPH_DIAGONAL or 1
 			end
 			walk = floor(distance * cs + 0.5) + signed(walk)
-			out[used + 1], out[used + 2], out[used + 3] =
-				(k + dx * st.ny + dy) * 4096 + target, walk + signed(swim), walk
+			out[used + 1], out[used + 2], out[used + 3] = destCluster * 4096 + target, walk + signed(swim), walk
 			used = used + 3
 		end
 	end
@@ -1795,7 +1860,11 @@ end
 -- index 1, and the count is returned. One step can land on several surfaces (a stair beside the drop off its side),
 -- and a caller following a walk keeps them all: the first alone can be another floor than the walk's (#1015). With
 -- outC, each landing's cost goes there too: 0 for a walked step, a drop's whole yards otherwise.
-local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
+local function dryBlocked(links, key, offCentre)
+	return (links.dryBlocked and links.dryBlocked[key]) or (offCentre and links.narrow and links.narrow[key])
+end
+
+local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC, offCentre)
 	local tx, ty = gx + dx, gy + dy
 	if tx < 0 or ty < 0 or tx >= st.GX or ty >= st.GY then
 		return 0
@@ -1811,10 +1880,9 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 			local d = DIRECTION[(dx + 1) * 3 + dy + 1]
 			local bits = d and val and st.moves[k][node + 1]
 			if bits and floor(bits / directionBits[d]) % 2 == 1 then
-				local blocked = st.links[k].dryBlocked
 				open = water
 					or (
-						not (blocked and blocked[node * 512 + d * 64])
+						not dryBlocked(st.links[k], node * 512 + d * 64, offCentre)
 						and val[node + 1] ~= 2
 						and value(st, tx, ty) ~= 2
 					)
@@ -1883,10 +1951,21 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 				local layer = floor(entry / 256) % 64 - 1
 				local v = surface(st, tk, tlc, layer, h)
 				local cost = floor(entry / 16384) % 8192
-				local blocked = cost == 0 and links.dryBlocked
-				local d = blocked and abs(dx) <= 1 and abs(dy) <= 1 and DIRECTION[(dx + 1) * 3 + dy + 1]
+				local d = cost == 0
+					and (links.dryBlocked or (offCentre and links.narrow))
+					and abs(dx) <= 1
+					and abs(dy) <= 1
+					and DIRECTION[(dx + 1) * 3 + dy + 1]
 				if
-					v and (water or (not (d and blocked[node * 512 + d * 64 + layer]) and here ~= 2 and vt[v + 1] ~= 2))
+					v
+					and (
+						water
+						or (
+							not (d and dryBlocked(links, node * 512 + d * 64 + layer, offCentre))
+							and here ~= 2
+							and vt[v + 1] ~= 2
+						)
+					)
 				then
 					local distance = math.sqrt((entry % 16 - 8) ^ 2 + (floor(entry / 16) % 16 - 8) ^ 2) * st.cs
 					if not steep or entry >= FREE or steep(vk, zk, node, vt, st.z[tk], v, distance) then
@@ -1994,6 +2073,8 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 	local dx, dy = bx - ax, by - ay
 	local sx, sy = dx > 0 and 1 or -1, dy > 0 and 1 or -1
 	local nx, ny = dx * sx, dy * sy
+	-- A shallow chord leaves the individual steps' centre lines. Narrow portals only certify those lines.
+	local offCentre = not water and st.fmt >= 4 and nx ~= 0 and ny ~= 0 and nx ~= ny
 	-- The segment's own length in yards, the fraction of it one cell boundary crosses, and how far along it the last
 	-- crossing stood.
 	local span = sqrt(dx * dx + dy * dy) * st.cs
@@ -2019,7 +2100,7 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 		end
 		local reached = 0
 		for i = 1, count do
-			for j = 1, neighbours(st, fk[i], fn[i], x, y, mx, my, water, bk, bn) do
+			for j = 1, neighbours(st, fk[i], fn[i], x, y, mx, my, water, bk, bn, nil, offCentre) do
 				local nk, nn = bk[j], bn[j]
 				if not (road and roadNode(st, nk, nn) == 0) and not (factor and factor(nk, nn) > limit) then
 					local spent = fs[i]
@@ -2133,10 +2214,14 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 			if reached > 1 then
 				reached = 1
 			end
+			-- Narrow steps allow a chord lying on the line through both cell centres.
+			local offCentre = not water
+				and st.fmt >= 4
+				and (abs(dx * my - dy * mx) >= 1e-9 or abs((fx - x - 0.5) * my - (fy - y - 0.5) * mx) >= 1e-9)
 			local landed, kept = false, 0
 			if not closed then
 				for i = 1, count do
-					for j = 1, neighbours(st, fk[i], fn[i], x, y, mx, my, water, bk, bn) do
+					for j = 1, neighbours(st, fk[i], fn[i], x, y, mx, my, water, bk, bn, nil, offCentre) do
 						landed = true
 						local nk, nn = bk[j], bn[j]
 						if not factor or factor(nk, nn) <= limit then

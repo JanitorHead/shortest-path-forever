@@ -147,7 +147,7 @@ class DiagonalTest(unittest.TestCase):
         ):
             _, vals, _, _, links, own, _ = gen_nav.rasterize_tile((0, 0))
         self.assertEqual(vals[i], 1)
-        self.assertEqual(links, [])
+        self.assertEqual(links, [(i, 0, j, 0, gen_nav.NARROW_STEP), (j, 0, i, 0, gen_nav.NARROW_STEP)])
         self.assertEqual((own[i], own[j]), (16, 128))
 
     def test_a_ground_diagonal_across_a_cluster_edge_keeps_both_directions(self):
@@ -208,6 +208,23 @@ class SteepStepTest(unittest.TestCase):
         return {"pts": [(p[0], p[1]) for p in pts], "plane": plane(pts, c), "c": c, "steep": steep,
                 "water": False, "size": 1}  # fmt: skip
 
+    def test_dry_corridor_checks_the_whole_doorway(self):
+        c, cs = gen_nav.CELLS, gen_nav.CS
+        i, j = 10 * c + 10, 11 * c + 10
+        ax, bx = 10 * cs, 11 * cs
+        seam = ((bx, ax + 0.4 * cs), (bx, ax + 0.6 * cs))
+        a, b = (ax + cs / 2, ax + cs / 2), (bx + cs / 2, ax + cs / 2)
+        polys = {0: self.face(ax, bx, 0, 0, False, y=ax), 1: self.face(bx, bx + cs, 0, 0, False, y=ax)}
+        polys[0]["pts"] = [(ax, ax), (bx, ax), (bx, bx), (ax, bx)]
+        polys[1]["pts"] = [(bx, ax), (bx + cs, ax), (bx + cs, bx), (bx, bx)]
+        layers = {i: [(0, 1, (0, a))], j: [(0, 1, (1, b))]}
+        adj = {0: {1}, 1: {0}}
+        _, _, narrow, _ = self.tile(polys, adj, {(0, 1): seam, (1, 0): seam}, layers)
+        self.assertEqual(narrow, [(i, 0, j, 0, "narrow"), (j, 0, i, 0, "narrow")])
+        wide = ((bx, ax), (bx, bx))
+        _, _, unrestricted, _ = self.tile(polys, adj, {(0, 1): wide, (1, 0): wide}, layers)
+        self.assertEqual(unrestricted, [])
+
     def test_floor_steps_keep_the_exact_landing_layer(self):
         # Two destinations have the same height, but only layer 1 meets the source face.
         c = gen_nav.CELLS
@@ -229,7 +246,7 @@ class SteepStepTest(unittest.TestCase):
         ends = ((11 * cs, 10 * cs), (11 * cs, 11 * cs))
         _, floors, links, _ = self.tile(polys, {1: {3}, 3: {1}}, {(1, 3): ends, (3, 1): ends[::-1]}, layers)
         self.assertIn((i, [(1, 248.0)]), floors)
-        self.assertEqual(set(links), {(i, 1, j, 1, gen_nav.WET_STEP), (j, 1, i, 1, None)})
+        self.assertEqual(set(links), {(i, 1, j, 1, gen_nav.WET_STEP), (j, 1, i, 1, gen_nav.NARROW_STEP)})
 
     def test_step_between_two_dry_cells_can_require_water(self):
         c, cs = gen_nav.CELLS, gen_nav.CS
@@ -286,7 +303,7 @@ class SteepStepTest(unittest.TestCase):
         ends = ((x1, y0), (x1, y1))
         vals, _, links, own = self.tile(polys, {0: {1}, 1: {0}}, {(0, 1): ends, (1, 0): ends[::-1]}, layers)
         self.assertEqual(vals[j], 1)
-        self.assertEqual(links, [])
+        self.assertEqual(links, [(j, 0, i, 0, gen_nav.NARROW_STEP)])
         self.assertEqual((own[i], own[j]), (0, 2))
 
 
@@ -364,6 +381,12 @@ class GraphLegalityTest(unittest.TestCase):
                     cuts[u] = 1
                 _, edges = gen_nav.grid_entrances(grid, cuts)
                 self.assertEqual(edges[(u, v)], (12, gen_nav.CS))
+
+    def test_indexed_graph_cannot_exceed_cluster_id_stride(self):
+        row = (0, 0, 0, 0, 0)
+        self.assertTrue(gen_nav.encode_graph(4, [row] * 4096, [[]] * 4096))
+        with self.assertRaisesRegex(ValueError, "4096"):
+            gen_nav.encode_graph(4, [row] * 4097, [[]] * 4097)
 
     def test_directed_floors_reject_layer_63(self):
         with self.world({0: (1, 0)}):

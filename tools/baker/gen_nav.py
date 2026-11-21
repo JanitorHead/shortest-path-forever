@@ -109,8 +109,10 @@ LINKS = defaultdict(dict)  # node -> {node it steps to besides the base grid's o
 # as written, with no steep test (#1101). A rasterize_tile link marks one with the cost FREE_STEP.
 FREE = set()
 FREE_STEP = "free"
+NARROW_STEP = "narrow"
 WET_STEP = "wet"
 WET_STEPS = defaultdict(set)  # cluster -> steps without straight dry clearance
+NARROW_STEPS = defaultdict(set)  # cluster -> steps with only centre-line dry clearance
 FLOORS_OF = defaultdict(list)  # cluster -> its floor nodes, by (cell, height)
 LINKED_OF = defaultdict(list)  # cluster -> its nodes with LINKS, sorted
 FLOORS_AT = {}  # cell -> its floor nodes, lowest first
@@ -123,6 +125,7 @@ def configure(map_id, rows=None, cols=None):
     global MAP, TILES, ROWS, COLS, CX0, CY0, NX, NY, GW, GH, X0, Y0, ORD
     KINDS.clear()
     WET_STEPS.clear()
+    NARROW_STEPS.clear()
     MAP = map_id
     TILES = {}
     for path in glob.glob(os.path.join(MM, f"{map_id:04d}_??_??.mmtile")):
@@ -569,6 +572,91 @@ def dry_segment(polys, adj, portals, pa, a, pb, b):
     return False
 
 
+def dry_corridor(polys, adj, portals, pa, a, pb, b):
+    """Certify the convex hull of two dry cells. Every interior mesh edge needs a bidirectional portal.
+
+    A chord may start anywhere in the source cell. With no exposed interior edges it can follow the flat,
+    dry mesh through to the target cell. The diagonal hull also covers the approaches to the shared corner.
+    """
+    eps = 1e-8
+    radius = CS / 2
+    x0, x1 = min(a[0], b[0]) - radius, max(a[0], b[0]) + radius
+    y0, y1 = min(a[1], b[1]) - radius, max(a[1], b[1]) + radius
+    sx, sy = b[0] - a[0], b[1] - a[1]
+    diagonal = sx != 0 and sy != 0
+
+    def band(p):
+        return (p[0] - a[0]) * sy / CS - (p[1] - a[1]) * sx / CS
+
+    def interior_span(p, q):
+        clipped = clip_segment(p, q, (x0, x1, y0, y1))
+        if clipped is None:
+            return None
+        u, v = clipped
+        if diagonal:
+            start, end = band(u), band(v)
+            lo, hi = sorted((start, end))
+            if lo >= CS - eps or hi <= -CS + eps:
+                return None
+            if lo < -CS or hi > CS:
+                first = max(-CS, min(CS, start))
+                last = max(-CS, min(CS, end))
+                t0, t1 = (first - start) / (end - start), (last - start) / (end - start)
+                u, v = tuple((u[0] + t * (v[0] - u[0]), u[1] + t * (v[1] - u[1])) for t in (t0, t1))
+        mx, my = (u[0] + v[0]) / 2, (u[1] + v[1]) / 2
+        if x0 + eps < mx < x1 - eps and y0 + eps < my < y1 - eps and math.dist(u, v) > eps:
+            return u, v
+        return None
+
+    reached, pending = {pa}, [pa]
+    while pending:
+        u = pending.pop()
+        poly = polys[u]
+        if poly["water"] or poly["steep"]:
+            return False
+        for i, q in enumerate(poly["pts"]):
+            p = poly["pts"][i - 1]
+            span = interior_span(p, q)
+            if span is None:
+                continue
+            start, stop = span
+            dx, dy = q[0] - p[0], q[1] - p[1]
+            length = math.hypot(dx, dy)
+            dx, dy = dx / length, dy / length
+
+            def side(point, dx=dx, dy=dy, p=p):
+                return dx * (point[1] - p[1]) - dy * (point[0] - p[0])
+
+            def along(point, dx=dx, dy=dy, p=p):
+                return dx * (point[0] - p[0]) + dy * (point[1] - p[1])
+
+            lo, hi = along(start), along(stop)
+            openings = []
+            for v in adj.get(u, ()):
+                reciprocal = portals.get((v, u))
+                other = polys[v]
+                if reciprocal is None or other["water"] or other["steep"] or side(poly["c"]) * side(other["c"]) >= 0:
+                    continue
+                forward = portals[u, v]
+                if any(abs(side(point)) > eps for point in (*forward, *reciprocal)):
+                    continue
+                left, right = sorted(map(along, forward))
+                back_left, back_right = sorted(map(along, reciprocal))
+                left, right = max(lo, left, back_left), min(hi, right, back_right)
+                if right > left + eps:
+                    openings.append((left, right))
+                    if v not in reached:
+                        reached.add(v)
+                        pending.append(v)
+            for left, right in sorted(openings):
+                if left > lo + eps:
+                    break
+                lo = max(lo, right)
+            if lo < hi - eps:
+                return False
+    return pb in reached
+
+
 def rasterize_tile(rc):
     """Rasterize surfaces, outgoing step masks and floor links for one tile.
 
@@ -662,19 +750,23 @@ def rasterize_tile(rc):
                         land = surfaces[la][1] == 1 and layers[j][lb][1] == 1
                         if not linked(i, la, j, lb):
                             continue
-                        wet = False
+                        restriction = None
                         if land:
                             pa, anchor_a = surfaces[la][2]
                             pb, anchor_b = layers[j][lb][2]
                             # Refinement draws through cell coordinates; a passage sampled off-center may still be
                             # a valid walk, even when the drawn segment's endpoint is outside its polygon.
-                            wet = not (
+                            centre_clear = (
                                 (a == anchor_a or point_in_convex(*a, polys[pa]["pts"]))
                                 and (b == anchor_b or point_in_convex(*b, polys[pb]["pts"]))
                                 and dry_segment(polys, adj, portal, pa, a, pb, b)
                             )
-                        if la or lb or wet:
-                            links.append((i, la, j, lb, WET_STEP if wet else None))
+                            if not centre_clear:
+                                restriction = WET_STEP
+                            elif not dry_corridor(polys, adj, portal, pa, a, pb, b):
+                                restriction = NARROW_STEP
+                        if la or lb or restriction:
+                            links.append((i, la, j, lb, restriction))
                         if not (la or lb):
                             masks[local] |= 1 << d
 
@@ -1239,6 +1331,9 @@ def encode_graph(cells, nodes, edges):
     Edges carry their exact integer costs and keep the base prefix and full row order.
     """
 
+    if len(nodes) > 4096:
+        raise ValueError("An indexed cluster can hold at most 4096 entrances")
+
     def zig(value):
         return 2 * value if value >= 0 else -2 * value - 1
 
@@ -1382,7 +1477,7 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
                 text = encode_terrain(TERRAIN[k], base, CELLS, floor_z)
                 if text:
                     terrains[k] = text
-        if FLOORS_OF.get(k) or LINKED_OF.get(k) or WET_STEPS.get(k):
+        if FLOORS_OF.get(k) or LINKED_OF.get(k) or WET_STEPS.get(k) or NARROW_STEPS.get(k):
             floors[k] = (
                 encode_directed_floors(k, lcell) if isinstance(cuts, bytearray) else encode_floors(grid, k, lcell)
             )
@@ -1438,6 +1533,7 @@ def emit(nodes, edges, grid, masks, out, name):
         f"\tzstep = {ZQ},",
         "\tformat = 4,",
         "\tgraphFormat = 1,",
+        "\tfloorFormat = 1,",
     ]
     for key, table in (
         ("graph", graph),
@@ -1488,7 +1584,7 @@ class RawLinks:
     held gigabytes through the whole graph build. Heights and costs are the workers' own doubles, so every value
     reads back exactly as it was sent."""
 
-    NONE, FREE, COST, WET = 0, 1, 2, 3
+    NONE, FREE, COST, WET, NARROW = range(5)
 
     def __init__(self):
         self.i, self.j = array("i"), array("i")
@@ -1510,6 +1606,9 @@ class RawLinks:
             elif cost == WET_STEP:
                 self.kind.append(self.WET)
                 self.cost.append(0.0)
+            elif cost == NARROW_STEP:
+                self.kind.append(self.NARROW)
+                self.cost.append(0.0)
             else:
                 self.kind.append(self.COST)
                 self.cost.append(cost)
@@ -1518,11 +1617,9 @@ class RawLinks:
         return len(self.kind)
 
     def __iter__(self):
+        sentinels = (None, FREE_STEP, None, WET_STEP, NARROW_STEP)
         for n, kind in enumerate(self.kind):
-            if kind == self.WET:
-                cost = WET_STEP
-            else:
-                cost = None if kind == self.NONE else FREE_STEP if kind == self.FREE else self.cost[n]
+            cost = self.cost[n] if kind == self.COST else sentinels[kind]
             yield self.i[n], self.za[n], self.j[n], self.zb[n], cost
 
 
@@ -1543,15 +1640,16 @@ def assemble_floors(floors, links, *, directed=False):
         FLOORS_OF[cluster_of_cell(c)] += at[c]
 
     for i, za, j, zb, cost in links:
-        if directed and cost in (None, WET_STEP):
+        if directed and cost in (None, WET_STEP, NARROW_STEP):
             a = FLOORS_AT[i][int(za) - 1] if za else i
             b = FLOORS_AT[j][int(zb) - 1] if zb else j
         else:
             a, b = surface_node(i, za), surface_node(j, zb)
         if a is None or b is None:
             continue
-        if cost == WET_STEP:
-            WET_STEPS[cluster_of_cell(a)].add((a, b))
+        if cost in (WET_STEP, NARROW_STEP):
+            restrictions = WET_STEPS if cost == WET_STEP else NARROW_STEPS
+            restrictions[cluster_of_cell(a)].add((a, b))
             if a < nb and b < nb:
                 continue  # the base grid mask already carries this step
             cost = None
@@ -1772,16 +1870,31 @@ def encode_floors(grid, k, lnode):
     return "".join(out)
 
 
+def implicit_landing(k, u, dx, dy):
+    target = cell_of(u) + dx * GH + dy
+    if cluster_of_cell(target) != k:
+        return None
+    count = len(FLOORS_AT.get(target, ()))
+    if u < GW * GH:
+        return 1 if count == 1 else None
+    return 0 if count == 0 else None
+
+
 def encode_directed_floors(k, lnode):
     """Floor count(3), then [cell delta, value(1), height(2), mask(2)]. Base-to-floor node count(3), then
-    [node delta, mask(2)]. Landing sets follow in header order, one per set direction: a six-bit set of layers
-    0-5, or zero followed by count(2) and one symbol per layer. A cell or node delta is 0-62 or 63 followed by
+    [node delta, mask(2)]. The override stream length(3) precedes [eligible direction delta, landing set].
+    Within the cluster, a floor-to-base step implies layer 0 if the target has no extra floors, and a
+    base-to-floor step implies layer 1 if the target has one extra floor. A different landing set for an
+    eligible direction is an override. All other sets follow the overrides in header order. A landing set
+    is a six-bit set of layers 0-5, or zero followed by count(2) and one symbol per layer. Each delta is
+    0-62 or 63 followed by
     delta - 63(3). Drops follow as count(3), then [node(3), dx+8(1), dy+8(1), layer(1), cost(2)].
-    An optional final stream of [node delta, direction(1), layer(1)] entries marks steps without a straight
-    dry segment. Dry refinement uses this stream; the steps themselves are already in the masks.
+    An optional final stream of [node delta, direction(1), layer(1)] marks steps without a straight dry
+    segment. A direction plus 8 marks steps with only centre-line clearance. The step stays in its mask.
     """
     floors = FLOORS_OF[k]
-    out, landings, drops = [enc(len(floors), 3)], [], []
+    out, landings, overrides, drops = [enc(len(floors), 3)], [], [], []
+    ordinal, previous = 0, 0
     masks = defaultdict(dict)
     for u in LINKED_OF[k]:
         ux, uy = divmod(cell_of(u), GH)
@@ -1795,13 +1908,27 @@ def encode_directed_floors(k, lnode):
             else:
                 masks[u].setdefault(DIRS[dx, dy], []).append(layer)
 
-    def emit_mask(slots):
+    def emit_mask(u):
+        nonlocal ordinal, previous
+        slots = masks[u]
         out.append(enc(sum(1 << d for d in slots), 2))
-        for _, layers in sorted(slots.items()):
+        for d, layers in sorted(slots.items()):
+            dx, dy, _ = MOVES[d]
+            default = implicit_landing(k, u, dx, dy)
+            if default is not None:
+                ordinal += 1
+                if layers == [default]:
+                    continue
             if layers[-1] < 6:
-                landings.append(enc(sum(1 << layer for layer in layers), 1))
+                encoded = enc(sum(1 << layer for layer in layers), 1)
             else:
-                landings.append("A" + enc(len(layers), 2) + "".join(enc(layer, 1) for layer in layers))
+                encoded = "A" + enc(len(layers), 2) + "".join(enc(layer, 1) for layer in layers)
+            if default is None:
+                landings.append(encoded)
+            else:
+                emit_delta(overrides, ordinal - previous)
+                overrides.append(encoded)
+                previous = ordinal
 
     cell = 0
     for n in floors:
@@ -1809,7 +1936,7 @@ def encode_directed_floors(k, lnode):
         emit_delta(out, local - cell)
         cell = local
         out.append(enc(FLOOR_VAL[n - GW * GH], 1) + enc(stored_z(n) + 2048, 2))
-        emit_mask(masks[n])
+        emit_mask(n)
     base = [n for n in masks if n < GW * GH]
     out.append(enc(len(base), 3))
     node = 0
@@ -1817,20 +1944,23 @@ def encode_directed_floors(k, lnode):
         local = lnode(n)
         emit_delta(out, local - node)
         node = local
-        emit_mask(masks[n])
+        emit_mask(n)
+    out.append(enc(sum(map(len, overrides)), 3))
+    out.extend(overrides)
     out.extend(landings)
     out.append(enc(len(drops), 3))
     out.extend(
         enc(n, 3) + enc(dx, 1) + enc(dy, 1) + enc(layer, 1) + enc(cost, 2) for n, dx, dy, layer, cost in sorted(drops)
     )
-    wet = []
-    for u, v in WET_STEPS.get(k, ()):
-        ux, uy = divmod(cell_of(u), GH)
-        vx, vy = divmod(cell_of(v), GH)
-        layer = FLOOR_LAYER[v - GW * GH] if v >= GW * GH else 0
-        wet.append((lnode(u), DIRS[vx - ux, vy - uy], layer))
+    restrictions = []
+    for pairs, flag in ((WET_STEPS, 0), (NARROW_STEPS, 8)):
+        for u, v in pairs.get(k, ()):
+            ux, uy = divmod(cell_of(u), GH)
+            vx, vy = divmod(cell_of(v), GH)
+            layer = FLOOR_LAYER[v - GW * GH] if v >= GW * GH else 0
+            restrictions.append((lnode(u), DIRS[vx - ux, vy - uy] + flag, layer))
     node = 0
-    for n, direction, layer in sorted(wet):
+    for n, direction, layer in sorted(restrictions):
         emit_delta(out, n - node)
         node = n
         out.append(enc(direction, 1) + enc(layer, 1))
@@ -1883,6 +2013,7 @@ def main():
     phases["raster"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
     assemble_floors(floors, links, directed=True)
+    print(f"dry clearance: {sum(map(len, WET_STEPS.values()))} blocked, {sum(map(len, NARROW_STEPS.values()))} narrow")
     # matched into FLOORS_AT and LINKS; the raw lists, the last tile's included, are not needed again
     del floors, links, tf, tl
     phases["floors"] = time.perf_counter() - checkpoint

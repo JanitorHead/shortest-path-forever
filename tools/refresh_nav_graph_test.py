@@ -70,6 +70,7 @@ class StoredGridTest(unittest.TestCase):
             "LINKED_OF": defaultdict(list),
             "TERRAIN": {},
             "WET_STEPS": defaultdict(set),
+            "NARROW_STEPS": defaultdict(set),
             "ROAD_CELLS": {},
         }
         with ExitStack() as stack:
@@ -81,7 +82,7 @@ class StoredGridTest(unittest.TestCase):
             nav.BASE_Z[7], nav.BASE_Z[8], nav.BASE_Z[31] = 12, 6, 300
             # Two layers on both sides of the border, a same-cluster bit, a one-way floor step, and a directed drop.
             nav.assemble_floors(
-                [(cell, [(1, 31), (3, 61)]) for cell in (8, 12, 16)],
+                [(cell, [(1, 31), (3, 61)]) for cell in (8, 12, 16)] + [(9, [(1, 30)])],
                 [
                     (8, 31, 12, 31, None),
                     (12, 31, 8, 31, None),
@@ -93,11 +94,16 @@ class StoredGridTest(unittest.TestCase):
                 ],
             )
             if fmt == 4:
+                nav.LINKS[8][nav.FLOORS_AT[9][0]] = None
+                nav.LINKS[8][9] = None
+                nav.LINKS[nav.FLOORS_AT[9][0]][10] = None
+                nav.LINKED_OF[0].extend((8, nav.FLOORS_AT[9][0]))
                 grid[7] = 1
                 cuts = bytearray(32)
                 cuts[9], cuts[12] = 16, 1
                 nav.FLOOR_VAL = bytearray(1 if v == 3 else v for v in nav.FLOOR_VAL)
                 nav.LINKS[12][nav.FLOORS_AT[16][-1]] = None
+                nav.NARROW_STEPS[0].add((8, nav.FLOORS_AT[9][0]))
                 nav.WET_STEPS[0].update({(12, 16), (12, nav.FLOORS_AT[16][-1])})
             fields = {
                 name: {key + 1: text for key, text in entries.items()}
@@ -120,6 +126,7 @@ class StoredGridTest(unittest.TestCase):
                     )
                 )
                 + "\n\tsteep = true,"
+                + ("\n\tfloorFormat = 1," if fmt == 4 else "")
             )
 
             def adjacency(grid, cuts):

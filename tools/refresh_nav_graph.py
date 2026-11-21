@@ -62,6 +62,7 @@ def decode(source, fields, map_id):
         return int(match[1])
 
     fmt = number("format")
+    implicit = "\tfloorFormat = 1," in source
     if fmt not in (3, 4) or (fmt == 3 and "\tsteep = true," not in source):
         raise ValueError("Graph refresh requires format 3 with stored steep heights or format 4")
     nav.MAP, nav.CELLS = map_id, number("cells")
@@ -89,6 +90,7 @@ def decode(source, fields, map_id):
     nav.LINKS, nav.LINKED_OF, nav.FREE = defaultdict(dict), defaultdict(list), set()
     nav.TERRAIN = {}
     nav.WET_STEPS = defaultdict(set)
+    nav.NARROW_STEPS = defaultdict(set)
 
     def global_cell(k, local):
         return (k // nav.NY * c + local // c) * nav.GH + k % nav.NY * c + local % c
@@ -96,23 +98,30 @@ def decode(source, fields, map_id):
     def global_node(k, local):
         return global_cell(k, local) if local < c * c else nav.FLOORS_OF[k][local - c * c]
 
-    pending, wet = [], []
+    pending, clearance = [], []
     directions = dict(sorted((d, xy) for xy, d in nav.DIRS.items()))
 
-    def read_mask(reader, node, mask):
+    def read_layers(reader):
+        layers = reader.take()
+        if layers:
+            return [layer for layer in range(6) if layers & (1 << layer)]
+        return [reader.take() for _ in range(reader.take(2))]
+
+    def read_mask(reader, node, mask, overrides=None, ordinal=0):
         for d, (dx, dy) in directions.items():
             if not mask & (1 << d):
                 continue
             if fmt == 3:
                 pending.append((node, dx, dy, reader.take(), None, True, False))
+                continue
+            layer = nav.implicit_landing(k, node, dx, dy) if overrides is not None else None
+            if layer is None:
+                selected = read_layers(reader)
             else:
-                layers = reader.take()
-                selected = (
-                    [layer for layer in range(6) if layers & (1 << layer)]
-                    if layers
-                    else [reader.take() for _ in range(reader.take(2))]
-                )
-                pending.extend((node, dx, dy, layer, None, False, False) for layer in selected)
+                ordinal += 1
+                selected = overrides.pop(ordinal, [layer])
+            pending.extend((node, dx, dy, layer, None, False, False) for layer in selected)
+        return ordinal
 
     for key, text in sorted(fields["grid"].items()):
         k = key - 1
@@ -184,8 +193,18 @@ def decode(source, fields, map_id):
             for _ in range(reader.take(3)):
                 local += reader.delta()
                 masks.append((global_node(k, local), reader.take(2)))
+            overrides, ordinal = None, 0
+            if implicit:
+                length = reader.take(3)
+                end = reader.pos + length
+                overrides, index = {}, 0
+                while reader.pos < end:
+                    index += reader.delta()
+                    overrides[index] = read_layers(reader)
+                assert reader.pos == end
             for node, mask in masks:
-                read_mask(reader, node, mask)
+                ordinal = read_mask(reader, node, mask, overrides, ordinal)
+            assert not overrides
         else:
             for _ in range(reader.take(3)):
                 local += reader.delta()
@@ -204,7 +223,8 @@ def decode(source, fields, map_id):
         if fmt == 4:
             while reader.pos < len(reader.values):
                 local += reader.delta()
-                wet.append((global_node(k, local), *directions[reader.take()], reader.take()))
+                direction = reader.take()
+                clearance.append((global_node(k, local), *directions[direction % 8], reader.take(), direction >= 8))
         assert reader.pos == len(reader.values)
 
     def landing(node, dx, dy, layer):
@@ -223,8 +243,9 @@ def decode(source, fields, map_id):
             nav.LINKS[target][node] = cost
             if free:
                 nav.FREE.add((target, node))
-    for node, dx, dy, layer in wet:
-        nav.WET_STEPS[nav.cluster_of_cell(node)].add((node, landing(node, dx, dy, layer)))
+    for node, dx, dy, layer, narrow in clearance:
+        restrictions = nav.NARROW_STEPS if narrow else nav.WET_STEPS
+        restrictions[nav.cluster_of_cell(node)].add((node, landing(node, dx, dy, layer)))
     for node in sorted(nav.LINKS):
         nav.LINKED_OF[nav.cluster_of_cell(node)].append(node)
     nav.ROAD_CELLS = nav.read_roads(map_id)
