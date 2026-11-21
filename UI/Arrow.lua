@@ -837,7 +837,8 @@ local function ShowCastTooltip(button)
 end
 
 -- Called only out of combat. The secure button anchors to UIParent in screen coordinates.
--- The prompt anchors to the button, so protection cannot spread to the prompt or moving arrow.
+-- The button copies the prompt's screen position onto UIParent, and nothing anchors to it: a frame anchored to a
+-- protected frame turns protected, and the prompt and the movable arrow must stay free to move in combat.
 local function ApplyCastButton()
 	local prompt, teleport = castPrompt, castTarget
 	if not prompt or not teleport or teleport.partyMage or moving or not ns.CastPromptShown() then
@@ -874,8 +875,6 @@ local function ApplyCastButton()
 	button:SetScale(scale)
 	button:ClearAllPoints()
 	button:SetPoint("TOP", UIParent, "BOTTOMLEFT", x, top)
-	prompt:ClearAllPoints()
-	prompt:SetPoint("TOP", button, "TOP")
 	button:SetAttribute("type", teleport.item and "item" or "spell")
 	button:SetAttribute("item", teleport.item and ("item:" .. teleport.item) or nil)
 	button:SetAttribute("spell", not teleport.item and teleport.spell or nil)

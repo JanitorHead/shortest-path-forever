@@ -30,6 +30,12 @@ env.CreateFrame = function(kind, name, parent, template)
 		function widget:UnregisterAllEvents()
 			self:UnregisterEvent("PLAYER_REGEN_ENABLED")
 		end
+		-- A frame anchored to a protected frame turns protected, and the prompt must stay free to move in combat.
+		local setPoint = widget.SetPoint
+		function widget:SetPoint(point, relative, ...)
+			assert(not button or relative ~= button, "nothing anchors to the secure button")
+			return setPoint(self, point, relative, ...)
+		end
 		return widget
 	end
 	assert(not combat and not button, "create one secure button outside combat")
