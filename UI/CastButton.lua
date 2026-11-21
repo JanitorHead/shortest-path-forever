@@ -14,7 +14,7 @@ local L = ns.L
 
 local ICON_SIZE = 36
 
----@type Button?
+---@type SecureActionButtonTemplate?
 local button
 -- The action a click performs now, and the teleport the prompt shows now.
 ---@type SPFTeleportPlace?
