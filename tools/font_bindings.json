@@ -75,8 +75,8 @@
     },
     {
       "source": "UI/Arrow.lua",
-      "sha256": "54df40d4a1498a7889eae191e780efa34176c30077c5de27cc910aec929c185f",
-      "review": "Read Create, ArrowLabel, distance updates, arrival labels, progress and cast prompt. MoverHint uses GameFontHighlightSmall and Distance uses GameFontNormal, including the formatted time-distance phrase. No later font override occurs. Dynamic objective lines, arrival titles, route titles and actions from helpers are excluded; this review does not claim coverage for their inserted text.",
+      "sha256": "9e5948281ee4c7d11064158e4230528b3fc7e36f89d7fc118f01bca2e683b9cd",
+      "review": "Read Create, ArrowLabel, distance updates, arrival labels, progress and cast prompt. MoverHint uses GameFontHighlightSmall and Distance uses GameFontNormal, including the formatted time-distance phrase. No later font override occurs. Dynamic objective lines, arrival titles, route titles and actions from helpers are excluded; this review does not claim coverage for their inserted text. Reviewed #1161: NativeMarkerAt and the shared-marker stand-down read C_Navigation and C_Map only; no FontString, FontObject or text change. Reviewed #1035: the cast prompt's secure button moved to UI/CastButton.lua and writes only GameTooltip text; no FontString, FontObject or text change here.",
       "bindings": [
         {
           "font": "GameFontHighlightSmall",
@@ -256,7 +256,7 @@
     },
     {
       "source": "UI/Farming.lua",
-      "sha256": "f3e5efd64a74f83c95c8def5f945e4cf48b409a7443fbfc90c2db0db73fcd7a1",
+      "sha256": "fe64c066e0c6334af763548201dc6abecc7ed857708cc8e38369fc830053faa8",
       "review": "Read Text, Build, Message, Paint, Start and Refresh. Description and statusText call Text without the optional font argument, fixing GameFontHighlight; all local messages and progress phrases reach statusText. No font overrides follow. Node titles are external dynamic text; button and window title fonts belong to templates and are excluded, as are unused helper arguments.",
       "bindings": [
         {
