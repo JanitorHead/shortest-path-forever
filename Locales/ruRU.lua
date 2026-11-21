@@ -164,6 +164,10 @@ L["Only use the Hearthstone when it saves at least this much time."] =
 L["Open"] = "Открыть"
 L["Open Nearby services"] = "Открыть услуги поблизости"
 L["Open the world map to see it."] = "Откройте карту мира, чтобы увидеть."
+L["Rides to spend less time walking through %s (level %s)"] =
+	"Используется транспорт, чтобы меньше идти пешком через %s (уровень %s)"
+L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."] =
+	"Сокращает путь пешком через зоны, минимальный уровень которых выше вашего на 4 или больше, даже если цель находится там."
 L["Turn the world map to %s to see it."] =
 	"Переключите карту мира на %s, чтобы увидеть." -- mt
 L["This menu needs mouse and keyboard."] = "Для этого меню нужны мышь и клавиатура." -- mt
@@ -262,8 +266,6 @@ L["Use class teleports"] = "Использовать классовые теле
 L["Vendors"] = "Торговцы"
 L["W"] = "З"
 L["Walk to %s"] = "Идти: %s"
-L["Walks go round zones whose lowest level is 4 or more above yours, but never the ones you start or end in."] =
-	"Пешие маршруты обходят зоны, минимальный уровень которых на 4 и более выше вашего, но не зоны начала и конца пути."
 L["Weapons and armour"] = "Оружие и доспехи"
 L["What's new after an update"] = "Новое после обновления"
 L["While Guide is on: your next turns, the next stop and your destination across the top of the screen."] =
@@ -461,12 +463,11 @@ L["Off, the game's own quest markers stay beside your journey's pins, showing th
 	"Если выключено, игровые метки заданий остаются рядом с метками вашего маршрута, чтобы вы видели другие места, где можно выполнить задание." -- mt
 L["Shift"] = "Shift" -- mt
 L["Alt"] = "Alt" -- mt
-L["Click the map to plan journeys"] =
-	"Щелкните по карте, чтобы планировать маршруты" -- mt
-L["Hold your journey key and click the world map or the minimap to plan a journey there."] =
-	"Удерживайте клавишу маршрута и щелкните по карте мира или мини-карте, чтобы проложить туда маршрут." -- mt
-L["Journeys are off. Turn on Click the map to plan journeys in settings."] =
-	"Маршруты отключены. Включите «Щелкните по карте, чтобы планировать маршруты» в настройках." -- mt
+L["Enable journeys"] = "Включить маршруты" -- mt
+L["Off clears your journey, and map clicks, quests, guides and waypoints no longer start one."] =
+	"Если выключено, текущий маршрут сбрасывается, а щелчки по карте, задания, гайды и путевые точки его не запускают." -- mt
+L["Journeys are off. Turn on Enable journeys in settings."] =
+	"Маршруты отключены. Включите «Включить маршруты» в настройках." -- mt
 L["Key to plan a journey"] = "Клавиша для планирования маршрута" -- mt
 L["The key you hold to plan a journey from the world map or the minimap."] =
 	"Клавиша, которую вы удерживаете, чтобы проложить маршрут с карты мира или мини-карты." -- mt
@@ -496,6 +497,8 @@ L["Farming tour running."] = "Маршрут сбора выполняется."
 L["Farming tour paused."] = "Маршрут сбора приостановлен." -- mt
 L["Farming tour stopped."] = "Маршрут сбора остановлен." -- mt
 L["Farming tour waiting."] = "Маршрут сбора ожидает." -- mt
+L["Or choose %s in the journey tracker menu."] =
+	"Или выберите «%s» в меню отслеживания маршрута." -- mt
 L["Ordering recorded locations..."] = "Упорядочивание записанных мест..." -- mt
 L["Farming needs the GatherMate2 addon."] = "Для сбора требуется аддон GatherMate2." -- mt
 L["Your current zone is unavailable."] = "Текущая зона недоступна." -- mt

@@ -151,11 +151,13 @@ ns.Credits = {
 		{ name = "ghuff07", what = "Dugi Guides can lead the journey" },
 		{ name = "nimri82", what = "The public guidance point for RestedXP-Navigator" },
 		{ name = "cmartin303", what = "Short walks through Ironforge keep nearby doorways" },
+		{ name = "lukehmu", what = "Journey clicks in the corners of a square minimap" },
 	},
 	inspired = {
 		{ name = "Polestar by Fitz", what = "Ideas for many features" },
 		{ name = "AzerothGPS", what = "Caves and cities as a test target" },
 		{ name = "Ding! by Yendi", what = "Walks that keep out of zones far above your level" },
+		{ name = "Travelcraft (CurseForge)", what = "Rides that shorten walks through high-level zones" },
 		{ name = "BV Addon Suite - Routing", what = "Walks that start on the floor you are standing on" },
 	},
 }
