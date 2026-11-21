@@ -600,6 +600,6 @@ L["Find a new route without this transport. You can clear avoided transport in S
 	"Recherche un nouvel itinéraire sans ce transport. Vous pouvez effacer la liste des transports évités dans les paramètres." -- mt
 L["No route remains without %s. Right-click to undo."] = "Aucun itinéraire sans %s. Faites un clic droit pour annuler." -- mt
 L["Avoided transport"] = "Transports évités" -- mt
-L["Clear avoided transport (%d)"] = "Effacer les exclusions (%d)" -- mt
+L["Clear avoided transport"] = "Effacer les exclusions" -- mt
 L["Clear this character's avoided transport so the planner can use it again."] =
 	"Efface la liste de ce personnage pour que le planificateur puisse de nouveau utiliser ces transports." -- mt

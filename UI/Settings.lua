@@ -540,27 +540,14 @@ ns.Init(function()
 		L["Use Water Walking or Levitate when available. When off, routes use swimming times and may still cross water."],
 		ns.TravelPolicyChanged
 	)
-	local function AvoidedButtonText()
-		return L["Clear avoided transport (%d)"]:format(#ns.PlanContext.Avoided())
-	end
-	local function AvoidedTooltip()
-		local lines = { L["Clear this character's avoided transport so the planner can use it again."] }
-		for _, entry in ipairs(ns.PlanContext.Avoided()) do
-			lines[#lines + 1] = entry.name
-		end
-		return table.concat(lines, "\n")
-	end
-	-- Native button and tooltip callbacks read the live list, including changes since Settings was opened.
+	-- Plain strings and a plain click, as the client's button initializer takes them; /path report lists the entries.
 	Settings.RegisterInitializer(
 		page,
 		Secure(CreateSettingsButtonInitializer)(
 			L["Avoided transport"],
-			Secure(GenerateClosure)(securecallfunction, AvoidedButtonText),
-			function(button)
-				ns.ClearAvoidedTransport()
-				button:SetText(AvoidedButtonText())
-			end,
-			Secure(GenerateClosure)(securecallfunction, AvoidedTooltip),
+			L["Clear avoided transport"],
+			ns.ClearAvoidedTransport,
+			L["Clear this character's avoided transport so the planner can use it again."],
 			false
 		)
 	)

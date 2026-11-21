@@ -594,6 +594,6 @@ L["Find a new route without this transport. You can clear avoided transport in S
 L["No route remains without %s. Right-click to undo."] =
 	"No queda ninguna ruta sin %s. Haz clic derecho para deshacerlo."
 L["Avoided transport"] = "Transportes evitados"
-L["Clear avoided transport (%d)"] = "Borrar transportes evitados (%d)"
+L["Clear avoided transport"] = "Borrar transportes evitados"
 L["Clear this character's avoided transport so the planner can use it again."] =
 	"Borra la lista de este personaje para que el planificador pueda volver a usar esos transportes."

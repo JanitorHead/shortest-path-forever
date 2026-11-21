@@ -225,9 +225,9 @@ Settings = nil
 
 -- Blizzard's settings button initializer, absent from the pinned annotations (Ketho/vscode-wow-api).
 ---@param name string
----@param buttonText string|fun(): string
----@param click fun(button: Button)
----@param tooltip? string|fun(): string
+---@param buttonText string
+---@param click fun()
+---@param tooltip? string
 ---@param addSearchTags? boolean
 ---@return SPFSettingsInitializer
 function CreateSettingsButtonInitializer(name, buttonText, click, tooltip, addSearchTags) end

@@ -27,7 +27,7 @@ L["Find a new route without this transport. You can clear avoided transport in S
 	"Find a new route without this transport. You can clear avoided transport in Settings."
 L["No route remains without %s. Right-click to undo."] = "No route remains without %s. Right-click to undo."
 L["Avoided transport"] = "Avoided transport"
-L["Clear avoided transport (%d)"] = "Clear avoided transport (%d)"
+L["Clear avoided transport"] = "Clear avoided transport"
 L["Clear this character's avoided transport so the planner can use it again."] =
 	"Clear this character's avoided transport so the planner can use it again."
 L["Rides to spend less time walking through %s (level %s)"] = "Rides to spend less time walking through %s (level %s)"

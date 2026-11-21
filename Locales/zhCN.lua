@@ -583,6 +583,6 @@ L["Find a new route without this transport. You can clear avoided transport in S
 	"寻找不经过此交通方式的新路线。你可以在设置中清除避用列表。"
 L["No route remains without %s. Right-click to undo."] = "避开%s后没有可用路线。右键点击可撤销。"
 L["Avoided transport"] = "避用的交通方式"
-L["Clear avoided transport (%d)"] = "清除避用交通方式（%d）"
+L["Clear avoided transport"] = "清除避用交通方式"
 L["Clear this character's avoided transport so the planner can use it again."] =
 	"清除此角色的避用列表，让路线规划重新考虑这些交通方式。"

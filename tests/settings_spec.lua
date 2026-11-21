@@ -515,15 +515,11 @@ for _, row in ipairs(registered) do
 	end
 end
 assert(clearTransport, "Guidance has a Clear avoided transport button")
-assert(clearTransport.description() == "Clear avoided transport (1)")
-assert(clearTransport.tooltip():find("Test boat", 1, true))
-local buttonText
-clearTransport.callback({
-	SetText = function(_, label)
-		buttonText = label
-	end,
-})
-assert(clear == 1 and buttonText == "Clear avoided transport (0)")
+assert(clearTransport.description == "Clear avoided transport")
+assert(clearTransport.tooltip == "Clear this character's avoided transport so the planner can use it again.")
+-- The client calls the click with its own arguments; clearing needs none of them.
+clearTransport.callback()
+assert(clear == 1, "the button clears the avoided transport")
 
 -- The rows themselves are unchanged: keys, defaults, tooltips and callbacks.
 local function Row(key)

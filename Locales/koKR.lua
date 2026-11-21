@@ -605,6 +605,6 @@ L["Find a new route without this transport. You can clear avoided transport in S
 L["No route remains without %s. Right-click to undo."] =
 	"%s 항목을 제외하면 남는 경로가 없습니다. 우클릭하여 되돌리세요."
 L["Avoided transport"] = "제외한 교통수단"
-L["Clear avoided transport (%d)"] = "제외한 교통수단 지우기 (%d)"
+L["Clear avoided transport"] = "제외한 교통수단 지우기"
 L["Clear this character's avoided transport so the planner can use it again."] =
 	"이 캐릭터의 제외 목록을 지워 경로를 찾을 때 해당 교통수단을 다시 이용할 수 있게 합니다."

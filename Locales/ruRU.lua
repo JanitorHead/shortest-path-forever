@@ -629,6 +629,6 @@ L["Find a new route without this transport. You can clear avoided transport in S
 L["No route remains without %s. Right-click to undo."] =
 	"Без «%s» маршрута нет. Щёлкните правой кнопкой мыши, чтобы отменить исключение."
 L["Avoided transport"] = "Исключённый транспорт"
-L["Clear avoided transport (%d)"] = "Очистить исключения (%d)"
+L["Clear avoided transport"] = "Очистить исключения"
 L["Clear this character's avoided transport so the planner can use it again."] =
 	"Очистить список исключений персонажа, чтобы снова использовать этот транспорт при построении маршрутов."
