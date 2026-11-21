@@ -548,7 +548,7 @@ local function OnWalk(points, here, reach)
 		end
 		walked = walked + length
 	end
-	return found, along, after, total
+	return found, along, after, total, best
 end
 
 ns.OnWalk = OnWalk -- Corpse.lua trims its walk the same way.
