@@ -78,7 +78,9 @@ if deep:
     original_moves, original_roads, original_hpa = nav.moves, nav.ROAD_CELLS, nav._HPA
     arcs = {0: ((3, 1), (4, 3), (2, 12)), 3: ((1, 10),), 4: ((2, 6),), 2: ((1, 1),)}
     try:
-        nav.moves = lambda _g, _grid, _cuts, u, _box, _water: arcs.get(u, ())
+        nav.moves = lambda _g, _grid, _cuts, u, _box, *, all_weights: (
+            (v, (cost,) * len(nav.WEIGHTS)) for v, cost in arcs.get(u, ())
+        )
         nav.ROAD_CELLS = dict.fromkeys((0, 1, 2), 1.0)
         synthetic_grid = bytearray([1]) * len(grid)
         nav._HPA = synthetic_grid, set(), {0: {0, 1, 2}}

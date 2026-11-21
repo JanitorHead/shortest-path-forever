@@ -63,6 +63,9 @@ def decode(source, fields, map_id):
 
     fmt = number("format")
     implicit = "\tfloorFormat = 1," in source
+    nav.LINK_COST_SCALE = number("linkCostScale") if "\tlinkCostScale = " in source else 1
+    if nav.LINK_COST_SCALE not in (1, 4):
+        raise ValueError("Unsupported navigation link cost scale")
     if fmt not in (3, 4) or (fmt == 3 and "\tsteep = true," not in source):
         raise ValueError("Graph refresh requires format 3 with stored steep heights or format 4")
     nav.MAP, nav.CELLS = map_id, number("cells")
@@ -88,6 +91,7 @@ def decode(source, fields, map_id):
     nav.FLOOR_VAL, nav.FLOOR_LAYER = bytearray(), bytearray()
     nav.FLOORS_OF, nav.FLOORS_AT = defaultdict(list), {}
     nav.LINKS, nav.LINKED_OF, nav.FREE = defaultdict(dict), defaultdict(list), set()
+    nav.PARALLEL_LINKS = defaultdict(dict)
     nav.TERRAIN = {}
     nav.WET_STEPS = defaultdict(set)
     nav.NARROW_STEPS = defaultdict(set)
@@ -218,7 +222,7 @@ def decode(source, fields, map_id):
                 reader.take(),
                 reader.take(2),
             )
-            pending.append((global_node(k, local), dx, dy, layer, cost, False, False))
+            pending.append((global_node(k, local), dx, dy, layer, cost / nav.LINK_COST_SCALE, False, False))
         local = 0
         if fmt == 4:
             while reader.pos < len(reader.values):
@@ -236,7 +240,10 @@ def decode(source, fields, map_id):
 
     for node, dx, dy, layer, cost, both, free in pending:
         target = landing(node, dx, dy, layer)
-        nav.LINKS[node][target] = cost
+        if cost is not None and target in nav.LINKS[node] and nav.LINKS[node][target] is None and fmt >= 4:
+            nav.PARALLEL_LINKS[node][target] = cost
+        else:
+            nav.LINKS[node][target] = cost
         if free:
             nav.FREE.add((node, target))
         if both:

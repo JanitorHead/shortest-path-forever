@@ -237,7 +237,7 @@ local function search(st, k, swim, source, tree, goal, targets, left, roads, hz,
 				if ay < 0 then
 					ay = -ay
 				end
-				h = (ax > ay and ax + (SQRT2 - 1) * ay or ay + (SQRT2 - 1) * ax) * cs
+				h = (ax > ay and ax + (SQRT2 - 1) * ay or ay + (SQRT2 - 1) * ax) * cs * st.minStepRatio
 			end
 			push(gv + h, v)
 		end
@@ -300,7 +300,7 @@ local function search(st, k, swim, source, tree, goal, targets, left, roads, hz,
 			if l then
 				for e = 1, #l do
 					if fmt >= 2 then
-						-- the cell offset, the landing layer and the cost in whole yards (0 for an ordinary step)
+						-- the cell offset, the landing layer and the packed cost (0 for an ordinary step)
 						local entry = l[e]
 						local tx, ty = ux + entry % 16 - 8, uy + floor(entry / 16) % 16 - 8
 						if tx >= 0 and ty >= 0 and tx < C and ty < C then
@@ -308,7 +308,7 @@ local function search(st, k, swim, source, tree, goal, targets, left, roads, hz,
 							if v then
 								local cost, free = floor(entry / 16384) % 8192, entry >= FREE
 								if cost > 0 then
-									relax(v, nil, cost, free)
+									relax(v, nil, cost / st.linkCostScale, free)
 								else
 									relax(v, (tx ~= ux and ty ~= uy) and SQRT2 or 1, nil, free)
 								end
@@ -804,9 +804,12 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 		local goalCell = cellOf(st, gk, gc)
 		local goalX = x0 + (floor(gk / st.ny) * C + floor(goalCell / C) + 0.5) * cs
 		local goalY = y0 + (gk % st.ny * C + goalCell % C + 0.5) * cs
-		local lower = max(0, 1 - 0.5 / cs)
+		local lower = max(0, st.minStepRatio - 0.5 / cs)
 		local margin = SNAP * SQRT2 * cs
 		local function h(id)
+			if lower == 0 then
+				return 0
+			end
 			local x, y = nodeXY(st, id)
 			local dx, dy = abs(x - goalX), abs(y - goalY)
 			local gap = dx > dy and dx + (SQRT2 - 1) * dy or dy + (SQRT2 - 1) * dx
@@ -1688,7 +1691,7 @@ local function bakeEdges(st, k, road)
 				local v, length, override, free
 				local entry = list[e]
 				if fmt >= 2 then
-					-- the cell offset, the landing layer and the cost in whole yards (0 for an ordinary step)
+					-- the cell offset, the landing layer and the packed cost (0 for an ordinary step)
 					local tx, ty = ux + entry % 16 - 8, uy + floor(entry / 16) % 16 - 8
 					if tx >= 0 and ty >= 0 and tx < C and ty < C then
 						v = surface(st, k, tx * C + ty, floor(entry / 256) % 64 - 1, z[i], val, z, at)
@@ -1696,7 +1699,7 @@ local function bakeEdges(st, k, road)
 							local cost = floor(entry / 16384) % 8192
 							free = entry >= FREE
 							if cost > 0 then
-								override = cost
+								override = cost / st.linkCostScale
 							else
 								length = (tx ~= ux and ty ~= uy) and SQRT2 or 1
 							end
@@ -1928,7 +1931,7 @@ function Path.LowerBound(map, from, to)
 	local cs = TILE / D.cells
 	local dx, dy = abs(from.x - to.x), abs(from.y - to.y)
 	local gap = dx > dy and dx + (SQRT2 - 1) * dy or dy + (SQRT2 - 1) * dx
-	return max(0, gap - (4 * SNAP + 1) * SQRT2 * cs) * max(0, 1 - 0.5 / cs)
+	return max(0, gap - (4 * SNAP + 1) * SQRT2 * cs) * max(0, (D.minStepRatio or 1) - 0.5 / cs)
 end
 
 ---@param job SPFPathJob?

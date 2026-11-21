@@ -63,6 +63,8 @@ CELLS = 67
 CS = T / CELLS
 # A swum yard counts as three running ones: beyond the slower pace (4.7 against 7 yd/s), swimming means climbing
 # out at a bank that may be a cliff, aggro from things that cannot be outrun, and fatigue far from shore.
+LINK_COST_SCALE = 1
+MIN_STEP_RATIO = 1.0
 SWIM = 3.0
 WATER_WALK = 1.0  # walking on water is running
 WEIGHTS = (SWIM, WATER_WALK)  # every edge carries one cost per weight, in this order
@@ -114,6 +116,7 @@ WET_STEP = "wet"
 WET_STEPS = defaultdict(set)  # cluster -> steps without straight dry clearance
 NARROW_STEPS = defaultdict(set)  # cluster -> steps with only centre-line dry clearance
 FLOORS_OF = defaultdict(list)  # cluster -> its floor nodes, by (cell, height)
+PARALLEL_LINKS = defaultdict(dict)  # costed moves that share endpoints with an ordinary link
 LINKED_OF = defaultdict(list)  # cluster -> its nodes with LINKS, sorted
 FLOORS_AT = {}  # cell -> its floor nodes, lowest first
 TERRAIN = {}  # cluster -> its terrain field (tools/baker/terrain.py)
@@ -181,9 +184,9 @@ def off_road(cell, base):
     return base * (1 - ROAD_CELLS.get(cell, 0.0))
 
 
-def read_roads(map_id):
+def read_roads(map_id, path=None):
     """Data/RoadCells.lua's road cells for a map, as global cell id -> coverage; empty before a road bake."""
-    path = ROOT / "Data" / "RoadCells.lua"
+    path = path if path is not None else ROOT / "Data" / "RoadCells.lua"
     if not path.exists():
         return {}
     found, inside = {}, False
@@ -896,10 +899,21 @@ def step_walkable(g, grid, cuts, ux, uy, vx, vy):
     return steep_ok(grid, ux, uy, vx, vy)
 
 
-def moves(g, grid, cuts, u, box, swim=SWIM):
+def outgoing_links(node):
+    yield from LINKS.get(node, {}).items()
+    yield from PARALLEL_LINKS.get(node, {}).items()
+
+
+def moves(g, grid, cuts, u, box, swim=SWIM, *, all_weights=False):
     """(v, cost in yards) for the moves out of node u that stay in box: the base grid's 8-neighbour steps, then its
     links to and from floors; entering water costs swim. Every step is walked by the rule the runtime decodes from the
     same grid, cuts and links, so the abstract graph cannot take a step the grid refuses or miss one it allows."""
+
+    def prices(v, length):
+        if all_weights:
+            return tuple(length * (weight if value_of(grid, v) == 2 else 1) for weight in WEIGHTS)
+        return length * (swim if value_of(grid, v) == 2 else 1)
+
     gx0, gx1, gy0, gy1 = box
     ux, uy = divmod(cell_of(u), GH)
     if u < GW * GH:
@@ -909,17 +923,17 @@ def moves(g, grid, cuts, u, box, swim=SWIM):
                 continue
             if step_walkable(g, grid, cuts, ux, uy, vx, vy):
                 v = vx * GH + vy
-                yield v, length * CS * (swim if grid[v] == 2 else 1)
-    for v, cost in sorted(LINKS.get(u, {}).items()):
+                yield v, prices(v, length * CS)
+    for v, cost in sorted(outgoing_links(u), key=lambda link: link[0]):
         vx, vy = divmod(cell_of(v), GH)
         if gx0 <= vx <= gx1 and gy0 <= vy <= gy1:
             if not isinstance(cuts, bytearray) and not link_ok(grid, u, v):
                 continue
             if cost is not None:
-                yield v, cost
+                yield v, (cost,) * len(WEIGHTS) if all_weights else cost
             else:
                 length = math.sqrt(2) if vx != ux and vy != uy else 1.0
-                yield v, length * CS * (swim if value_of(grid, v) == 2 else 1)
+                yield v, prices(v, length * CS)
 
 
 def cluster_box(k):
@@ -1022,10 +1036,7 @@ def cluster_edges(k):
                     left -= 1
                     dist[(s, u)], slope[(s, u)] = du, off[u]
                 if u not in adjacency:
-                    adjacency[u] = tuple(
-                        (v, tuple(c * (w if value_of(grid, v) == 2 else 1) for w in WEIGHTS))
-                        for v, c in moves(g, grid, cuts, u, box, 1)
-                    )
+                    adjacency[u] = tuple(moves(g, grid, cuts, u, box, all_weights=True))
                 for v, costs in adjacency[u]:
                     base = costs[mode % len(WEIGHTS)]
                     step_off = off_road(cell_of(v), base)
@@ -1113,7 +1124,7 @@ def grid_entrances(grid, cuts, jobs=1):
         for side, across in ((k, other), (other, k)):
             for u in LINKED_OF[side]:
                 ux, uy = divmod(cell_of(u), GH)
-                for w, cost in sorted(LINKS[u].items()):
+                for w, cost in sorted(outgoing_links(u), key=lambda link: link[0]):
                     if cluster_of_cell(w) != across:
                         continue
                     if not isinstance(cuts, bytearray) and not link_ok(grid, u, w):
@@ -1534,6 +1545,8 @@ def emit(nodes, edges, grid, masks, out, name):
         "\tformat = 4,",
         "\tgraphFormat = 1,",
         "\tfloorFormat = 1,",
+        *([f"\tlinkCostScale = {LINK_COST_SCALE},"] if LINK_COST_SCALE != 1 else []),
+        *([f"\tminStepRatio = {MIN_STEP_RATIO:.6f},"] if MIN_STEP_RATIO < 1 else []),
     ]
     for key, table in (
         ("graph", graph),
@@ -1837,7 +1850,7 @@ def encode_floors(grid, k, lnode):
         out += [enc(slots[d], 1) for d in sorted(slots)]
         KINDS["step bits"] += len(slots)
     for u in LINKED_OF[k]:
-        for v, cost in sorted(LINKS[u].items()):
+        for v, cost in sorted(outgoing_links(u), key=lambda link: link[0]):
             d = DIRS.get(offset(u, v))
             if cost is not None:
                 dx, dy = offset(u, v)
@@ -1898,13 +1911,16 @@ def encode_directed_floors(k, lnode):
     masks = defaultdict(dict)
     for u in LINKED_OF[k]:
         ux, uy = divmod(cell_of(u), GH)
-        for v, cost in sorted(LINKS[u].items()):
+        for v, cost in sorted(outgoing_links(u), key=lambda link: link[0]):
             vx, vy = divmod(cell_of(v), GH)
             dx, dy = vx - ux, vy - uy
             layer = FLOOR_LAYER[v - GW * GH] if v >= GW * GH else 0
             if cost is not None:
                 assert -8 <= dx <= 7 and -8 <= dy <= 7, (dx, dy)
-                drops.append((lnode(u), dx + 8, dy + 8, layer, round(cost)))
+                packed_cost = round(cost * LINK_COST_SCALE)
+                if not 0 < packed_cost < 4096:
+                    raise ValueError(f"Link cost out of range: {cost} at scale {LINK_COST_SCALE}")
+                drops.append((lnode(u), dx + 8, dy + 8, layer, packed_cost))
             else:
                 masks[u].setdefault(DIRS[dx, dy], []).append(layer)
 

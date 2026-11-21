@@ -72,6 +72,12 @@ override.floor = {
 	enc(1, 3) .. header(3, 0) .. enc(1, 3) .. enc(0, 1) .. enc(16, 2) .. enc(2, 3) .. "BD" .. enc(0, 3) .. "AMB",
 }
 maps[46] = override
+local quarter = {}
+for key, value in pairs(hybrid) do
+	quarter[key] = value
+end
+quarter.linkCostScale = 4
+maps[47] = quarter
 _G.ShortestPathForeverPathData = maps
 local ns = {}
 assert(loadfile("Routing/PathGrid.lua"))("ShortestPathForever", ns)
@@ -116,4 +122,8 @@ assert(st.links[0].narrow[4 * 64 + 1], "narrow clearance survives floor decoding
 local ks, nodes, costs = {}, {}, {}
 assert(Grid.neighbours(st, 0, 0, 0, 0, 1, 1, false, ks, nodes, costs) == 2)
 assert(nodes[1] == 3 and nodes[2] == 4, "a sparse override preserves both landings")
+st = assert(Grid.State(47))
+assert(Grid.grid(st, 0))
+assert(Grid.neighbours(st, 0, 4, 1, 1, 0, 0, false, ks, nodes, costs) == 1)
+assert(nodes[1] == 3 and costs[1] == 1.75, "an explicit link with scale 4 costs quarter yards")
 print("nav_directed_spec: ok")

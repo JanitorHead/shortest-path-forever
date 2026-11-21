@@ -212,6 +212,8 @@ local function State(map)
 			cs = TILE / C,
 			swim = D.swim,
 			zstep = D.zstep,
+			linkCostScale = D.linkCostScale or 1,
+			minStepRatio = D.minStepRatio or 1,
 			sizes = {},
 			used = {}, -- [k] = last use, for eviction
 			decoded = 0,
@@ -1899,7 +1901,7 @@ end
 -- the base surface's own step, then each of the node's floor links with that offset. They go into outK and outN from
 -- index 1, and the count is returned. One step can land on several surfaces (a stair beside the drop off its side),
 -- and a caller following a walk keeps them all: the first alone can be another floor than the walk's (#1015). With
--- outC, each landing's cost goes there too: 0 for a walked step, a drop's whole yards otherwise.
+-- outC, each landing's cost goes there too: 0 for a walked step, a costed link's yards otherwise.
 local function dryBlocked(links, key, offCentre)
 	return (links.dryBlocked and links.dryBlocked[key]) or (offCentre and links.narrow and links.narrow[key])
 end
@@ -2012,7 +2014,7 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC, 
 						count = count + 1
 						outK[count], outN[count] = tk, v
 						if outC then
-							outC[count] = cost
+							outC[count] = cost / st.linkCostScale
 						end
 					end
 				end

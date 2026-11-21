@@ -455,6 +455,8 @@ ShortestPathForeverCharDB = nil
 ---@field swim number
 ---@field zstep number
 ---@field format? number 2 for a step mask plus one-way link records; 1 (absent) for symmetric links
+---@field minStepRatio? number minimum cost relative to octile distance
+---@field linkCostScale? number packed link cost units per yard
 ---@field floorFormat? number encoding version for floor landing sets
 ---@field graphFormat? number encoding version for graph fields
 ---@field baseDegreeWidth? number base64 symbols per base-edge prefix count; absent means all edges are base
