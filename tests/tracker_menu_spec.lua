@@ -270,6 +270,12 @@ ns.UndoAvoidedTransport = function(saved)
 	assert(saved == avoided)
 	avoided = nil
 end
+local boarded = false
+ns.AvoidTransport = {
+	Allowed = function(leg)
+		return not (boarded and leg == boat)
+	end,
+}
 module.blocks = { { key = "journey", title = "Journey", rows = { { key = 1, text = "Boat" } } } }
 module:LayoutContents()
 line.click(line, "RightButton")
@@ -284,6 +290,18 @@ avoid.tooltip(tooltip)
 assert(tooltipText:find("new route", 1, true) and tooltipText:find("Settings", 1, true))
 avoid.callback()
 assert(avoided == entryToAvoid)
+avoided = nil
+
+-- Once boarded, the ride cannot be avoided: the row opens the journey's own menu.
+boarded = true
+local menusBefore = #t.menus
+line.click(line, "RightButton")
+assert(
+	#t.menus == menusBefore or not entry(t.menus[#t.menus], "Avoid this boat"),
+	"the boarded step offers no Avoid this boat"
+)
+boarded = false
+avoided = entryToAvoid
 
 plan = nil
 module.blocks[1].rows =

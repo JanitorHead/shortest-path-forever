@@ -328,7 +328,12 @@ local function TransportMenu(line, row)
 	end
 	local leg = type(key) == "number" and plan and plan.legs[first + key - 1]
 	local label = leg and AVOID[leg.mode]
-	if label and leg and (leg.route or leg.portal or (leg.mode == "flight" and leg.hops and leg.hops[1])) then
+	if
+		label
+		and leg
+		and ns.AvoidTransport.Allowed(leg)
+		and (leg.route or leg.portal or (leg.mode == "flight" and leg.hops and leg.hops[1]))
+	then
 		ForeverCore.ContextMenu(line, function(_, root)
 			root:CreateButton(label, function()
 				ns.AvoidJourneyTransport(leg)

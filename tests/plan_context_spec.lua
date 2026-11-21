@@ -347,6 +347,19 @@ journeyFixture.UndoAvoidedTransport(assert(noRoute[1].undoAvoid))
 journeyDriver.update(0.1)
 assert(journeyFixture.JourneyPlan().legs[1].route == 9, "Undo replans the journey from the player's current position")
 
+-- The ride under way cannot be avoided: the planner keeps a ride the player cannot leave, so the avoid would never
+-- take and its Undo would be lost.
+local realPlan = journeyFixture.JourneyPlan
+local underway = realPlan()
+journeyFixture.JourneyPlan = function()
+	return underway, 1, true
+end
+assert(not journeyFixture.AvoidTransport.Allowed(underway.legs[1]), "the boarded step offers no avoid")
+journeyFixture.AvoidJourneyTransport(underway.legs[1])
+assert(#journeyFixture.PlanContext.Avoided() == 0, "avoiding the boarded step saves nothing")
+journeyFixture.JourneyPlan = realPlan
+assert(journeyFixture.AvoidTransport.Allowed(underway.legs[1]), "before boarding, the step can be avoided")
+
 -- The journey and the estimate plan from the same context. What each adds is listed here so a change to either
 -- shows up as a failure rather than as drift.
 local driver = assert(loadfile("tests/journey_driver.lua"))()

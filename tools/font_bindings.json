@@ -3,7 +3,7 @@
   "producers": [
     {
       "source": "UI/Tracker.lua",
-      "sha256": "17a9b1ddfb9983ecd2258efb3f47d00f01792a1b8ecd7886f86daf24512aad0c",
+      "sha256": "b5de193b114af98cada1e2807ca2f9db0a8cc02678ad1f6c3b793236dd7883ce",
       "review": "Read all of Tracker.lua, Tracker.xml and ForeverCore TrackerSection.Create, UpdateText and TrackerLine.SetInteractive. Confirmed pinned client Blizzard_ObjectiveTrackerModule.xml: ObjectiveTrackerModuleTemplate Header inherits ObjectiveTrackerModuleHeaderTemplate, whose Text uses ObjectiveTrackerHeaderFont. Blizzard_ObjectiveTrackerBlock.xml HeaderText uses ObjectiveTrackerLineFont; Blizzard_ObjectiveTrackerShared.xml ObjectiveTrackerLineTemplate Text uses ObjectiveTrackerLineFont, inherited without overrides by ShortestPathForeverTrackerLineTemplate. Bound every local phrase sent to section headers, block headers and rows, including Journey  %s · %s from #838. RefreshBlockText preserves these widgets. Client tracker text-size changes and optional Kaliels font overrides are outside the pinned native-font coverage. Menus, chat, tooltips and dynamic text from JourneyInfo, DockTitle, and DepartureText are excluded. Reviewed #1005: the transport row menus use ForeverCore.ContextMenu. Its tooltips and labels establish no tracker FontObject.",
       "bindings": [
         {
@@ -45,7 +45,7 @@
     },
     {
       "source": "Journey/AvoidTransport.lua",
-      "sha256": "bd3a884db7eca8ad76836f2d3e61ff2100cd16b412a9b0a5325b5c8ed4d257ee",
+      "sha256": "ba49797c6a906d2452a4b451b47ff2cb83ea553074d740b871acf265e4173b92",
       "review": "Reviewed the avoided transport failure row from AvoidTransport.Row, which JourneyInfo returns as its first row. UI/Tracker.lua passes the row text to AddObjective using ShortestPathForeverTrackerLineTemplate, which inherits ObjectiveTrackerLineFont. Pin consumers use template-owned tooltip fonts.",
       "bindings": [
         {

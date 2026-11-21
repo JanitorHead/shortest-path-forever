@@ -57,9 +57,10 @@ function ns.HasJourney()
 end
 
 -- The plan being followed and the step under way, whatever the tracker shows (paused or behind a corpse run).
----@return SPFPlan? plan, integer index
+-- departed: the player has boarded that step's transport.
+---@return SPFPlan? plan, integer index, boolean? departed
 function ns.JourneyPlan()
-	return result, progress.index
+	return result, progress.index, progress.departed
 end
 
 local CONTINENTS = {

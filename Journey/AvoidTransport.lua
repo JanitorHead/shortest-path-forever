@@ -46,11 +46,20 @@ local function SetAvoided(entries)
 	return true
 end
 
+-- Whether the player may avoid this step: a transport not yet boarded. The ride under way cannot be left, so the
+-- planner keeps it and an avoid would never take; that step shows no menu.
+---@param leg SPFLeg
+---@return boolean
+function AvoidTransport.Allowed(leg)
+	local result, first, departed = ns.JourneyPlan()
+	return result ~= nil and not (departed and result.legs[first] == leg)
+end
+
 ---@param leg SPFLeg
 function ns.AvoidJourneyTransport(leg)
 	local goal = ns.JourneyGoal()
 	local result, first = ns.JourneyPlan()
-	if not (goal and result) or (ns.Corpse and ns.Corpse.Active()) then
+	if not (goal and result and AvoidTransport.Allowed(leg)) or (ns.Corpse and ns.Corpse.Active()) then
 		return
 	end
 	for index = first, #result.legs do
