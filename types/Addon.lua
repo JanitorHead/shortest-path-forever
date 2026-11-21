@@ -63,8 +63,8 @@
 ---@field EstimateContextRevision fun(): integer
 ---@field WorldPoint fun(uiMapID: integer, x: number, y: number): SPFPoint?
 ---@field FarmingCursor SPFFarmingCursorFactory
----@field NavigateFarmingRoute fun(owner: string, stops: SPFAPIStop[]): boolean
 ---@field JourneyRoutePolicy fun(): SPFRoutePolicy
+---@field APIStops SPFAPIStops the public API journey state and stop observers (Core/APIStops.lua)
 ---@field APIInput SPFAPIInput the public API's argument checks and answers (Core/APIInput.lua)
 ---@field EstimateWalks fun(owner: string, from: SPFAPIPlace, targets: SPFAPIPlace[], callback: fun(costs: (number|false)[], reason: SPFAPIWalkReason?), opts?: SPFAPIWalkOptions): cancel: fun()?, reason: SPFAPIWalkRefusal? one walking search to every target on the from point's walking map (#913)
 ---@field NavVersion fun(): string the walking data this build ships, for dropping cached walk costs
@@ -144,6 +144,7 @@
 ---@field jump? number
 ---@field label? string
 ---@field details? string[] -- a stop's own detail lines, in the caller's order (API.lua)
+---@field submitted? {map: number, x: number, y: number, z?: number} -- the place as the caller gave it, for stop observers (API.lua)
 ---@field routeTitle? string
 ---@field routeTitleFormat? string -- the locale format behind an addon-built routeTitle (API.lua)
 ---@field routeCount? integer -- stops in a multi-stop routeTitle (API.lua)
@@ -420,9 +421,15 @@
 ---@field taxiNames? table<number, string> -- flight points by the name a flight map gave them
 ---@field taxiVersion number
 ---@field taxiScanned? boolean
----@field guideWaypoint? {uiMapID: number, x: number, y: number}
+---@field guideWaypoint? SPFGuideWaypoint
 ---@field journey? SPFKeptJourney -- the player's own journey, kept across a reload (Resume.lua)
 ---@field bind? SPFBindPoint
+---@class SPFGuideWaypoint
+---@field uiMapID number
+---@field x number
+---@field y number
+---@field borrowed? {uiMapID: number, position: {x: number, y: number}, z: number?}
+---@field borrowedTracked? boolean
 ---@class SPFProgressData
 ---@field walkedYards number
 ---@field routesCompleted number
@@ -524,6 +531,7 @@ ShortestPathForeverPathData = nil
 ---@field estimated true
 
 ---@class SPFPlan
+---@field provisional? true -- a followable route while the proof is still running
 ---@field rough? true -- a first search's estimate, drawn before its proof and never followed
 ---@field arrive number
 ---@field legs SPFLeg[]
@@ -537,6 +545,8 @@ ShortestPathForeverPathData = nil
 ---@field hazards? string -- the key of the hazards its walks were searched with (Hazards.lua)
 ---@field preferred? boolean a ride the planner chose over a slightly quicker long walk
 ---@field unknownFlight? boolean the route walks only because a flight point it would use is undiscovered
+---@field rideNote? string why it rides: walking straight there crosses the goal's high-level zone (#1007)
+---@field charged? number a direct walk's arrival with the goal zone's charge, which chose it over `arrive`
 ---@field unknownFlightMaps? table<number, true> the continents whose undiscovered flight points would shorten the route
 ---@class SPFWalkCost
 ---@field from SPFPoint
