@@ -1,3 +1,4 @@
+import base64
 import json
 import sys
 import unittest
@@ -9,7 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from refresh_nav_graph import COMPATIBILITY, collision_compatible, decode, nav  # noqa: E402
+from refresh_nav_graph import COMPATIBILITY, collision_compatible, decode, graph_nodes, nav  # noqa: E402
 
 
 class StoredGridTest(unittest.TestCase):
@@ -21,6 +22,17 @@ class StoredGridTest(unittest.TestCase):
             self.assertFalse(collision_compatible(original, "futureGraphOrGeometry"))
         self.assertTrue(collision_compatible(current, current))
         self.assertFalse(collision_compatible("unlisted", current))
+
+    def test_inspection_resolves_indexed_entrances_to_floor_nodes(self):
+        raw = nav.encode_graph(4, [(5, 1, 6, 0, 0), (15, 0, 2, 0, 0)], [[], []])
+        text = base64.b64encode(raw).decode("ascii").rstrip("=")
+        with (
+            patch.object(nav, "CELLS", 4),
+            patch.object(nav, "NY", 1),
+            patch.object(nav, "GH", 4),
+            patch.object(nav, "FLOORS_AT", {21: [32]}),
+        ):
+            self.assertEqual(graph_nodes({"graph": {2: text}}, indexed=True), {1: {31, 32}})
 
     def test_missing_metadata_and_older_formats_are_rejected(self):
         fields = {name: {} for name in ("graph", "grid", "height", "floor", "terrain")}

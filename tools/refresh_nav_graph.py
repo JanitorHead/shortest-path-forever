@@ -5,6 +5,7 @@ its own recipe and the hash of the fields it consumed. Use only for graph change
 """
 
 import argparse
+import base64
 import hashlib
 import json
 import re
@@ -15,7 +16,7 @@ from pathlib import Path
 from baker import gen_nav as nav
 from baker.inputs import generator_bytes, generator_digest, generator_files
 from forever_tools.fsio import atomic_write
-from pack_nav import FIELDS, SECTION, read_map, read_packed
+from pack_nav import FIELDS, SECTION, indexed_graph, read_map, read_packed
 
 COMPATIBILITY = Path(__file__).with_name("baker") / "graph_compatibility.json"
 
@@ -253,19 +254,29 @@ def refresh_digest(root=nav.ROOT):
     return digest.hexdigest()
 
 
-def graph_nodes(fields, degree_width=1, base_degree_width=0):
+def graph_nodes(fields, degree_width=1, base_degree_width=0, *, indexed=False):
     """The existing graph's entrances, resolved against the unchanged floor order."""
     nodes = {}
     for key, text in fields["graph"].items():
-        k, reader = key - 1, Reader(text)
+        k = key - 1
         found = set()
-        for _ in range(reader.take(2)):
-            local, layer = reader.take(3), reader.take()
+        if indexed:
+            raw = base64.b64decode(text + "=" * (-len(text) % 4), validate=True)
+            count, (pos, layers, *_) = nav.graph_directory(raw)
+        else:
+            reader = Reader(text)
+            count = reader.take(2)
+        for _ in range(count):
+            if indexed:
+                place, pos = nav.graph_read_varint(raw, pos)
+                local = nav.graph_cell(place, nav.CELLS)
+                layer, layers = nav.graph_read_varint(raw, layers)
+            else:
+                local, layer = reader.take(3), reader.take()
+                reader.take(2 + degree_width + base_degree_width)
             x, y = divmod(local, nav.CELLS)
             cell = (k // nav.NY * nav.CELLS + x) * nav.GH + k % nav.NY * nav.CELLS + y
             found.add(nav.FLOORS_AT[cell][layer - 1] if layer else cell)
-            reader.take(2)
-            reader.take(degree_width + base_degree_width)
         nodes[k] = found
     return nodes
 
@@ -296,18 +307,28 @@ def main():
         print(f"{len(nodes)} clusters, {sum(map(len, nodes.values()))} entrances, {len(edges)} crossings", flush=True)
         width = re.search(r"\tdegreeWidth = (\d+),", source)
         base_width = re.search(r"\tbaseDegreeWidth = (\d+),", source)
-        old = graph_nodes(fields, int(width[1]) if width else 1, int(base_width[1]) if base_width else 0)
+        old = graph_nodes(
+            fields,
+            int(width[1]) if width else 1,
+            int(base_width[1]) if base_width else 0,
+            indexed=indexed_graph(source),
+        )
         changed = [k for k in nodes.keys() | old.keys() if nodes.get(k, set()) != old.get(k, set())]
         print(f"changed clusters {len(changed)}, entrances {sum(len(nodes.get(k, ())) for k in changed)}", flush=True)
         return
     nodes, edges = nav.grid_hpa(grid, cuts, args.jobs)
     fields["graph"] = {k + 1: text for k, text in nav.encode_map(nodes, edges, grid, cuts, collision=False)[0].items()}
-    source = source.replace("component(2) degree(1)", "component(2) degree(degreeWidth or 1)")
-    source = re.sub(r"^\tbaseDegreeWidth = \d+,\n", "", source, flags=re.MULTILINE)
-    source = source.replace("degree(degreeWidth or 1)]", "degree(degreeWidth or 1) baseDegree(baseDegreeWidth or 0)]")
-    source = re.sub(r"^\tdegreeWidth = \d+,\n", "", source, flags=re.MULTILINE)
-    source = re.sub(r"^\tformat = [34],$", r"\g<0>\n\tdegreeWidth = 2,\n\tbaseDegreeWidth = 2,", source, flags=re.M)
+    source = re.sub(r"^\t(?:degreeWidth|baseDegreeWidth|graphFormat) = \d+,\n", "", source, flags=re.M)
+    source = re.sub(r"^\tformat = [34],$", r"\g<0>\n\tgraphFormat = 1,", source, flags=re.M)
+    if "\tformat = 4," in source:
+        source = source.replace("\tclimbChecked = true,\n", "")
     source = re.sub(r"-- (?:Graph generator|Graph input): .*\n", "", source)
+    source = re.sub(
+        r"^-- graph\[k \+ 1\]: [^\n]*\n--   \[cluster offset[^\n]*\n--   on water[^\n]*grid\[k \+ 1\]:",
+        "-- Graph format 1 stores indexed entrance records and ordered edges.\n-- grid[k + 1]:",
+        source,
+        flags=re.M,
+    )
     source = source.replace(
         "-- Map ", f"-- Graph generator: {refresh_digest()}.\n-- Graph input: {collision_digest(fields)}.\n-- Map ", 1
     )

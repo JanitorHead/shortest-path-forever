@@ -233,6 +233,7 @@ local function State(map)
 			baseBuilt = {},
 			inBuilt = {}, -- [k] = true once cluster k's inbound lists are built
 			outDeg = {},
+			graphIndex = {},
 			baseDeg = {},
 			baseAdj = {},
 			baseIn = {},
@@ -587,7 +588,7 @@ local function decodeLinks(st, k, val, z, at, links, s, pos, masks, last, lpos)
 			wet[node * 512 + num(s, at_drop, 2)] = true
 			at_drop = at_drop + 2
 		end
-		links.wet = wet
+		links.dryBlocked = wet
 	end
 	return back
 end
@@ -852,7 +853,7 @@ local function gridSize(val, at, links, back)
 	end
 	for node, link in pairs(links) do
 		bytes = bytes + 128 + #link * 32
-		if node == "wet" then
+		if node == "dryBlocked" then
 			for _ in pairs(link) do
 				bytes = bytes + 64
 			end
@@ -987,6 +988,7 @@ local function trimGraphs()
 			owner.ncell[id], owner.nlayer[id], owner.ncomp[id], owner.nadj[id] = nil, nil, nil, nil
 			owner.nadjIn[id], owner.baseAdj[id], owner.baseIn[id], owner.baseDeg[id] = nil, nil, nil, nil
 		end
+		owner.graphIndex[oldest] = nil
 		owner.outDeg[oldest], owner.inBuilt[oldest], owner.baseBuilt[oldest] = nil, nil, nil
 		if owner.D.packed then
 			owner.D.graph[oldest + 1] = nil
@@ -994,6 +996,120 @@ local function trimGraphs()
 		graphKB = graphKB - owner.graphSize[oldest]
 		owner.nodes[oldest], owner.graphUsed[oldest], owner.graphSize[oldest] = nil, nil, nil
 	end
+end
+
+local function varint(s, pos)
+	local value = byte(s, pos)
+	if value < 128 then
+		return value, pos + 1
+	end
+	local total, scale = value - 128, 128
+	repeat
+		pos = pos + 1
+		value = byte(s, pos)
+		total = total + value % 128 * scale
+		scale = scale * 128
+	until value < 128
+	return total, pos + 1
+end
+
+local function signed(value)
+	local half = floor(value / 2)
+	return value % 2 == 0 and half or -half - 1
+end
+
+local function perimeterCell(place, C)
+	if place < C then
+		return place
+	elseif place < 2 * C then
+		return (C - 1) * C + place - C
+	elseif place < 3 * C - 2 then
+		return (place - 2 * C + 1) * C
+	elseif place < 4 * C - 4 then
+		return (place - 3 * C + 3) * C + C - 1
+	end
+	return place - (4 * C - 4)
+end
+
+-- Rows retain metadata and four edge-stream cursors. The byte extras advance the cursors without reading edges.
+local GRAPH_ROW = 9
+local function indexGraph(s, C)
+	local n, pos = varint(s, 1)
+	local p = {}
+	local size = 0
+	for i = 1, 12 do
+		p[i] = size
+		local length
+		length, pos = varint(s, pos)
+		size = size + length
+	end
+	for i = 1, 12 do
+		p[i] = p[i] + pos
+	end
+	local mode
+	mode, p[3] = varint(s, p[3])
+	local rows = {}
+	for i = 0, n - 1 do
+		if i % 256 == 255 then
+			slice()
+		end
+		local row = i * GRAPH_ROW
+		local place, component, degree, suffix
+		place, p[1] = varint(s, p[1])
+		rows[row + 1] = perimeterCell(place, C)
+		rows[row + 2], p[2] = varint(s, p[2])
+		component, p[3] = varint(s, p[3])
+		rows[row + 3] = component == 0 and mode or component - 1
+		degree, p[4] = varint(s, p[4])
+		suffix, p[5] = varint(s, p[5])
+		rows[row + 4], rows[row + 5] = degree, degree - suffix
+		rows[row + 6] = p[6]
+		p[6] = p[6] + degree
+		for j = 7, 9 do
+			local extra
+			rows[row + j] = p[j]
+			extra, p[j + 3] = varint(s, p[j + 3])
+			p[j] = p[j] + degree + extra
+		end
+	end
+	return rows
+end
+
+local GRAPH_DIAGONAL = sqrt(2)
+local function indexedEdges(st, k, s, rows, row, roads, out, wanted)
+	local base = rows[row + 5]
+	local count = roads == false and base or rows[row + 4]
+	local offsets, targets, walking, swimming = rows[row + 6], rows[row + 7], rows[row + 8], rows[row + 9]
+	local cell, C, cs = rows[row + 1], st.C, st.cs
+	local x, y = floor(cell / C), cell % C
+	local ordinal, previous = row / GRAPH_ROW, {}
+	local used = 0
+	for e = 0, count - 1 do
+		if e == base then
+			previous = {}
+		end
+		local offset = byte(s, offsets + e)
+		local target, walk, swim
+		target, targets = varint(s, targets)
+		walk, walking = varint(s, walking)
+		swim, swimming = varint(s, swimming)
+		if wanted == nil or offset == wanted then
+			target = signed(target) + (previous[offset] or (offset == 4 and ordinal or 0))
+			previous[offset] = target
+			local dx, dy = floor(offset / 3) - 1, offset % 3 - 1
+			local distance = dx ~= 0 and dy ~= 0 and GRAPH_DIAGONAL or 1
+			if offset == 4 then
+				local dest = rows[target * GRAPH_ROW + 1]
+				local tx, ty = abs(floor(dest / C) - x), abs(dest % C - y)
+				distance = max(tx, ty) + (GRAPH_DIAGONAL - 1) * min(tx, ty)
+			end
+			walk = floor(distance * cs + 0.5) + signed(walk)
+			out[used + 1], out[used + 2], out[used + 3] =
+				(k + dx * st.ny + dy) * 4096 + target, walk + signed(swim), walk
+			used = used + 3
+		end
+	end
+	return used
 end
 
 local function decodeGraph(st, k)
@@ -1014,32 +1130,43 @@ local function decodeGraph(st, k)
 	-- Built aside and published whole: the loops pause at the frame budget, and another job running meanwhile must
 	-- never find the cluster half decoded.
 	local s = chunks
-	local n, pos = num(s, 1, 2), 3
-	local degree = {}
-	local width, step = st.D.degreeWidth or 1, 6 + (st.D.degreeWidth or 1) + (st.D.baseDegreeWidth or 0)
-	for i = 0, n - 1 do
-		if i % 512 == 511 then
-			slice()
+	local n, index
+	local degree, adj = {}, {}
+	if st.D.graphFormat == 1 then
+		index = indexGraph(s, st.C)
+		n = #index / GRAPH_ROW
+	else
+		local pos
+		n, pos = num(s, 1, 2), 3
+		local width, step = st.D.degreeWidth or 1, 6 + (st.D.degreeWidth or 1) + (st.D.baseDegreeWidth or 0)
+		for i = 0, n - 1 do
+			if i % 512 == 511 then
+				slice()
+			end
+			degree[i + 1] = num(s, pos + 6, width)
+			pos = pos + step
 		end
-		ids[i + 1] = k * 4096 + i
-		degree[i + 1] = num(s, pos + 6, width)
-		pos = pos + step
-	end
-	local adj = {}
-	for i = 1, n do
-		if i % 512 == 0 then
-			slice()
+		for i = 1, n do
+			if i % 512 == 0 then
+				slice()
+			end
+			adj[i] = pos
+			pos = pos + degree[i] * 7
 		end
-		adj[i] = pos
-		pos = pos + degree[i] * 7
 	end
 	if st.nodes[k] then
 		return st.nodes[k]
 	end
 	for i = 1, n do
-		st.nadj[ids[i]] = adj[i]
+		local id = k * 4096 + i - 1
+		ids[i] = id
+		st.nadj[id] = adj[i] or (i - 1) * GRAPH_ROW
+		if index then
+			local row = (i - 1) * GRAPH_ROW
+			degree[i], st.baseDeg[id] = index[row + 4], index[row + 5]
+		end
 	end
-	st.nodes[k], st.outDeg[k] = ids, degree
+	st.nodes[k], st.outDeg[k], st.graphIndex[k] = ids, degree, index
 	st.graphSize[k] = (n * 288 + 128 + (st.D.packed and #s or 0)) / 1024
 	graphKB = graphKB + st.graphSize[k]
 	return ids
@@ -1055,6 +1182,15 @@ local function nodesOf(st, k)
 end
 
 local function metadata(st, id)
+	if st.D.graphFormat == 1 then
+		local k = floor(id / 4096)
+		nodesOf(st, k)
+		local rows, row = st.graphIndex[k], id % 4096 * GRAPH_ROW
+		if rows then
+			return rows[row + 1], rows[row + 2], rows[row + 3]
+		end
+		return nil
+	end
 	if st.ncell[id] == nil then
 		-- A packed map keeps its graph compressed until asked for: read the field, never the raw table (#897).
 		local field, pos =
@@ -1101,13 +1237,17 @@ local function edgesAt(st, id, roads)
 		local degree = st.outDeg[k]
 		adj = {}
 		local count = roads == false and st.baseDeg[id] or degree[id % 4096 + 1]
-		for e = 1, count do
-			local offset = B64[byte(s, pos)]
-			local target = k + (floor(offset / 3) - 1) * st.ny + offset % 3 - 1
-			adj[e * 3 - 2] = target * 4096 + num(s, pos + 1, 2)
-			adj[e * 3 - 1] = num(s, pos + 3, 2)
-			adj[e * 3] = num(s, pos + 5, 2)
-			pos = pos + 7
+		if st.D.graphFormat == 1 then
+			indexedEdges(st, k, s, st.graphIndex[k], pos, roads, adj)
+		else
+			for e = 1, count do
+				local offset = B64[byte(s, pos)]
+				local target = k + (floor(offset / 3) - 1) * st.ny + offset % 3 - 1
+				adj[e * 3 - 2] = target * 4096 + num(s, pos + 1, 2)
+				adj[e * 3 - 1] = num(s, pos + 3, 2)
+				adj[e * 3] = num(s, pos + 5, 2)
+				pos = pos + 7
+			end
 		end
 		if roads == false and st.baseDeg[id] and count < degree[id % 4096 + 1] then
 			st.baseAdj[id] = adj
@@ -1132,6 +1272,7 @@ local function buildInbound(st, k, roads)
 	local ny = st.ny
 	local kx, ky = floor(k / ny), k % ny
 	local into = {}
+	local scratch = {}
 	for dx = -1, 1 do
 		for dy = -1, 1 do
 			local nx, nyc = kx + dx, ky + dy
@@ -1140,7 +1281,44 @@ local function buildInbound(st, k, roads)
 				and nx < st.D.nx
 				and nyc < ny
 				and unpackField(st.D, "graph", nx * ny + nyc + 1)
-			if s then
+			if s and st.D.graphFormat == 1 then
+				local from = nx * ny + nyc
+				local rows = st.graphIndex[from] or indexGraph(s, st.C)
+				local wanted = (1 - dx) * 3 + 1 - dy
+				local direction = string.char(wanted)
+				local match = 0
+				for row = 0, #rows - 1, GRAPH_ROW do
+					local first = rows[row + 6]
+					local degree = roads == false and rows[row + 5] or rows[row + 4]
+					if match < first then
+						match = s:find(direction, first, true) or huge
+					end
+					if match < first + degree then
+						local source = from * 4096 + row / GRAPH_ROW
+						local out = roads == false and st.baseAdj[source] or st.nadj[source]
+						local count = degree * 3
+						if type(out) ~= "table" then
+							out = scratch
+							count = indexedEdges(st, from, s, rows, row, roads, scratch, wanted)
+						end
+						for i = 1, count, 3 do
+							local target = out[i]
+							if floor(target / 4096) == k then
+								local list = into[target]
+								if not list then
+									list = {}
+									into[target] = list
+								end
+								local at = #list
+								list[at + 1], list[at + 2], list[at + 3] = source, out[i + 1], out[i + 2]
+							end
+						end
+					end
+					if row % (GRAPH_ROW * 16) == 0 then
+						slice()
+					end
+				end
+			elseif s then
 				local n, pos = num(s, 1, 2), 3
 				local degrees, bases, left = {}, {}, 256
 				for i = 0, n - 1 do
@@ -1633,9 +1811,13 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 			local d = DIRECTION[(dx + 1) * 3 + dy + 1]
 			local bits = d and val and st.moves[k][node + 1]
 			if bits and floor(bits / directionBits[d]) % 2 == 1 then
-				local wet = st.links[k].wet
+				local blocked = st.links[k].dryBlocked
 				open = water
-					or (not (wet and wet[node * 512 + d * 64]) and val[node + 1] ~= 2 and value(st, tx, ty) ~= 2)
+					or (
+						not (blocked and blocked[node * 512 + d * 64])
+						and val[node + 1] ~= 2
+						and value(st, tx, ty) ~= 2
+					)
 			end
 		elseif st.fmt < 4 then
 			local val = tk == k and grid(st, k)
@@ -1701,9 +1883,11 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 				local layer = floor(entry / 256) % 64 - 1
 				local v = surface(st, tk, tlc, layer, h)
 				local cost = floor(entry / 16384) % 8192
-				local wet = cost == 0 and links.wet
-				local d = wet and abs(dx) <= 1 and abs(dy) <= 1 and DIRECTION[(dx + 1) * 3 + dy + 1]
-				if v and (water or (not (d and wet[node * 512 + d * 64 + layer]) and here ~= 2 and vt[v + 1] ~= 2)) then
+				local blocked = cost == 0 and links.dryBlocked
+				local d = blocked and abs(dx) <= 1 and abs(dy) <= 1 and DIRECTION[(dx + 1) * 3 + dy + 1]
+				if
+					v and (water or (not (d and blocked[node * 512 + d * 64 + layer]) and here ~= 2 and vt[v + 1] ~= 2))
+				then
 					local distance = math.sqrt((entry % 16 - 8) ^ 2 + (floor(entry / 16) % 16 - 8) ^ 2) * st.cs
 					if not steep or entry >= FREE or steep(vk, zk, node, vt, st.z[tk], v, distance) then
 						count = count + 1

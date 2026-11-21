@@ -19,6 +19,7 @@ Detour stores vertices as (worldY, worldZ, worldX). Output is in UnitPosition's 
 y grows west (world Y).
 """
 
+import base64
 import glob
 import heapq
 import json
@@ -109,7 +110,7 @@ LINKS = defaultdict(dict)  # node -> {node it steps to besides the base grid's o
 FREE = set()
 FREE_STEP = "free"
 WET_STEP = "wet"
-WET_STEPS = defaultdict(set)  # cluster -> (source, destination) pairs that require water
+WET_STEPS = defaultdict(set)  # cluster -> steps without straight dry clearance
 FLOORS_OF = defaultdict(list)  # cluster -> its floor nodes, by (cell, height)
 LINKED_OF = defaultdict(list)  # cluster -> its nodes with LINKS, sorted
 FLOORS_AT = {}  # cell -> its floor nodes, lowest first
@@ -515,11 +516,64 @@ def pick_surface(layers, polys, candidates, x, y, z):
     return best
 
 
+def dry_segment(polys, adj, portals, pa, a, pb, b):
+    """Follow a straight segment through dry convex polygons in portal order."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    squared = dx * dx + dy * dy
+    if pa == pb:
+        return not polys[pa]["steep"] or height(polys[pa], *b) <= height(polys[pa], *a) + 0.01
+    if squared == 0:
+        return False
+    eps = 1e-9
+    best = {pa: 0.0}
+    queue = [(0.0, pa)]
+    while queue:
+        at, u = heapq.heappop(queue)
+        if at != best[u]:
+            continue
+        poly = polys[u]
+        if poly["steep"]:
+            gx, gy = poly["plane"][-2:]
+            if gx * dx + gy * dy > 0.01:
+                continue
+        if u == pb:
+            return True
+        for v in adj.get(u, ()):
+            if polys[v]["water"]:
+                continue
+            p, q = portals[u, v]
+            px, py = p[0] - a[0], p[1] - a[1]
+            ex, ey = q[0] - p[0], q[1] - p[1]
+            cross = dx * ey - dy * ex
+            if abs(cross) <= eps:
+                if abs(px * dy - py * dx) > eps:
+                    continue
+                start, end = sorted(
+                    (
+                        (px * dx + py * dy) / squared,
+                        ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / squared,
+                    )
+                )
+                crossing = max(at, start)
+                if crossing > end + eps:
+                    continue
+            else:
+                portal_at = (px * dy - py * dx) / cross
+                crossing = (px * ey - py * ex) / cross
+                if not -eps <= portal_at <= 1 + eps or crossing < at - eps:
+                    continue
+                crossing = max(at, crossing)
+            if crossing <= 1 + eps and crossing < best.get(v, math.inf):
+                best[v] = crossing
+                heapq.heappush(queue, (crossing, v))
+    return False
+
+
 def rasterize_tile(rc):
     """Rasterize surfaces, outgoing step masks and floor links for one tile.
 
     The navmesh walk decides each direction independently, including diagonals. Only steps involving floors
-    and costed drops need explicit destinations.
+    and costed drops need explicit destinations. A dry-clearance exception leaves the step walkable.
     """
     rr, cc = rc
     window = [(rr + dr, cc + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (rr + dr, cc + dc) in TILES]
@@ -532,7 +586,7 @@ def rasterize_tile(rc):
     sy0, sy1 = max(0, ty0 - DROP_COLUMNS), min(GH - 1, ty1 + DROP_COLUMNS)
     layers = rasterize_layers(polys, adj, portal, (ax0, ax1, ay0, ay1))
 
-    def linked(i, la, j, lb, dry=False):
+    def linked(i, la, j, lb):
         """Is there a navmesh path from cell i's surface la to cell j's surface lb inside the two cells (+ MARGIN)?
 
         Steep ground is crossed downhill only, so the search carries a ceiling: the highest the walk can be inside the
@@ -564,8 +618,6 @@ def rasterize_tile(rc):
             u = stack.pop()
             ceiling = best[u]
             for v in adj.get(u, ()):
-                if dry and polys[v]["water"]:
-                    continue
                 # Only this part of the portal belongs to the step. Remote ends must not supply a higher
                 # entry ceiling or a lower exit from steep ground outside the two cells.
                 ends = clip_segment(*portal[(u, v)], box=box)
@@ -598,18 +650,29 @@ def rasterize_tile(rc):
             if len(surfaces) > 1:
                 floors.append((i, [(v, z) for z, v, _ in surfaces[1:]]))
             local = (gx - tx0) * CELLS + gy - ty0
+            a = (X0 + (gx + 0.5) * CS, Y0 + (gy + 0.5) * CS)
             for d, (dx, dy, _) in enumerate(MOVES):
                 jx, jy = gx + dx, gy + dy
                 if not (0 <= jx < GW and 0 <= jy < GH):
                     continue
                 j = jx * GH + jy
+                b = (X0 + (jx + 0.5) * CS, Y0 + (jy + 0.5) * CS)
                 for la in range(len(surfaces)):
                     for lb in range(len(layers.get(j, ()))):
                         land = surfaces[la][1] == 1 and layers[j][lb][1] == 1
-                        dry = land and linked(i, la, j, lb, dry=True)
-                        if not dry and not linked(i, la, j, lb):
+                        if not linked(i, la, j, lb):
                             continue
-                        wet = land and not dry
+                        wet = False
+                        if land:
+                            pa, anchor_a = surfaces[la][2]
+                            pb, anchor_b = layers[j][lb][2]
+                            # Refinement draws through cell coordinates; a passage sampled off-center may still be
+                            # a valid walk, even when the drawn segment's endpoint is outside its polygon.
+                            wet = not (
+                                (a == anchor_a or point_in_convex(*a, polys[pa]["pts"]))
+                                and (b == anchor_b or point_in_convex(*b, polys[pb]["pts"]))
+                                and dry_segment(polys, adj, portal, pa, a, pb, b)
+                            )
                         if la or lb or wet:
                             links.append((i, la, j, lb, WET_STEP if wet else None))
                         if not (la or lb):
@@ -994,7 +1057,7 @@ def grid_entrances(grid, cuts, jobs=1):
             return i
 
         first = 0
-        for i, (t, _, u, w, _) in enumerate(crossings):
+        for i, (t, _, u, w) in enumerate(crossings):
             while crossings[first][0] < t - 1:
                 first += 1
             for j in range(first, i):
@@ -1008,28 +1071,31 @@ def grid_entrances(grid, cuts, jobs=1):
     def entrances(groups):
         """Each run's entrances, with the edge the crossing walks."""
         for crossings in groups.values():
-            # A crossing carries its cost: None for an ordinary step, a float for a drop. Two identical crossings
-            # (a step and a drop over the same pair) would make the tuple comparison fall through to the cost and
-            # raise, so the order is the crossing itself and an ordinary step wins a tie (its reverse is a step).
-            crossings.sort(key=lambda c: (c[0], c[1], c[2], c[3], c[4] is not None))
+            # A pair may have a grid step and a drop. Keep one entrance candidate and its cheapest cost per mode.
+            costs, pairs, steps = {}, {}, set()
+            for t, diagonal, u, v, cost in crossings:
+                pair = u, v
+                price = step_into(u, v, diagonal) if cost is None else (cost,) * len(WEIGHTS)
+                costs[pair] = tuple(map(min, zip(costs[pair], price, strict=True))) if pair in costs else price
+                pairs[pair] = t, diagonal, u, v
+                if cost is None:
+                    steps.add(pair)
+            crossings = sorted(pairs.values())
             for run in runs(crossings):
                 for i in range(0, len(run), ENTRANCE_RUN):
                     chunk = run[i : i + ENTRANCE_RUN]
                     mid = chunk[len(chunk) // 2][0]
                     # prefer orthogonal, then the crossing nearest the chunk's middle
-                    _, diagonal, u, v, cost = min(chunk, key=lambda c: (c[1], abs(c[0] - mid)))
-                    if cost is not None:
-                        edges[(u, v)] = tuple(cost for _ in WEIGHTS)
-                    else:
-                        edges[(u, v)] = step_into(u, v, diagonal)
+                    _, _, u, v = min(chunk, key=lambda c: (c[1], abs(c[0] - mid)))
+                    edges[u, v] = costs[u, v]
                     nodes[cluster_of_cell(u)].add(u)
                     nodes[cluster_of_cell(v)].add(v)
             # A road crosses a border at a few points, often midway between the grid's entrances. Place an entrance
             # at each road-to-road crossing too, so a road-following walk does not leave the road to reach one
             # (#892). Roads come from Data/RoadCells.lua; without them nothing is added.
-            for _t, diagonal, u, v, cost in crossings:
-                if cost is None and (u, v) not in edges and u in ROAD_CELLS and v in ROAD_CELLS:
-                    edges[(u, v)] = step_into(u, v, diagonal)
+            for _, _, u, v in crossings:
+                if (u, v) in steps and (u, v) not in edges and u in ROAD_CELLS and v in ROAD_CELLS:
+                    edges[u, v] = costs[u, v]
                     nodes[cluster_of_cell(u)].add(u)
                     nodes[cluster_of_cell(v)].add(v)
 
@@ -1123,6 +1189,102 @@ def encode_grid_runs(values, *, directed):
     return "".join(out)
 
 
+def graph_varint(value):
+    out = bytearray()
+    while value >= 128:
+        out.append(128 + value % 128)
+        value //= 128
+    out.append(value)
+    return out
+
+
+def graph_read_varint(raw, pos):
+    value, scale = 0, 1
+    while raw[pos] >= 128:
+        value += (raw[pos] - 128) * scale
+        pos += 1
+        scale *= 128
+    return value + raw[pos] * scale, pos + 1
+
+
+def graph_cell(place, cells):
+    if place < 2 * cells:
+        return place if place < cells else (cells - 1) * cells + place - cells
+    if place < 3 * cells - 2:
+        return (place - 2 * cells + 1) * cells
+    if place < 4 * cells - 4:
+        return (place - 3 * cells + 3) * cells + cells - 1
+    return place - (4 * cells - 4)
+
+
+def graph_directory(raw):
+    count, pos = graph_read_varint(raw, 0)
+    lengths = []
+    for _ in range(12):
+        size, pos = graph_read_varint(raw, pos)
+        lengths.append(size)
+    starts = []
+    for size in lengths:
+        starts.append(pos)
+        pos += size
+    return count, starts
+
+
+def encode_graph(cells, nodes, edges):
+    """Indexed graph 1. Count, twelve stream lengths, then the streams in directory order.
+
+    Metadata streams are perimeter positions, layers, components (zero names the cluster mode), degree,
+    and the road-only suffix length. Edge streams are cluster direction, target deltas, walking residuals
+    and swimming residuals. The last three streams give per-row byte counts beyond the degree.
+    Edges carry their exact integer costs and keep the base prefix and full row order.
+    """
+
+    def zig(value):
+        return 2 * value if value >= 0 else -2 * value - 1
+
+    streams = [bytearray() for _ in range(12)]
+    positions, layers, components, degrees, suffixes, offsets, targets, walking, swimming, *extras = streams
+    mode = Counter(node[2] for node in nodes).most_common(1)[0][0]
+    components.extend(graph_varint(mode))
+    cs, diagonal = T / cells, math.sqrt(2)
+    for ordinal, ((cell, layer, comp, degree, base), row) in enumerate(zip(nodes, edges, strict=True)):
+        x, y = divmod(cell, cells)
+        if x == 0:
+            place = y
+        elif x == cells - 1:
+            place = cells + y
+        elif y == 0:
+            place = 2 * cells + x - 1
+        elif y == cells - 1:
+            place = 3 * cells - 2 + x - 1
+        else:
+            place = 4 * cells - 4 + cell
+        for stream, value in zip(
+            streams[:5], (place, layer, 0 if comp == mode else comp + 1, degree, degree - base), strict=True
+        ):
+            stream.extend(graph_varint(value))
+        starts = [len(stream) for stream in (targets, walking, swimming)]
+        previous = {}
+        for index, (offset, target, swim, walk) in enumerate(row):
+            if index == base:
+                previous.clear()
+            if offset == 4:
+                tx, ty = divmod(nodes[target][0], cells)
+                dx, dy = abs(tx - x), abs(ty - y)
+                prediction = math.floor((max(dx, dy) + (diagonal - 1) * min(dx, dy)) * cs + 0.5)
+            else:
+                corner = offset // 3 != 1 and offset % 3 != 1
+                prediction = math.floor(cs * (diagonal if corner else 1) + 0.5)
+            offsets.append(offset)
+            targets.extend(graph_varint(zig(target - previous.get(offset, ordinal if offset == 4 else 0))))
+            previous[offset] = target
+            walking.extend(graph_varint(zig(walk - prediction)))
+            swimming.extend(graph_varint(zig(swim - walk)))
+        for stream, start, extra in zip((targets, walking, swimming), starts, extras, strict=True):
+            extra.extend(graph_varint(len(stream) - start - degree))
+    return graph_varint(len(nodes)) + b"".join(graph_varint(len(stream)) for stream in streams) + b"".join(streams)
+
+
 def encode_map(nodes, edges, grid, cuts, *, collision=True):
     cells = sorted(c for cs in nodes.values() for c in cs)
     parent = {c: c for c in cells}
@@ -1168,29 +1330,22 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
         kx, ky = divmod(k, NY)
         cs = order.get(k, [])
         if cs:
-            rec, erec = [enc(len(cs), 2)], []
+            records, rows = [], []
             for c in cs:
                 layer = FLOOR_LAYER[c - GW * GH] if c >= GW * GH else 0
                 neighbours = sorted(
                     nbrs[c], key=lambda edge: (len(edge[1]) > len(WEIGHTS) and not edge[1][-1], edge[0])
                 )
                 base_count = sum(len(d) == len(WEIGHTS) or d[-1] for _, d in neighbours)
-                rec.append(
-                    enc(lcell(cell_of(c)), 3)
-                    + enc(layer, 1)
-                    + enc(comp[c], 2)
-                    + enc(len(nbrs[c]), 2)
-                    + enc(base_count, 2)
-                )
+                records.append((lcell(cell_of(c)), layer, comp[c], len(neighbours), base_count))
+                row = []
                 for m, d in neighbours:
                     km = cluster_of_cell(m)
                     dx, dy = km // NY - kx, km % NY - ky
                     assert abs(dx) <= 1 and abs(dy) <= 1
-                    costs = "".join(
-                        enc(round(w), 2) for w in d[: len(WEIGHTS)]
-                    )  # 4095 is ample: the longest baked is 2357
-                    erec.append(enc((dx + 1) * 3 + dy + 1, 1) + enc(local[m], 2) + costs)
-            graph[k] = "".join(rec) + "".join(erec)
+                    row.append(((dx + 1) * 3 + dy + 1, local[m], round(d[0]), round(d[1])))
+                rows.append(row)
+            graph[k] = base64.b64encode(encode_graph(CELLS, records, rows)).decode("ascii").rstrip("=")
         if not collision:
             continue
         vals = []
@@ -1251,13 +1406,15 @@ def terrain_header():
 def emit(nodes, edges, grid, masks, out, name):
     graph, grids, heights, floors, terrains, components = encode_map(nodes, edges, grid, masks)
     lines = [
-        "-- Generated by tools/baker/gen_nav.py — do not edit.",
+        "-- Generated by tools/baker/gen_nav.py; do not edit.",
         f"-- Source: {SOURCE}.",
         f"-- Generator: {generator_digest()}.",
         f"-- Map {MAP} ({name}), mmtile rows {ROWS.start}-{ROWS.stop - 1} x cols {COLS.start}-{COLS.stop - 1}.",
         "-- UnitPosition's frame (x north, y west). Cluster k (0-based) is the ADT tile x in [(cx0 + k // ny) T, +T),",
-        "-- y in [(cy0 + k % ny) T, +T), T = 1600 / 3, cut into cells x cells cells, x-major. Base64 (A-Za-z0-9+/).",
+        "-- y in [(cy0 + k % ny) T, +T), T = 1600 / 3, cut into cells x cells cells, x-major.",
+        "-- Graph format 1 stores indexed entrance records and ordered edges.",
         "-- Format 4 stores outgoing steps selected by the navmesh walk, including diagonals.",
+        "-- Collision symbols are Base64 characters in the bake source and byte values in the bundle.",
         "-- grid[k + 1]: palette count(1), then palette entries(2) of value * 256 + outgoing base-to-base mask.",
         "--   Value 0 blocked, 1 ground, 2 water. Cell symbols 0-46 index the palette; 47 precedes a literal(2).",
         "--   Symbols 48-63 repeat the previous cell 1-16 times. Masks use the floor link direction order.",
@@ -1280,9 +1437,7 @@ def emit(nodes, edges, grid, masks, out, name):
         f"\tswim = {SWIM:.6f},",
         f"\tzstep = {ZQ},",
         "\tformat = 4,",
-        "\tdegreeWidth = 2,",
-        "\tbaseDegreeWidth = 2,",
-        "\tclimbChecked = true,",
+        "\tgraphFormat = 1,",
     ]
     for key, table in (
         ("graph", graph),
@@ -1376,6 +1531,8 @@ def assemble_floors(floors, links, *, directed=False):
     nb = GW * GH
     at = FLOORS_AT
     for c, fs in sorted(floors):
+        if directed and len(fs) > 62:
+            raise ValueError(f"Cell {c} has layer 63, which exceeds the runtime link layer limit")
         at[c] = []
         for v, z in fs:
             at[c].append(nb + len(FLOOR_CELL))
@@ -1620,8 +1777,8 @@ def encode_directed_floors(k, lnode):
     [node delta, mask(2)]. Landing sets follow in header order, one per set direction: a six-bit set of layers
     0-5, or zero followed by count(2) and one symbol per layer. A cell or node delta is 0-62 or 63 followed by
     delta - 63(3). Drops follow as count(3), then [node(3), dx+8(1), dy+8(1), layer(1), cost(2)].
-    An optional final stream of [node delta, direction(1), layer(1)] entries marks steps that need water
-    between dry endpoints. Dry refinement uses this stream; the steps themselves are already in the masks.
+    An optional final stream of [node delta, direction(1), layer(1)] entries marks steps without a straight
+    dry segment. Dry refinement uses this stream; the steps themselves are already in the masks.
     """
     floors = FLOORS_OF[k]
     out, landings, drops = [enc(len(floors), 3)], [], []
