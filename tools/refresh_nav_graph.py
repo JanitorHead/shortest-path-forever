@@ -1,4 +1,4 @@
-"""Rebuild HPA graphs from shipped format-3 grids, without extracting or rasterizing terrain.
+"""Rebuild HPA graphs from format 3 or 4 grids, without extracting or rasterizing terrain.
 
 The collision fields remain byte-identical. Their original generator is retained in the header; the graph names
 its own recipe and the hash of the fields it consumed. Use only for graph changes, never geometry changes.
@@ -52,7 +52,7 @@ class Reader:
 
 
 def decode(source, fields, map_id):
-    """Restore the generator's grid, stored heights and directed links from the documented format-3 fields."""
+    """Restore the generator's grid, stored heights and directed links from the documented collision fields."""
 
     def number(name):
         match = re.search(rf"\t{name} = (-?\d+),", source)
@@ -60,8 +60,9 @@ def decode(source, fields, map_id):
             raise ValueError(f"Missing navigation metadata: {name}")
         return int(match[1])
 
-    if number("format") != 3 or "\tsteep = true," not in source:
-        raise ValueError("Graph refresh requires format 3 with stored steep heights")
+    fmt = number("format")
+    if fmt not in (3, 4) or (fmt == 3 and "\tsteep = true," not in source):
+        raise ValueError("Graph refresh requires format 3 with stored steep heights or format 4")
     nav.MAP, nav.CELLS = map_id, number("cells")
     nav.CX0, nav.CY0 = number("cx0"), number("cy0")
     nav.NX, nav.NY = number("nx"), number("ny")
@@ -78,13 +79,15 @@ def decode(source, fields, map_id):
     if swim != nav.SWIM:
         raise ValueError("Stored water weight differs from the generator")
     size, c = nav.GW * nav.GH, nav.CELLS
-    grid, cuts = bytearray(size), set()
+    grid = bytearray(size)
+    cuts = bytearray(size) if fmt == 4 else set()
     nav.BASE_Z = array("f", [0]) * size
     nav.FLOOR_CELL, nav.FLOOR_Z = array("i"), array("f")
     nav.FLOOR_VAL, nav.FLOOR_LAYER = bytearray(), bytearray()
     nav.FLOORS_OF, nav.FLOORS_AT = defaultdict(list), {}
     nav.LINKS, nav.LINKED_OF, nav.FREE = defaultdict(dict), defaultdict(list), set()
     nav.TERRAIN = {}
+    nav.WET_STEPS = defaultdict(set)
 
     def global_cell(k, local):
         return (k // nav.NY * c + local // c) * nav.GH + k % nav.NY * c + local % c
@@ -92,30 +95,52 @@ def decode(source, fields, map_id):
     def global_node(k, local):
         return global_cell(k, local) if local < c * c else nav.FLOORS_OF[k][local - c * c]
 
-    pending = []
-    directions = {d: xy for xy, d in nav.DIRS.items()}
+    pending, wet = [], []
+    directions = dict(sorted((d, xy) for xy, d in nav.DIRS.items()))
+
+    def read_mask(reader, node, mask):
+        for d, (dx, dy) in directions.items():
+            if not mask & (1 << d):
+                continue
+            if fmt == 3:
+                pending.append((node, dx, dy, reader.take(), None, True, False))
+            else:
+                layers = reader.take()
+                selected = (
+                    [layer for layer in range(6) if layers & (1 << layer)]
+                    if layers
+                    else [reader.take() for _ in range(reader.take(2))]
+                )
+                pending.extend((node, dx, dy, layer, None, False, False) for layer in selected)
+
     for key, text in sorted(fields["grid"].items()):
         k = key - 1
         if not 0 <= k < nav.NX * nav.NY:
             raise ValueError(f"Navigation cluster outside map: {key}")
         values = []
-        for symbol in text:
-            value = nav.B64.index(symbol)
+        reader = Reader(text)
+        palette = [reader.take(2) for _ in range(reader.take())] if fmt == 4 else []
+        while reader.pos < len(reader.values):
+            value = reader.take()
             if value >= 48:
                 values.extend([values[-1]] * (value - 47))
             else:
-                values.append(value)
+                values.append((reader.take(2) if value == 47 else palette[value]) if fmt == 4 else value)
         assert len(values) == c * c
         heights, last, repeat, delta = {}, 0, 0, 0
         reader = Reader(fields["height"][key])
         for local, value in enumerate(values):
-            node, (kind, flags) = global_cell(k, local), divmod(value, 16)
-            if kind == 1 and flags & 8:
-                kind, flags = 3, flags & ~8
+            node = global_cell(k, local)
+            if isinstance(cuts, bytearray):
+                kind, cuts[node] = divmod(value, 256)
+            else:
+                kind, flags = divmod(value, 16)
+                if kind == 1 and flags & 8:
+                    kind, flags = 3, flags & ~8
+                for d in range(4):
+                    if flags & (1 << d):
+                        cuts.add(node * 4 + d)
             grid[node] = kind
-            for d in range(4):
-                if flags & (1 << d):
-                    cuts.add(node * 4 + d)
             if kind:
                 pred = heights.get(local - 1) if local % c else None
                 if pred is None:
@@ -136,7 +161,7 @@ def decode(source, fields, map_id):
         if key not in fields["floor"]:
             continue
         reader = Reader(fields["floor"][key])
-        local = 0
+        local, masks = 0, []
         for _ in range(reader.take(3)):
             local += reader.delta()
             node = size + len(nav.FLOOR_CELL)
@@ -149,14 +174,22 @@ def decode(source, fields, map_id):
             nav.FLOOR_LAYER.append(len(floors))
             nav.FLOORS_OF[k].append(node)
             mask = reader.take(2)
-            for d in range(8):
-                if mask & (1 << d):
-                    pending.append((node, *directions[d], reader.take(), None, True, False))
+            if fmt == 4:
+                masks.append((node, mask))
+            else:
+                read_mask(reader, node, mask)
         local = 0
-        for _ in range(reader.take(3)):
-            local += reader.delta()
-            kind, layer = reader.take(), reader.take()
-            pending.append((global_node(k, local), *directions[kind % 8], layer, None, kind % 16 < 8, kind >= 16))
+        if fmt == 4:
+            for _ in range(reader.take(3)):
+                local += reader.delta()
+                masks.append((global_node(k, local), reader.take(2)))
+            for node, mask in masks:
+                read_mask(reader, node, mask)
+        else:
+            for _ in range(reader.take(3)):
+                local += reader.delta()
+                kind, layer = reader.take(), reader.take()
+                pending.append((global_node(k, local), *directions[kind % 8], layer, None, kind % 16 < 8, kind >= 16))
         for _ in range(reader.take(3)):
             local, dx, dy, layer, cost = (
                 reader.take(3),
@@ -166,13 +199,22 @@ def decode(source, fields, map_id):
                 reader.take(2),
             )
             pending.append((global_node(k, local), dx, dy, layer, cost, False, False))
+        local = 0
+        if fmt == 4:
+            while reader.pos < len(reader.values):
+                local += reader.delta()
+                wet.append((global_node(k, local), *directions[reader.take()], reader.take()))
         assert reader.pos == len(reader.values)
-    for node, dx, dy, layer, cost, both, free in pending:
+
+    def landing(node, dx, dy, layer):
         x, y = divmod(nav.cell_of(node), nav.GH)
         if not (0 <= x + dx < nav.GW and 0 <= y + dy < nav.GH):
             raise ValueError("Navigation link lands outside map")
         target = (x + dx) * nav.GH + y + dy
-        target = nav.FLOORS_AT[target][layer - 1] if layer else target
+        return nav.FLOORS_AT[target][layer - 1] if layer else target
+
+    for node, dx, dy, layer, cost, both, free in pending:
+        target = landing(node, dx, dy, layer)
         nav.LINKS[node][target] = cost
         if free:
             nav.FREE.add((node, target))
@@ -180,6 +222,8 @@ def decode(source, fields, map_id):
             nav.LINKS[target][node] = cost
             if free:
                 nav.FREE.add((target, node))
+    for node, dx, dy, layer in wet:
+        nav.WET_STEPS[nav.cluster_of_cell(node)].add((node, landing(node, dx, dy, layer)))
     for node in sorted(nav.LINKS):
         nav.LINKED_OF[nav.cluster_of_cell(node)].append(node)
     nav.ROAD_CELLS = nav.read_roads(map_id)
@@ -262,7 +306,7 @@ def main():
     source = re.sub(r"^\tbaseDegreeWidth = \d+,\n", "", source, flags=re.MULTILINE)
     source = source.replace("degree(degreeWidth or 1)]", "degree(degreeWidth or 1) baseDegree(baseDegreeWidth or 0)]")
     source = re.sub(r"^\tdegreeWidth = \d+,\n", "", source, flags=re.MULTILINE)
-    source = source.replace("\tformat = 3,", "\tformat = 3,\n\tdegreeWidth = 2,\n\tbaseDegreeWidth = 2,", 1)
+    source = re.sub(r"^\tformat = [34],$", r"\g<0>\n\tdegreeWidth = 2,\n\tbaseDegreeWidth = 2,", source, flags=re.M)
     source = re.sub(r"-- (?:Graph generator|Graph input): .*\n", "", source)
     source = source.replace(
         "-- Map ", f"-- Graph generator: {refresh_digest()}.\n-- Graph input: {collision_digest(fields)}.\n-- Map ", 1

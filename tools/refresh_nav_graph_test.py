@@ -29,7 +29,13 @@ class StoredGridTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires format 3"):
             decode("\tformat = 2,", fields, 0)
 
-    def test_encoded_geometry_restores_every_directed_step_and_stored_cost(self):
+    def test_format_3_restores_every_directed_step_and_stored_cost(self):
+        self.assert_round_trip(3)
+
+    def test_format_4_restores_every_directed_step_and_stored_cost(self):
+        self.assert_round_trip(4)
+
+    def assert_round_trip(self, fmt):
         state = {
             "MAP": 0,
             "CELLS": 4,
@@ -51,6 +57,7 @@ class StoredGridTest(unittest.TestCase):
             "LINKS": defaultdict(dict),
             "LINKED_OF": defaultdict(list),
             "TERRAIN": {},
+            "WET_STEPS": defaultdict(set),
             "ROAD_CELLS": {},
         }
         with ExitStack() as stack:
@@ -73,6 +80,13 @@ class StoredGridTest(unittest.TestCase):
                     (12, 3, 16, 3, None),
                 ],
             )
+            if fmt == 4:
+                grid[7] = 1
+                cuts = bytearray(32)
+                cuts[9], cuts[12] = 16, 1
+                nav.FLOOR_VAL = bytearray(1 if v == 3 else v for v in nav.FLOOR_VAL)
+                nav.LINKS[12][nav.FLOORS_AT[16][-1]] = None
+                nav.WET_STEPS[0].update({(12, 16), (12, nav.FLOORS_AT[16][-1])})
             fields = {
                 name: {key + 1: text for key, text in entries.items()}
                 for name, entries in zip(
@@ -83,7 +97,7 @@ class StoredGridTest(unittest.TestCase):
                 "\n".join(
                     f"\t{name} = {value},"
                     for name, value in (
-                        ("format", 3),
+                        ("format", fmt),
                         ("cells", 4),
                         ("nx", 2),
                         ("ny", 1),

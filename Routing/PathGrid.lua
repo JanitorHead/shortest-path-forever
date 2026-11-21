@@ -158,8 +158,7 @@ local function unpackField(data, field, key)
 	return raw
 end
 
--- The client walks a slope up to 50 degrees; the bake marks the faces from 50 to 61.6 degrees as steep, and those
--- may only go downhill.
+-- Legacy formats can gate a stored step by height when either surface is steep.
 local function steepGround(valA, zA, from, valB, zB, to)
 	if valA[from + 1] ~= 3 and valB[to + 1] ~= 3 then
 		return true
@@ -203,8 +202,8 @@ local function State(map)
 			map = map,
 			C = C,
 			fmt = D.format or 1,
-			-- Format 1 carries no steep ground, so it takes the plain step and never reads a height.
-			steep = (D.format or 1) >= 3 and steepGround or (D.format == 2 and climbStep) or nil,
+			-- Only legacy formats 2 and 3 gate steps by stored height.
+			steep = D.format == 3 and steepGround or (D.format == 2 and climbStep) or nil,
 			ny = D.ny,
 			GX = D.nx * C,
 			GY = D.ny * C,
@@ -217,7 +216,7 @@ local function State(map)
 			used = {}, -- [k] = last use, for eviction
 			decoded = 0,
 			val = {}, -- [k] = node values (node + 1), false when the cluster has no data
-			moves = {}, -- [k][lc + 1] = open moves inside the cluster + 16 * the data file's step flags
+			moves = {}, -- [k][lc + 1] = outgoing mask in format 4, open moves and step flags in older formats
 			z = {}, -- [k][node + 1] = height of a walkable node
 			terrain = {}, -- [k][cell + 1] = the cell's ground layer, or false when it has floors over no terrain
 			at = {}, -- [k][node + 1] = a floor's local cell; [k][-(lc + 1)] = the cell's first floor node
@@ -448,49 +447,112 @@ local function decodeLinks(st, k, val, z, at, links, s, pos, masks, last, lpos)
 			add(back, node, entry)
 		end
 	end
-	for index = N + 1, last do
-		if index % 64 == 0 then
-			slice()
+	local at_step
+	if fmt >= 4 then
+		local count = num(s, pos, 3)
+		local base, node = {}, 0
+		pos = pos + 3
+		for i = 1, count do
+			if i % 64 == 0 then
+				slice()
+			end
+			local delta = B64[byte(s, pos)]
+			pos = pos + 1
+			if delta == 63 then
+				delta, pos = 63 + num(s, pos, 3), pos + 3
+			end
+			node = node + delta
+			base[i], masks[node + 1] = node, num(s, pos, 2)
+			pos = pos + 2
 		end
-		local bits = masks[index]
-		if bits then
-			local p = lpos and lpos[index]
+		local function directedMask(from)
+			local bits = masks[from + 1]
+			for d = 0, 7 do
+				if bits % 2 == 1 then
+					local layers = B64[byte(s, pos)]
+					pos = pos + 1
+					if layers == 0 then
+						local n = num(s, pos, 2)
+						pos = pos + 2
+						for _ = 1, n do
+							link(from, DX[d], DY[d], B64[byte(s, pos)], 0, false)
+							pos = pos + 1
+						end
+					else
+						local layer = 0
+						while layers > 0 do
+							if layers % 2 == 1 then
+								link(from, DX[d], DY[d], layer, 0, false)
+							end
+							layer, layers = layer + 1, floor(layers / 2)
+						end
+					end
+				end
+				bits = floor(bits / 2)
+			end
+		end
+		for from = N, last - 1 do
+			if from % 64 == 0 then
+				slice()
+			end
+			directedMask(from)
+		end
+		for i = 1, count do
+			if i % 64 == 0 then
+				slice()
+			end
+			directedMask(base[i])
+		end
+		at_step = pos
+	else
+		local function readMask(node, bits, p)
 			for d = 0, 7 do
 				if bits % 2 == 1 then
 					local layer = -1
 					if p then
 						layer, p = B64[byte(s, p)], p + 1
 					end
-					link(index - 1, DX[d], DY[d], layer, 0, true)
+					link(node, DX[d], DY[d], layer, 0, true)
 				end
 				bits = floor(bits / 2)
 			end
+			return p
 		end
-	end
-	local steps, at_step = num(s, pos, 3), pos + 3
-	local record = 0
-	for i = 1, steps do
-		if i % 64 == 0 then
-			slice()
-		end
-		if fmt >= 3 then
-			-- a record's node is the delta from the record before it: symbol 0-62 is the delta, 63 is followed by
-			-- the delta - 63 in three symbols
-			local sym = B64[byte(s, at_step)]
-			at_step = at_step + 1
-			if sym < 63 then
-				record = record + sym
-			else
-				record, at_step = record + 63 + num(s, at_step, 3), at_step + 3
+		for index = N + 1, last do
+			if index % 64 == 0 then
+				slice()
 			end
-			local kind = B64[byte(s, at_step)]
-			link(record, DX[kind % 8], DY[kind % 8], B64[byte(s, at_step + 1)], 0, kind % 16 < 8, kind >= 16)
-			at_step = at_step + 2
-		else
-			record = num(s, at_step, 3)
-			local kind = B64[byte(s, at_step + 3)]
-			link(record, DX[kind % 8], DY[kind % 8], B64[byte(s, at_step + 4)], 0, kind % 16 < 8, kind >= 16)
-			at_step = at_step + 5
+			local bits = masks[index]
+			if bits then
+				readMask(index - 1, bits, lpos and lpos[index])
+			end
+		end
+		local steps
+		steps, at_step = num(s, pos, 3), pos + 3
+		local record = 0
+		for i = 1, steps do
+			if i % 64 == 0 then
+				slice()
+			end
+			if fmt >= 3 then
+				-- a record's node is the delta from the record before it: symbol 0-62 is the delta, 63 is followed by
+				-- the delta - 63 in three symbols
+				local sym = B64[byte(s, at_step)]
+				at_step = at_step + 1
+				if sym < 63 then
+					record = record + sym
+				else
+					record, at_step = record + 63 + num(s, at_step, 3), at_step + 3
+				end
+				local kind = B64[byte(s, at_step)]
+				link(record, DX[kind % 8], DY[kind % 8], B64[byte(s, at_step + 1)], 0, kind % 16 < 8, kind >= 16)
+				at_step = at_step + 2
+			else
+				record = num(s, at_step, 3)
+				local kind = B64[byte(s, at_step + 3)]
+				link(record, DX[kind % 8], DY[kind % 8], B64[byte(s, at_step + 4)], 0, kind % 16 < 8, kind >= 16)
+				at_step = at_step + 5
+			end
 		end
 	end
 	local drops, at_drop = num(s, at_step, 3), at_step + 3
@@ -508,6 +570,24 @@ local function decodeLinks(st, k, val, z, at, links, s, pos, masks, last, lpos)
 			false
 		)
 		at_drop = at_drop + 8
+	end
+	if fmt >= 4 and at_drop <= #s then
+		local wet, node, records = {}, 0, 0
+		while at_drop <= #s do
+			if records % 64 == 0 then
+				slice()
+			end
+			records = records + 1
+			local delta = B64[byte(s, at_drop)]
+			at_drop = at_drop + 1
+			if delta == 63 then
+				delta, at_drop = 63 + num(s, at_drop, 3), at_drop + 3
+			end
+			node = node + delta
+			wet[node * 512 + num(s, at_drop, 2)] = true
+			at_drop = at_drop + 2
+		end
+		links.wet = wet
 	end
 	return back
 end
@@ -549,8 +629,12 @@ local function decodeFloors(st, k, val, z, chunks)
 				at[-(lc + 1)] = node
 			end
 			local mask = num(s, pos + 3, 2)
-			masks[node + 1], lpos[node + 1] = mask, pos + 5
-			pos = pos + 5 + landingCount(mask)
+			masks[node + 1] = mask
+			pos = pos + 5
+			if st.fmt == 3 then
+				lpos[node + 1] = pos
+				pos = pos + landingCount(mask)
+			end
 			node = node + 1
 		end
 		return at, links, decodeLinks(st, k, val, z, at, links, s, pos, masks, node, lpos)
@@ -605,6 +689,38 @@ local function decodeFloors(st, k, val, z, chunks)
 	return at, links, nil
 end
 
+local function decodeDirectedGrid(s)
+	local val, m = {}, {}
+	local palette, count = {}, B64[byte(s, 1)]
+	for entry = 0, count - 1 do
+		palette[entry] = num(s, 2 + entry * 2, 2)
+	end
+	local n, i, valueCode, moveCode, nextSlice = 0, 2 + count * 2, 0, 0, 256
+	while i <= #s do
+		if n >= nextSlice then
+			nextSlice = nextSlice + 256
+			slice()
+		end
+		local sym = B64[byte(s, i)]
+		i = i + 1
+		if sym >= 48 then
+			for _ = 48, sym do
+				n = n + 1
+				val[n], m[n] = valueCode, moveCode
+			end
+		else
+			local code = palette[sym]
+			if sym == 47 then
+				code, i = num(s, i, 2), i + 2
+			end
+			valueCode, moveCode = floor(code / 256), code % 256
+			n = n + 1
+			val[n], m[n] = valueCode, moveCode
+		end
+	end
+	return val, m
+end
+
 local function decodeGrid(st, k)
 	Path.decodes = (Path.decodes or 0) + 1
 	local chunks = unpackField(st.D, "grid", k + 1)
@@ -622,6 +738,13 @@ local function decodeGrid(st, k)
 	if st.D.packed and st.D.packed.floor[k + 1] and not floors then
 		st.val[k] = false
 		return false
+	end
+	if st.fmt >= 4 then
+		local val, m = decodeDirectedGrid(s)
+		local z = {}
+		decodeHeights(st, val, z, height)
+		local at, links, back = decodeFloors(st, k, val, z, floors)
+		return val, m, z, at, links, back
 	end
 	local val, m = {}, {}
 	local n, valueCode, moveCode = 0, 0, 0
@@ -727,8 +850,13 @@ local function gridSize(val, at, links, back)
 	for _ in pairs(at) do
 		bytes = bytes + 64
 	end
-	for _, link in pairs(links) do
+	for node, link in pairs(links) do
 		bytes = bytes + 128 + #link * 32
+		if node == "wet" then
+			for _ in pairs(link) do
+				bytes = bytes + 64
+			end
+		end
 	end
 	for _, link in pairs(back or {}) do
 		bytes = bytes + 128 + #link * 32
@@ -1500,34 +1628,45 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 	-- A zero-offset move can only be an explicit drop between layers, never an ordinary base step.
 	if node < C * C and (dx ~= 0 or dy ~= 0) then
 		local open
-		local val = tk == k and grid(st, k)
-		-- Most string-pulling steps stay on one base grid. Its decoded moves already check the
-		-- same detours; only a dry diagonal beside water needs the stricter surface checks below.
-		if
-			val
-			and (
-				water
-				or (
-					val[node + 1] ~= 2
-					and val[tlc + 1] ~= 2
-					and (dx == 0 or dy == 0 or (val[node + dx * C + 1] ~= 2 and val[node + dy + 1] ~= 2))
-				)
-			)
-		then
-			local m = st.moves[k]
-			if dy == 0 then
-				open = m[(dx > 0 and node or tlc) + 1] % 2 == 1
-			elseif dx == 0 then
-				open = m[(dy > 0 and node or tlc) + 1] % 4 >= 2
-			elseif dx == dy then
-				open = m[(dx > 0 and node or tlc) + 1] % 8 >= 4
-			else
-				open = m[(dx > 0 and node or tlc) + 1] % 16 >= 8
+		if st.fmt >= 4 and abs(dx) <= 1 and abs(dy) <= 1 then
+			local val = grid(st, k)
+			local d = DIRECTION[(dx + 1) * 3 + dy + 1]
+			local bits = d and val and st.moves[k][node + 1]
+			if bits and floor(bits / directionBits[d]) % 2 == 1 then
+				local wet = st.links[k].wet
+				open = water
+					or (not (wet and wet[node * 512 + d * 64]) and val[node + 1] ~= 2 and value(st, tx, ty) ~= 2)
 			end
-		elseif dx == 0 or dy == 0 then
-			open = stepOpen(st, gx, gy, dx, dy, water)
-		else
-			open = diagonalStep(st, gx, gy, dx, dy, water)
+		elseif st.fmt < 4 then
+			local val = tk == k and grid(st, k)
+			-- Most string-pulling steps stay on one base grid. Its decoded moves already check the
+			-- same detours; only a dry diagonal beside water needs the stricter surface checks below.
+			if
+				val
+				and (
+					water
+					or (
+						val[node + 1] ~= 2
+						and val[tlc + 1] ~= 2
+						and (dx == 0 or dy == 0 or (val[node + dx * C + 1] ~= 2 and val[node + dy + 1] ~= 2))
+					)
+				)
+			then
+				local m = st.moves[k]
+				if dy == 0 then
+					open = m[(dx > 0 and node or tlc) + 1] % 2 == 1
+				elseif dx == 0 then
+					open = m[(dy > 0 and node or tlc) + 1] % 4 >= 2
+				elseif dx == dy then
+					open = m[(dx > 0 and node or tlc) + 1] % 8 >= 4
+				else
+					open = m[(dx > 0 and node or tlc) + 1] % 16 >= 8
+				end
+			elseif dx == 0 or dy == 0 then
+				open = stepOpen(st, gx, gy, dx, dy, water)
+			else
+				open = diagonalStep(st, gx, gy, dx, dy, water)
+			end
 		end
 		if open then
 			-- The step's checks may have decoded, yielded and seen k evicted: keep k's tables, then tk's, last.
@@ -1546,7 +1685,8 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 		end
 	end
 	local vk = grid(st, k) --[[@as integer[] ]]
-	local zk, l = st.z[k], st.links[k][node + 1]
+	local zk, links = st.z[k], st.links[k]
+	local l = links[node + 1]
 	if not l then
 		return count
 	end
@@ -1558,14 +1698,18 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 			local entry = l[e]
 			if entry % 16 - 8 == dx and floor(entry / 16) % 16 - 8 == dy then
 				local vt = grid(st, tk) --[[@as integer[] ]]
-				local v = surface(st, tk, tlc, floor(entry / 256) % 64 - 1, h)
-				if v and (water or (here ~= 2 and vt[v + 1] ~= 2)) then
+				local layer = floor(entry / 256) % 64 - 1
+				local v = surface(st, tk, tlc, layer, h)
+				local cost = floor(entry / 16384) % 8192
+				local wet = cost == 0 and links.wet
+				local d = wet and abs(dx) <= 1 and abs(dy) <= 1 and DIRECTION[(dx + 1) * 3 + dy + 1]
+				if v and (water or (not (d and wet[node * 512 + d * 64 + layer]) and here ~= 2 and vt[v + 1] ~= 2)) then
 					local distance = math.sqrt((entry % 16 - 8) ^ 2 + (floor(entry / 16) % 16 - 8) ^ 2) * st.cs
 					if not steep or entry >= FREE or steep(vk, zk, node, vt, st.z[tk], v, distance) then
 						count = count + 1
 						outK[count], outN[count] = tk, v
 						if outC then
-							outC[count] = floor(entry / 16384) % 8192
+							outC[count] = cost
 						end
 					end
 				end
@@ -2278,4 +2422,5 @@ ns.PathGrid = {
 	FREE = FREE,
 	DX = DX,
 	DY = DY,
+	OPPOSITE = OPPOSITE,
 }

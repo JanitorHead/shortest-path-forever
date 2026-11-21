@@ -30,7 +30,7 @@ import subprocess
 import sys
 import time
 from array import array
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from textwrap import wrap
 from typing import cast
@@ -84,7 +84,7 @@ GRAVITY = 19.2911  # yards per second squared
 RUN = 7.0  # the player's run speed, yards per second
 FALL_LIMIT = 14.57  # the longest fall that does not hurt, yards
 DROP_COLUMNS = 4  # how far (8-yard cells) from a ledge a baked connection may land
-LAYER_MARGIN = DROP_COLUMNS  # cells rasterized beyond a tile, so a drop's landing has a layer to land on
+LAYER_MARGIN = DROP_COLUMNS
 FLAG_UNDER_HAZARD = 0x80  # Mappster: ground under magma or slime
 FLAG_UNDER_LIQUID = 0x40  # Mappster: ground under liquid
 SOURCE = source_label(None)
@@ -108,6 +108,8 @@ LINKS = defaultdict(dict)  # node -> {node it steps to besides the base grid's o
 # as written, with no steep test (#1101). A rasterize_tile link marks one with the cost FREE_STEP.
 FREE = set()
 FREE_STEP = "free"
+WET_STEP = "wet"
+WET_STEPS = defaultdict(set)  # cluster -> (source, destination) pairs that require water
 FLOORS_OF = defaultdict(list)  # cluster -> its floor nodes, by (cell, height)
 LINKED_OF = defaultdict(list)  # cluster -> its nodes with LINKS, sorted
 FLOORS_AT = {}  # cell -> its floor nodes, lowest first
@@ -119,6 +121,7 @@ ROAD_CELLS = {}  # global cell -> road coverage (0 to 1) from Data/RoadCells.lua
 def configure(map_id, rows=None, cols=None):
     global MAP, TILES, ROWS, COLS, CX0, CY0, NX, NY, GW, GH, X0, Y0, ORD
     KINDS.clear()
+    WET_STEPS.clear()
     MAP = map_id
     TILES = {}
     for path in glob.glob(os.path.join(MM, f"{map_id:04d}_??_??.mmtile")):
@@ -201,34 +204,6 @@ def drop_cost(horizontal, fall):
     """A drop's cost in running yards: the horizontal step plus the time free fall takes at the client's gravity,
     run at the player's speed. Slope never changes how fast ground is crossed, so a fall is the only extra."""
     return horizontal + RUN * math.sqrt(2 * fall / GRAVITY)
-
-
-def stored_layer_z(z, base):
-    """A layer's height as the data stores it: base heights at the zstep grid, floors at whole yards. The runtime's
-    steep test must use exactly these, so the bake and the decoder can never disagree."""
-    return round(z / ZQ) * ZQ if base else round(z)
-
-
-def steep_step(za, la, zb, lb):
-    """May a step between surfaces at these levels be taken? Steep ground (value 3) is downhill only, and the
-    comparison is between the stored heights the runtime sees."""
-    return stored_layer_z(zb, lb == 0) <= stored_layer_z(za, la == 0)
-
-
-def pair_carries_bit(za, la, zb, lb, forward, back, steep):
-    """May a pair of surfaces ride the symmetric step bits, so neither direction needs a record of its own?
-
-    The runtime reads a bit both ways, and where an end is steep it lets each way through only downhill by stored
-    height. A bit carries the pair exactly when that reading is the navmesh walk's: ordinary ground the walk joins both
-    ways, or steep ground whose stored heights allow the very directions the walk takes, such as a face it walks down
-    and not up. Any other pair the walk joins is a record per direction, taken as written: one stored height per
-    surface cannot say which way every neighbour may step onto a steep face, and judging by it refused walks the
-    navmesh takes, a 1 yard rise onto a cave floor among them (#1101). A pair neither direction joins is no step."""
-    if not (forward or back):
-        return False
-    if not steep:
-        return forward and back
-    return forward == steep_step(za, la, zb, lb) and back == steep_step(zb, lb, za, la)
 
 
 def walkable(pts, flags, area, typ):
@@ -510,10 +485,8 @@ def rasterize_layers(polys, adj, portal, bounds):
                 chosen.append(n)
                 taken.add(piece[n])
         chosen[1:] = sorted(chosen[1:], key=lambda n: ss[n][1])
-        layers[i] = [(ss[n][1], 3 if polys[ss[n][3]]["steep"] else ss[n][2], (ss[n][3], ss[n][4])) for n in chosen]
-        # Every layer's height is its own poly's height at its anchor, whichever pass found it: the runtime judges
-        # a climb by these heights, so a stand-in (a centroid, another poly's level) turns a walkable step one-way
-        # (#1011).
+        layers[i] = [(ss[n][1], ss[n][2], (ss[n][3], ss[n][4])) for n in chosen]
+        # Every layer's height comes from its anchor, so endpoint snapping and terrain matching use the same surface.
         for z, _, (pid, point) in layers[i]:
             if abs(z - height(polys[pid], *point)) > 0.01:
                 raise ValueError(f"cell {i}: layer height {z:.2f} is not poly {pid}'s height at its anchor {point}")
@@ -543,18 +516,10 @@ def pick_surface(layers, polys, candidates, x, y, z):
 
 
 def rasterize_tile(rc):
-    """Pass 2 for one tile: its cells' surfaces (0 blocked, 1 ground, 2 water, 3 steep ground), heights, floors and
-    step codes.
+    """Rasterize surfaces, outgoing step masks and floor links for one tile.
 
-    A step between neighbouring cells is cut unless a 2D ray along the navmesh surface from one cell's anchor reaches
-    the other's surface poly, so the grid cannot climb a cliff, pass a fence or wall, or drop off a bridge. A step
-    onto or off steep ground keeps the ordinary symmetric code where the decoder's downhill-only test on the stored
-    heights reads it as the walk does, so no per-step record is needed. Any other step the navmesh joins one way, or
-    steep ground the heights misread, is cut and each direction the walk takes is a record taken as written. Floors
-    link to neighbouring surfaces by the same test, and the local bake's one-way ledge drops become links from the
-    ledge's surface to the landing's.
-    Surfaces are computed LAYER_MARGIN cells beyond the tile, which is all its own steps, diagonals and drop landings
-    read; everything comes from the 3x3 tiles around it.
+    The navmesh walk decides each direction independently, including diagonals. Only steps involving floors
+    and costed drops need explicit destinations.
     """
     rr, cc = rc
     window = [(rr + dr, cc + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (rr + dr, cc + dc) in TILES]
@@ -563,9 +528,11 @@ def rasterize_tile(rc):
     tx0, tx1, ty0, ty1 = cluster_box(k)
     ax0, ax1 = max(0, tx0 - LAYER_MARGIN), min(GW - 1, tx1 + LAYER_MARGIN)
     ay0, ay1 = max(0, ty0 - LAYER_MARGIN), min(GH - 1, ty1 + LAYER_MARGIN)
+    sx0, sx1 = max(0, tx0 - DROP_COLUMNS), min(GW - 1, tx1 + DROP_COLUMNS)
+    sy0, sy1 = max(0, ty0 - DROP_COLUMNS), min(GH - 1, ty1 + DROP_COLUMNS)
     layers = rasterize_layers(polys, adj, portal, (ax0, ax1, ay0, ay1))
 
-    def linked(i, la, j, lb):
+    def linked(i, la, j, lb, dry=False):
         """Is there a navmesh path from cell i's surface la to cell j's surface lb inside the two cells (+ MARGIN)?
 
         Steep ground is crossed downhill only, so the search carries a ceiling: the highest the walk can be inside the
@@ -597,6 +564,8 @@ def rasterize_tile(rc):
             u = stack.pop()
             ceiling = best[u]
             for v in adj.get(u, ()):
+                if dry and polys[v]["water"]:
+                    continue
                 # Only this part of the portal belongs to the step. Remote ends must not supply a higher
                 # entry ceiling or a lower exit from steep ground outside the two cells.
                 ends = clip_segment(*portal[(u, v)], box=box)
@@ -618,118 +587,33 @@ def rasterize_tile(rc):
                 stack.append(v)
         return False
 
-    def bit_carries(i, la, j, lb, one_cluster=False):
-        """pair_carries_bit for two surfaces the walk has just been asked about.
-
-        A floor's step bit is resolved with the target cluster's own surfaces, so one_cluster refuses a pair across
-        two clusters; the base grid's bits name global cells and carry those."""
-        if one_cluster and cluster_of_cell(i) != cluster_of_cell(j):
-            return False
-        return pair_carries_bit(
-            layers[i][la][0],
-            la,
-            layers[j][lb][0],
-            lb,
-            linked(i, la, j, lb),
-            linked(j, lb, i, la),
-            layers[i][la][1] == 3 or layers[j][lb][1] == 3,
-        )
-
-    def base_steep(gx, gy):
-        c = gx * GH + gy
-        return c in layers and layers[c][0][1] == 3
-
-    def bit_step_ok(ux, uy, vx, vy):
-        """An orthogonal step as the base grid's symmetric bits carry it into diagonal detours: a steep step with
-        unequal stored heights is its own directed link, so it cannot feed a detour."""
-        if not step_ok(g, cuts, ux, uy, vx, vy):
-            return False
-        if base_steep(ux, uy) or base_steep(vx, vy):
-            u, v = ux * GH + uy, vx * GH + vy
-            return stored_layer_z(layers[u][0][0], True) == stored_layer_z(layers[v][0][0], True)
-        return True
-
-    g = lambda gx, gy: layers[gx * GH + gy][0][1] if gx * GH + gy in layers else 0  # noqa: E731
-    inside = lambda gx, gy: tx0 <= gx <= tx1 and ty0 <= gy <= ty1 and 0 <= gx < GW and 0 <= gy < GH  # noqa: E731
-    cuts, links = set(), []
-    for gx in range(max(0, tx0 - 1), min(GW, tx1 + 2)):
-        for gy in range(max(0, ty0 - 1), min(GH, ty1 + 2)):
-            i = gx * GH + gy
-            if not g(gx, gy):
-                continue
-            for d, jx, jy in ((0, gx + 1, gy), (1, gx, gy + 1)):
-                if jx >= GW or jy >= GH or not g(jx, jy):
-                    continue
-                j = jx * GH + jy
-                # A steep pair keeps the symmetric bit where the decoder's stored-height test reads it as the walk
-                # does; any other pair is cut and each direction the walk takes is a record taken as written.
-                if bit_carries(i, 0, j, 0):
-                    continue
-                cuts.add(i * 4 + d)
-                if inside(gx, gy) and linked(i, 0, j, 0):
-                    links.append((i, layers[i][0][0], j, layers[j][0][0], FREE_STEP))
-                if inside(jx, jy) and linked(j, 0, i, 0):
-                    links.append((j, layers[j][0][0], i, layers[i][0][0], FREE_STEP))
-    # Diagonal walkways narrower than a cell: open the diagonal step explicitly where both L-shaped detours are closed.
-    # A pair across the tile's edge is looked at from both tiles, each writing what its own cells hold.
-    own = set()
-    for gx in range(max(0, tx0 - 1), min(tx1 + 1, GW - 1)):
-        for gy in range(max(0, ty0 - 1), min(GH, ty1 + 2)):
-            i = gx * GH + gy
-            if not g(gx, gy):
-                continue
-            for d, dy in ((2, 1), (3, -1)):
-                if not 0 <= gy + dy < GH or not (inside(gx, gy) or inside(gx + 1, gy + dy)):
-                    continue
-                j = i + GH + dy
-                if g(gx + 1, gy + dy) and not diag_ok(g, cuts, gx, gy, gx + 1, gy + dy, step=bit_step_ok):
-                    forward, back = linked(i, 0, j, 0), linked(j, 0, i, 0)
-                    # Flag 8 marks steep ground on a ground cell, so a ground cell's -x-y diagonal is never a bit;
-                    # water can still use the flag for its own diagonal.
-                    flag = d == 2 or g(gx, gy) == 2
-                    if flag and forward and back and bit_carries(i, 0, j, 0):
-                        if inside(gx, gy):
-                            own.add(i * 4 + d)  # the symmetric diagonal; the decoder reads it as the walk does
-                    else:
-                        # Each direction the walk takes is its own record, as for orthogonal steps; the symmetric
-                        # diagonal stays closed because both L-shaped detours are cut.
-                        if forward and inside(gx, gy):
-                            links.append((i, layers[i][0][0], j, layers[j][0][0], FREE_STEP))
-                        if back and inside(gx + 1, gy + dy):
-                            links.append((j, layers[j][0][0], i, layers[i][0][0], FREE_STEP))
-    own |= {c for c in cuts if tx0 <= c // 4 // GH <= tx1 and ty0 <= c // 4 % GH <= ty1}
-    # Floors: every surface pair between a cell and a neighbour that involves a floor, by height at both ends. Both
-    # directions are written out, since nothing is derived from a floor's own links any more.
-    floors = []
+    masks = bytearray(CELLS * CELLS)
+    floors, links = [], []
     for gx in range(tx0, tx1 + 1):
         for gy in range(ty0, ty1 + 1):
             i = gx * GH + gy
-            if i not in layers:
+            surfaces = layers.get(i)
+            if not surfaces:
                 continue
-            if len(layers[i]) > 1:
-                floors.append((i, [(v, z) for z, v, _ in layers[i][1:]]))
-            for dx, dy, _ in MOVES:
+            if len(surfaces) > 1:
+                floors.append((i, [(v, z) for z, v, _ in surfaces[1:]]))
+            local = (gx - tx0) * CELLS + gy - ty0
+            for d, (dx, dy, _) in enumerate(MOVES):
                 jx, jy = gx + dx, gy + dy
+                if not (0 <= jx < GW and 0 <= jy < GH):
+                    continue
                 j = jx * GH + jy
-                if not (0 <= jx < GW and 0 <= jy < GH) or j not in layers:
-                    continue
-                if len(layers[i]) == 1 and len(layers[j]) == 1:
-                    continue
-                for la, (za, _, _) in enumerate(layers[i]):
-                    for lb, (zb, _, _) in enumerate(layers[j]):
-                        if not (la or lb):
+                for la in range(len(surfaces)):
+                    for lb in range(len(layers.get(j, ()))):
+                        land = surfaces[la][1] == 1 and layers[j][lb][1] == 1
+                        dry = land and linked(i, la, j, lb, dry=True)
+                        if not dry and not linked(i, la, j, lb):
                             continue
-                        # A pair the decoder's stored-height test reads as the walk does keeps both directions as an
-                        # ordinary (no-cost) link, so encode_floors can carry it as a symmetric step bit; any other
-                        # direction the walk takes is a record taken as written.
-                        if bit_carries(i, la, j, lb, one_cluster=True):
-                            links.append((i, za, j, zb, None))
-                            links.append((j, zb, i, za, None))
-                        else:
-                            if linked(i, la, j, lb):
-                                links.append((i, za, j, zb, FREE_STEP))
-                            if linked(j, lb, i, la):
-                                links.append((j, zb, i, za, FREE_STEP))
+                        wet = land and not dry
+                        if la or lb or wet:
+                            links.append((i, la, j, lb, WET_STEP if wet else None))
+                        if not (la or lb):
+                            masks[local] |= 1 << d
 
     # Ledge drops: the local bake's one-way off-mesh connections, from a ledge to a landing below it, as the surface
     # nodes the local bake's endpoints stand on. The fall costs free fall's time in running yards on top of the
@@ -744,7 +628,7 @@ def rasterize_tile(rc):
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 cx, cy = gx + dx, gy + dy
-                if ax0 <= cx <= ax1 and ay0 <= cy <= ay1:
+                if sx0 <= cx <= sx1 and sy0 <= cy <= sy1:
                     candidates.append((cx * GH + cy, dx, dy))
         return pick_surface(layers, polys, candidates, x, y, z)
 
@@ -760,14 +644,11 @@ def rasterize_tile(rc):
             continue
         cost = drop_cost(math.hypot(x1 - x0, y1 - y0), fall)
         links.append((i, layers[i][la][0], j, layers[j][lb][0], cost))
-    vals = bytes(g(gx, gy) for gx in range(tx0, tx1 + 1) for gy in range(ty0, ty1 + 1))
-    zs = [
-        layers[gx * GH + gy][0][0] if gx * GH + gy in layers else None
-        for gx in range(tx0, tx1 + 1)
-        for gy in range(ty0, ty1 + 1)
-    ]
+    cells = [layers.get(gx * GH + gy) for gx in range(tx0, tx1 + 1) for gy in range(ty0, ty1 + 1)]
+    vals = bytes(surfaces[0][1] if surfaces else 0 for surfaces in cells)
+    zs = [surfaces[0][0] if surfaces else None for surfaces in cells]
     terrain = sample_cluster(MAPS, MAP, rr, cc, CELLS, ZQ) if MAPS else None
-    return rc, vals, zs, floors, links, sorted(own), terrain
+    return rc, vals, zs, floors, links, masks, terrain
 
 
 def step_ok(grid, cuts, ux, uy, vx, vy):
@@ -848,8 +729,9 @@ def bit_step(g, grid, cuts, ux, uy, vx, vy):
 
 
 def step_walkable(g, grid, cuts, ux, uy, vx, vy):
-    """May the emitted grid be walked from (ux, uy) to (vx, vy)? An orthogonal step is its symmetric bit or its own
-    record, a diagonal is either L-shaped detour or the bake's explicit diagonal, and steep ground goes down only."""
+    """Read a directed base mask, or recover the step from legacy cuts and stored heights during graph refresh."""
+    if isinstance(cuts, bytearray):
+        return bool(cuts[ux * GH + uy] & (1 << DIRS[(vx - ux, vy - uy)]))
     if not grid[vx * GH + vy]:
         return False
     if ux == vx or uy == vy:
@@ -876,9 +758,7 @@ def moves(g, grid, cuts, u, box, swim=SWIM):
     for v, cost in sorted(LINKS.get(u, {}).items()):
         vx, vy = divmod(cell_of(v), GH)
         if gx0 <= vx <= gx1 and gy0 <= vy <= gy1:
-            # A floor pair carried by a bit is written out both ways even where a steep end makes it one-way; the
-            # decoder decides that direction by stored height, and so must the graph.
-            if not link_ok(grid, u, v):
+            if not isinstance(cuts, bytearray) and not link_ok(grid, u, v):
                 continue
             if cost is not None:
                 yield v, cost
@@ -1081,8 +961,7 @@ def grid_entrances(grid, cuts, jobs=1):
                 for w, cost in sorted(LINKS[u].items()):
                     if cluster_of_cell(w) != across:
                         continue
-                    # a step bit is still one-way at a steep pair, as the decoder reads it
-                    if not link_ok(grid, u, w):
+                    if not isinstance(cuts, bytearray) and not link_ok(grid, u, w):
                         continue
                     wx, wy = divmod(cell_of(w), GH)
                     t = 0 if axis is None else uy - ky * CELLS if axis == 0 else ux - kx * CELLS
@@ -1218,6 +1097,32 @@ def grid_hpa(grid, cuts, jobs=1):
     return nodes, edges
 
 
+def encode_grid_runs(values, *, directed):
+    """RLE with 16 repeat symbols. Directed grids reserve symbol 47 for a literal outside the cluster palette."""
+    out = []
+    if directed:
+        palette = [value for value, _ in Counter(values).most_common(47)]
+        codes = {value: B64[i] for i, value in enumerate(palette)}
+        out = [enc(len(palette), 1), *(enc(value, 2) for value in palette)]
+    i = 0
+    while i < len(values):
+        value = values[i]
+        j = i + 1
+        while j < len(values) and values[j] == value:
+            j += 1
+        if directed:
+            out.append(codes[value] if value in codes else B64[47] + enc(value, 2))
+        else:
+            out.append(B64[value])
+        repeat = j - i - 1
+        while repeat:
+            n = min(repeat, 16)
+            out.append(B64[47 + n])
+            repeat -= n
+        i = j
+    return "".join(out)
+
+
 def encode_map(nodes, edges, grid, cuts, *, collision=True):
     cells = sorted(c for cs in nodes.values() for c in cs)
     parent = {c: c for c in cells}
@@ -1241,9 +1146,10 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
     for (a, b), d in edges.items():
         nbrs[a].append((b, d))
     flags = defaultdict(int)
-    for code in cuts:
-        i, d = divmod(code, 4)
-        flags[i] |= 1 << d
+    if not isinstance(cuts, bytearray):
+        for code in cuts:
+            i, d = divmod(code, 4)
+            flags[i] |= 1 << d
 
     floor_index = {}
     for fs in FLOORS_OF.values():
@@ -1291,6 +1197,9 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
         for i in range(CELLS):
             for j in range(CELLS):
                 c = (kx * CELLS + i) * GH + ky * CELLS + j
+                if isinstance(cuts, bytearray):
+                    vals.append(grid[c] * 256 + cuts[c])
+                    continue
                 v, f = grid[c], flags.get(c, 0)
                 if v == 3:
                     # Steep ground rides the ground value's flag 8: a steep map reads it as value 3, while water
@@ -1300,19 +1209,7 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
                     assert v != 1 or not f & 8, f"ground cell {c} uses the steep flag"
                 vals.append(v * 16 + f)
         if any(vals):
-            syms, i = [], 0
-            while i < len(vals):
-                j = i + 1
-                while j < len(vals) and vals[j] == vals[i]:
-                    j += 1
-                syms.append(B64[vals[i]])
-                repeat = j - i - 1
-                while repeat > 0:
-                    n = min(repeat, 16)
-                    syms.append(B64[48 + n - 1])
-                    repeat -= n
-                i = j
-            grids[k] = "".join(syms)
+            grids[k] = encode_grid_runs(vals, directed=isinstance(cuts, bytearray))
             heights[k] = encode_heights(grid, k)
             if TERRAIN.get(k):
                 # A cell with no floor has one place to stand, so it never needs an exception; only a ground that is
@@ -1330,8 +1227,10 @@ def encode_map(nodes, edges, grid, cuts, *, collision=True):
                 text = encode_terrain(TERRAIN[k], base, CELLS, floor_z)
                 if text:
                     terrains[k] = text
-        if FLOORS_OF.get(k) or LINKED_OF.get(k):
-            floors[k] = encode_floors(grid, k, lcell)
+        if FLOORS_OF.get(k) or LINKED_OF.get(k) or WET_STEPS.get(k):
+            floors[k] = (
+                encode_directed_floors(k, lcell) if isinstance(cuts, bytearray) else encode_floors(grid, k, lcell)
+            )
     return graph, grids, heights, floors, terrains, len(roots)
 
 
@@ -1349,11 +1248,8 @@ def terrain_header():
     return ["-- " + first, *("--   " + line for line in rest)]
 
 
-def emit(nodes, edges, grid, cuts, out, name):
-    assert all(link_ok(grid, u, v) for u, v in edges if cluster_of_cell(u) != cluster_of_cell(v)), (
-        "a cluster crossing exceeds the runtime climb limit"
-    )
-    graph, grids, heights, floors, terrains, components = encode_map(nodes, edges, grid, cuts)
+def emit(nodes, edges, grid, masks, out, name):
+    graph, grids, heights, floors, terrains, components = encode_map(nodes, edges, grid, masks)
     lines = [
         "-- Generated by tools/baker/gen_nav.py — do not edit.",
         f"-- Source: {SOURCE}.",
@@ -1361,30 +1257,15 @@ def emit(nodes, edges, grid, cuts, out, name):
         f"-- Map {MAP} ({name}), mmtile rows {ROWS.start}-{ROWS.stop - 1} x cols {COLS.start}-{COLS.stop - 1}.",
         "-- UnitPosition's frame (x north, y west). Cluster k (0-based) is the ADT tile x in [(cx0 + k // ny) T, +T),",
         "-- y in [(cy0 + k % ny) T, +T), T = 1600 / 3, cut into cells x cells cells, x-major. Base64 (A-Za-z0-9+/).",
-        "-- format 3: a step both ways may take is one bit, as in format 1, and its floor node's landings name the",
-        "-- layer it lands on, so the decoder resolves the pair the bake linked. `steep = true` marks steep ground in",
-        "-- this map: a ground cell with flag 8, and a floor whose value is 3, are steep. A step with a steep end is a",
-        "-- bit too, but the decoder allows it only when the destination's stored height is not above the source's.",
-        "-- Only a step one way takes, a ledge drop or a step carrying a cost is its own record; a step record whose",
-        "-- direction is + 16 is taken as written, with no steep test, as the bake's walk decided it. A map without",
-        "-- `steep` is the older format 2, whose flag 8 opens the -x-y diagonal and whose bits pick the surface",
-        "-- nearest their height; without `format` it is format 1, whose links are symmetric.",
-        "-- climbChecked: every cluster crossing passes the steep-ground rule at bake time.",
-        "-- graph[k + 1]: n(2) | n x [cell(3) layer(1) component(2) degree(degreeWidth or 1) "
-        "baseDegree(baseDegreeWidth or 0)] "
-        "| n x degree edges in node order, each",
-        "--   [cluster offset(1): (dx + 1) * 3 + dy + 1, node(2), cost(2) swimming with water at swim, cost(2) walking",
-        "--   on water, both in running yards]; the decoder builds each node's predecessors from them. grid[k + 1]:",
-        "--   per cell value * 16 +",
-        "--   flags, where value 0 blocked, 1 ground, 2 water; flags 1/2 close the step to the +x/+y neighbour, 4",
-        "--   opens the +x+y diagonal, and 8 opens the -x-y diagonal, except that a ground cell's 8 is steep ground in",
-        "--   a `steep` map (its -x-y diagonal is a record instead). Otherwise a diagonal is open when either L-shaped",
-        "--   detour is. A symbol >= 48 repeats the previous cell (symbol - 47) more times. Nodes are local cells,",
-        "--   then floors from cells * cells on.",
+        "-- Format 4 stores outgoing steps selected by the navmesh walk, including diagonals.",
+        "-- grid[k + 1]: palette count(1), then palette entries(2) of value * 256 + outgoing base-to-base mask.",
+        "--   Value 0 blocked, 1 ground, 2 water. Cell symbols 0-46 index the palette; 47 precedes a literal(2).",
+        "--   Symbols 48-63 repeat the previous cell 1-16 times. Masks use the floor link direction order.",
         *heights_header(),
-        "-- floor[k + 1]: surfaces above or below the base one, numbered from cells * cells in order; the records that",
-        "--   follow the step bits are one per pair, in the direction they are taken.",
-        *("--   " + line for line in wrap(" ".join(cast(str, encode_floors.__doc__).split(": ", 1)[1].split()), 110)),
+        *(
+            "-- " + line
+            for line in wrap("floor[k + 1]: " + " ".join(cast(str, encode_directed_floors.__doc__).split()), 110)
+        ),
         *terrain_header(),
         "ShortestPathForeverPathData = ShortestPathForeverPathData or {}",
         "",
@@ -1398,10 +1279,9 @@ def emit(nodes, edges, grid, cuts, out, name):
         f"\tcells = {CELLS},",
         f"\tswim = {SWIM:.6f},",
         f"\tzstep = {ZQ},",
-        "\tformat = 3,",
+        "\tformat = 4,",
         "\tdegreeWidth = 2,",
         "\tbaseDegreeWidth = 2,",
-        "\tsteep = true,",
         "\tclimbChecked = true,",
     ]
     for key, table in (
@@ -1422,10 +1302,10 @@ def emit(nodes, edges, grid, cuts, out, name):
     zb, fb = sum(map(len, heights.values())), sum(map(len, floors.values()))
     tb = sum(map(len, terrains.values()))
     print(f"emit: heights {zb / 1e3:.1f} KB, floors {fb / 1e3:.1f} KB, terrain {tb / 1e3:.1f} KB", flush=True)
-    print(f"emit: links {dict(KINDS)}, graph edges {len(edges)}", flush=True)
+    print(f"emit: graph edges {len(edges)}", flush=True)
     print(
-        f"emit: components {components}, graph {gb / 1e3:.1f} KB, grids+cuts {rb / 1e3:.1f} KB "
-        f"({len(grids)} clusters, cuts {len(cuts)}), file {len(src) / 1e3:.1f} KB",
+        f"emit: components {components}, graph {gb / 1e3:.1f} KB, grids {rb / 1e3:.1f} KB "
+        f"({len(grids)} clusters), file {len(src) / 1e3:.1f} KB",
         flush=True,
     )
 
@@ -1453,7 +1333,7 @@ class RawLinks:
     held gigabytes through the whole graph build. Heights and costs are the workers' own doubles, so every value
     reads back exactly as it was sent."""
 
-    NONE, FREE, COST = 0, 1, 2
+    NONE, FREE, COST, WET = 0, 1, 2, 3
 
     def __init__(self):
         self.i, self.j = array("i"), array("i")
@@ -1472,6 +1352,9 @@ class RawLinks:
             elif cost == FREE_STEP:
                 self.kind.append(self.FREE)
                 self.cost.append(0.0)
+            elif cost == WET_STEP:
+                self.kind.append(self.WET)
+                self.cost.append(0.0)
             else:
                 self.kind.append(self.COST)
                 self.cost.append(cost)
@@ -1481,12 +1364,15 @@ class RawLinks:
 
     def __iter__(self):
         for n, kind in enumerate(self.kind):
-            cost = None if kind == self.NONE else FREE_STEP if kind == self.FREE else self.cost[n]
+            if kind == self.WET:
+                cost = WET_STEP
+            else:
+                cost = None if kind == self.NONE else FREE_STEP if kind == self.FREE else self.cost[n]
             yield self.i[n], self.za[n], self.j[n], self.zb[n], cost
 
 
-def assemble_floors(floors, links):
-    """Floor nodes in (cell, height) order, and links between nodes, matched to surfaces by height."""
+def assemble_floors(floors, links, *, directed=False):
+    """Build floor nodes and resolve step layers and drop heights to node IDs."""
     nb = GW * GH
     at = FLOORS_AT
     for c, fs in sorted(floors):
@@ -1500,9 +1386,18 @@ def assemble_floors(floors, links):
         FLOORS_OF[cluster_of_cell(c)] += at[c]
 
     for i, za, j, zb, cost in links:
-        a, b = surface_node(i, za), surface_node(j, zb)
+        if directed and cost in (None, WET_STEP):
+            a = FLOORS_AT[i][int(za) - 1] if za else i
+            b = FLOORS_AT[j][int(zb) - 1] if zb else j
+        else:
+            a, b = surface_node(i, za), surface_node(j, zb)
         if a is None or b is None:
             continue
+        if cost == WET_STEP:
+            WET_STEPS[cluster_of_cell(a)].add((a, b))
+            if a < nb and b < nb:
+                continue  # the base grid mask already carries this step
+            cost = None
         if cost == FREE_STEP:  # links come back pickled from worker processes, so compare by value
             FREE.add((a, b))
             cost = None
@@ -1720,6 +1615,71 @@ def encode_floors(grid, k, lnode):
     return "".join(out)
 
 
+def encode_directed_floors(k, lnode):
+    """Floor count(3), then [cell delta, value(1), height(2), mask(2)]. Base-to-floor node count(3), then
+    [node delta, mask(2)]. Landing sets follow in header order, one per set direction: a six-bit set of layers
+    0-5, or zero followed by count(2) and one symbol per layer. A cell or node delta is 0-62 or 63 followed by
+    delta - 63(3). Drops follow as count(3), then [node(3), dx+8(1), dy+8(1), layer(1), cost(2)].
+    An optional final stream of [node delta, direction(1), layer(1)] entries marks steps that need water
+    between dry endpoints. Dry refinement uses this stream; the steps themselves are already in the masks.
+    """
+    floors = FLOORS_OF[k]
+    out, landings, drops = [enc(len(floors), 3)], [], []
+    masks = defaultdict(dict)
+    for u in LINKED_OF[k]:
+        ux, uy = divmod(cell_of(u), GH)
+        for v, cost in sorted(LINKS[u].items()):
+            vx, vy = divmod(cell_of(v), GH)
+            dx, dy = vx - ux, vy - uy
+            layer = FLOOR_LAYER[v - GW * GH] if v >= GW * GH else 0
+            if cost is not None:
+                assert -8 <= dx <= 7 and -8 <= dy <= 7, (dx, dy)
+                drops.append((lnode(u), dx + 8, dy + 8, layer, round(cost)))
+            else:
+                masks[u].setdefault(DIRS[dx, dy], []).append(layer)
+
+    def emit_mask(slots):
+        out.append(enc(sum(1 << d for d in slots), 2))
+        for _, layers in sorted(slots.items()):
+            if layers[-1] < 6:
+                landings.append(enc(sum(1 << layer for layer in layers), 1))
+            else:
+                landings.append("A" + enc(len(layers), 2) + "".join(enc(layer, 1) for layer in layers))
+
+    cell = 0
+    for n in floors:
+        local = lnode(cell_of(n))
+        emit_delta(out, local - cell)
+        cell = local
+        out.append(enc(FLOOR_VAL[n - GW * GH], 1) + enc(stored_z(n) + 2048, 2))
+        emit_mask(masks[n])
+    base = [n for n in masks if n < GW * GH]
+    out.append(enc(len(base), 3))
+    node = 0
+    for n in sorted(base, key=lnode):
+        local = lnode(n)
+        emit_delta(out, local - node)
+        node = local
+        emit_mask(masks[n])
+    out.extend(landings)
+    out.append(enc(len(drops), 3))
+    out.extend(
+        enc(n, 3) + enc(dx, 1) + enc(dy, 1) + enc(layer, 1) + enc(cost, 2) for n, dx, dy, layer, cost in sorted(drops)
+    )
+    wet = []
+    for u, v in WET_STEPS.get(k, ()):
+        ux, uy = divmod(cell_of(u), GH)
+        vx, vy = divmod(cell_of(v), GH)
+        layer = FLOOR_LAYER[v - GW * GH] if v >= GW * GH else 0
+        wet.append((lnode(u), DIRS[vx - ux, vy - uy], layer))
+    node = 0
+    for n, direction, layer in sorted(wet):
+        emit_delta(out, n - node)
+        node = n
+        out.append(enc(direction, 1) + enc(layer, 1))
+    return "".join(out)
+
+
 def main():
     global SOURCE, LINKS, LINKED_OF
     args, provenance = arguments(Path(MM))
@@ -1742,16 +1702,17 @@ def main():
     components(places(map_id))
     phases["components"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
-    grid, cuts = bytearray(GW * GH), set()
+    grid, masks = bytearray(GW * GH), bytearray(GW * GH)
     BASE_Z.frombytes(bytes(4 * GW * GH))
     floors, links = [], RawLinks()
     order = sorted(TILES, key=ORD.__getitem__)
     with multiprocessing.get_context("fork").Pool(jobs) as pool:  # workers inherit the pass-1 globals
-        for n, (rc, vals, zs, tf, tl, own, terrain) in enumerate(pool.imap(rasterize_tile, order, chunksize=2)):
+        for n, (rc, vals, zs, tf, tl, tile_masks, terrain) in enumerate(pool.imap(rasterize_tile, order, chunksize=2)):
             kx, ky = divmod(cluster_of_tile(*rc), NY)
             for i in range(CELLS):
                 row = (kx * CELLS + i) * GH + ky * CELLS
                 grid[row : row + CELLS] = vals[i * CELLS : (i + 1) * CELLS]
+                masks[row : row + CELLS] = tile_masks[i * CELLS : (i + 1) * CELLS]
                 for j in range(CELLS):
                     if zs[i * CELLS + j] is not None:
                         BASE_Z[row + j] = zs[i * CELLS + j]
@@ -1759,22 +1720,21 @@ def main():
                 TERRAIN[cluster_of_tile(*rc)] = terrain
             floors += tf
             links.extend(tl)
-            cuts.update(own)
             if (n + 1) % 100 == 0:
                 print(f"  rasterized {n + 1}/{len(order)} tiles", flush=True)
-    print(f"grid {GW}x{GH}: ground {grid.count(1)}, water {grid.count(2)}, cut steps {len(cuts)}", flush=True)
+    print(f"grid {GW}x{GH}: ground {grid.count(1)}, water {grid.count(2)}", flush=True)
     phases["raster"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
-    assemble_floors(floors, links)
+    assemble_floors(floors, links, directed=True)
     # matched into FLOORS_AT and LINKS; the raw lists, the last tile's included, are not needed again
     del floors, links, tf, tl
     phases["floors"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
     # The graph is built from the very links and cuts the grid is emitted with, so the two cannot disagree.
-    nodes, edges = grid_hpa(grid, cuts, jobs)
+    nodes, edges = grid_hpa(grid, masks, jobs)
     phases["graph"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
-    emit(nodes, edges, grid, cuts, out, name)
+    emit(nodes, edges, grid, masks, out, name)
     phases["emit"] = time.perf_counter() - checkpoint
     if args.metrics:
         record(
