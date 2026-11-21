@@ -7,8 +7,8 @@ Reads our own bake of the local client (TrinityCore mmtile layout <mm>/MMMM_RR_C
 per ADT) from NAV_MM. The tile bounding box comes from the .mmtile files present (optionally cut to --rows/--cols).
 Every tile with walkable data becomes a cluster. Poly components a player cannot reach are dropped over the whole
 map: those holding none of the map's fixed places (tools/baker/places.lua: flight masters, docks and lift ends, portal
-ends, teleport landings), such as the sealed terrain under Stormwind, and those under MIN_COMPONENT polys (rooftops,
-treetops, props).
+ends, teleport landings) nor reached by a one-way drop from kept ground, such as the sealed terrain under Stormwind, and
+those a place stands on with under MIN_COMPONENT polys (rooftops, treetops, props).
 
 Streamed so a continent fits in memory: pass 1 finds the poly components over the whole map with a compact
 union-find; pass 2 rasterizes each tile from the 3x3 tiles around it (in parallel); pass 3 builds the HPA graph over
@@ -101,7 +101,7 @@ ORD = {}  # (rr, cc) -> canonical tile ordinal (rows outer, cols inner)
 # Set by components(): each tile's first poly id and each poly's component size.
 BASE = {}  # (rr, cc) -> first dense poly id of the tile
 HOPS = []  # ((x, y, z) trigger, radius, (x, y, z) landing): Data/Portals.lua ns.Hops on this map
-SIZE = array("i")  # dense poly id -> poly count of its navmesh component; kept when >= MIN_COMPONENT
+SIZE = array("i")  # dense poly id -> poly count of its navmesh component, 0 where the component is not kept
 # Nodes are cells (the base surface, ids below GW * GH) and floors (GW * GH + floor index), filled by assemble_floors().
 FLOOR_CELL, FLOOR_VAL, FLOOR_Z, FLOOR_LAYER = array("i"), bytearray(), array("f"), bytearray()  # layer: 1 = lowest
 BASE_Z = array("f")  # cell -> height of its base surface
@@ -311,11 +311,15 @@ def gid(rc, i):
 
 def components(spots, joins=()):
     """Pass 1: union-find over every walkable poly of the map; SIZE records each poly's component size, or 0 for a
-    component no fixed place in spots stands on. A place stands on its nearest walkable poly in its own or a
-    neighbouring tile, whatever that poly's component. joins are hops, (trigger, radius, landing): the polys a hop's
-    two ends stand on are one component, as the hop's link joins them."""
+    component not kept. A place stands on its nearest walkable poly in its own or a neighbouring tile, whatever that
+    poly's component. joins are hops, (trigger, radius, landing): the polys a hop's two ends stand on are one
+    component, as the hop's link joins them. A drop (the local bake's off-mesh connection) leads from the poly nearest
+    its ledge to the poly nearest its landing, in the landing's tile, so ground entered only by dropping in, such as
+    the Caverns of Time floor, is kept with the ground above it (#1211)."""
     global SIZE
     spots = list(spots) + [h[0] for h in joins] + [h[2] for h in joins]
+    arcs = []  # one-way drops as (dense id of the ledge poly, dense id of the landing poly)
+    landing = defaultdict(list)  # tile -> drops landing in it, as (ledge dense id, landing point)
     parent = array("i")
     border = defaultdict(list)
     dense = {}  # gid -> dense id, only while matching borders
@@ -334,10 +338,30 @@ def components(spots, joins=()):
             x = parent[x]
         return x
 
+    def nearest(polys, base, point):
+        """The dense id of the poly of a tile nearest a point, or -1 for a tile with none."""
+        best = (math.inf, -1)
+        for n, (_, pts, _, _) in enumerate(polys):
+            # the gap to the poly's bounding box never exceeds the distance to the poly
+            gap = max(max(min(p[a] for p in pts) - point[a], point[a] - max(p[a] for p in pts)) for a in (0, 1, 2))
+            if gap < best[0]:
+                d = poly_distance(point, pts)
+                if d < best[0]:
+                    best = (d, base + n)
+        return best[1]
+
+    def tile_of(point):
+        return int(32 - point[0] / T), int(32 - point[1] / T)
+
     for rc in sorted(TILES):
-        polys, links, edges, _ = read_tile(rc)
+        polys, links, edges, drops = read_tile(rc)
         BASE[rc] = base = len(parent)
         loc = {i: base + n for n, (i, _, _, _) in enumerate(polys)}
+        for ledge, land in drops:
+            if tile_of(land) in TILES:
+                landing[tile_of(land)].append((nearest(polys, base, ledge), land))
+        for a, land in landing.pop(rc, ()):
+            arcs.append((a, nearest(polys, base, land)))
         parent.extend(range(base, base + len(polys)))
         for i, j, _, _ in links:
             parent[find(loc[i])] = find(loc[j])
@@ -355,6 +379,9 @@ def components(spots, joins=()):
             g = gid(rc, i)
             dense[g] = loc[i]
             border[key].append((g, lo, hi, z))
+    for rc in sorted(landing):  # drops landing in a tile read before the ledge's
+        polys = read_tile(rc)[0]
+        arcs += [(a, nearest(polys, BASE[rc], land)) for a, land in landing[rc]]
     for a, b, _ in match_borders(border):
         parent[find(dense[a])] = find(dense[b])
     ends = len(spots) - 2 * len(joins)
@@ -368,11 +395,23 @@ def components(spots, joins=()):
     reached = {find(x) for _, x in stand if x >= 0}
     if not reached:
         sys.exit(f"no fixed place of map {MAP} stands on the selected tiles, so none of their ground is reachable")
-    SIZE = array("i", (size[r] if r in reached else 0 for r in map(find, range(len(parent)))))
-    big = sorted((size[r] for r in reached if size[r] >= MIN_COMPONENT), reverse=True)
+    # A place keeps its component unless that is a speck; ground a drop reaches from kept ground is walked to, however
+    # small, and drops are followed one way only, so a ledge or roof that drops onto the ground is not kept by it.
+    kept = {r for r in reached if size[r] >= MIN_COMPONENT}
+    down = defaultdict(set)
+    for a, b in arcs:
+        if a >= 0 and b >= 0:
+            down[find(a)].add(find(b))
+    todo = list(kept)
+    while todo:
+        for r in down[todo.pop()] - kept:
+            kept.add(r)
+            todo.append(r)
+    SIZE = array("i", (size[r] if r in kept else 0 for r in map(find, range(len(parent)))))
+    big = sorted((size[r] for r in kept), reverse=True)
     print(
         f"tiles {len(TILES)}, polys {len(parent)}, components {len(size)}, reached {len(reached)}, kept {len(big)} "
-        f"({sum(big)} polys): {big[:12]}{' ...' if len(big) > 12 else ''}",
+        f"({sum(big)} polys, {len(kept - reached)} by a drop): {big[:12]}{' ...' if len(big) > 12 else ''}",
         flush=True,
     )
 
@@ -385,7 +424,7 @@ def load_window(tiles):
         base = BASE[rc]
         kept = set()
         for n, (i, pts, water, steep) in enumerate(tp):
-            if SIZE[base + n] < MIN_COMPONENT:
+            if not SIZE[base + n]:
                 continue
             kept.add(i)
             nv = len(pts)

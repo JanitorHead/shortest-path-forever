@@ -678,17 +678,19 @@ class AssembleFloorsTest(unittest.TestCase):
 
 
 class ReachableTest(unittest.TestCase):
-    def components(self, spots, joins=()):
+    def components(self, spots, joins=(), drops=(), tiles=None, minimum=1):
         # A street and, 40 yards under it, sealed ground with no way between them, as under Stormwind.
         def square(z):
             return [(-8800.0, 800.0, z), (-8790.0, 800.0, z), (-8790.0, 810.0, z), (-8800.0, 810.0, z)]
 
         polys = [(0, square(100.0), False, False), (1, square(60.0), False, False)]
+        tiles = tiles or {(48, 30): (polys, list(drops))}
         with (
-            patch.object(gen_nav, "TILES", {(48, 30): "tile"}),
+            patch.object(gen_nav, "TILES", dict.fromkeys(tiles, "tile")),
             patch.object(gen_nav, "BASE", {}),
             patch.object(gen_nav, "SIZE", array("i")),
-            patch.object(gen_nav, "read_tile", lambda rc: (polys, [], [], [])),
+            patch.object(gen_nav, "MIN_COMPONENT", minimum),
+            patch.object(gen_nav, "read_tile", lambda rc: (tiles[rc][0], [], [], tiles[rc][1])),
         ):
             gen_nav.components(spots, joins)
             return list(gen_nav.SIZE)
@@ -701,6 +703,38 @@ class ReachableTest(unittest.TestCase):
         # A teleport from the street down to the sealed ground keeps that ground, as one component with the street.
         hop = ((-8795.0, 805.0, 101.0), 7.0, (-8795.0, 805.0, 60.0))
         self.assertEqual(self.components([(-8795.0, 805.0, 101.0)], [hop]), [2, 2])
+
+    def test_a_drop_keeps_the_ground_it_lands_on_and_never_its_ledge(self):
+        drop = ((-8795.0, 805.0, 100.0), (-8795.0, 805.0, 60.0))
+        self.assertEqual(self.components([(-8795.0, 805.0, 101.0)], drops=[drop]), [1, 1])
+        self.assertEqual(self.components([(-8795.0, 805.0, 58.0)], drops=[drop]), [0, 1])
+
+    def test_a_drop_keeps_a_speck_only_a_place_would_lose(self):
+        # Under a minimum of 2 polys the one-poly pit is a speck: no place keeps it, a drop from kept ground does.
+        def half(n, z, upper):
+            corner = (-8790.0, 800.0, z) if upper else (-8800.0, 810.0, z)
+            return (n, [(-8800.0, 800.0, z), corner, (-8790.0, 810.0, z)], False, False)
+
+        polys = [half(0, 100.0, True), half(1, 100.0, False), half(2, 60.0, True)]
+        drop = ((-8792.0, 802.0, 100.0), (-8792.0, 802.0, 60.0))
+        for drops, want in (([], [2, 2, 0]), ([drop], [2, 2, 1])):
+            with (
+                patch.object(gen_nav, "TILES", {(48, 30): "tile"}),
+                patch.object(gen_nav, "BASE", {}),
+                patch.object(gen_nav, "SIZE", array("i")),
+                patch.object(gen_nav, "MIN_COMPONENT", 2),
+                patch.object(gen_nav, "read_tile", lambda rc, d=drops: (polys, [(0, 1, None, None)], [], d)),
+            ):
+                gen_nav.components([(-8795.0, 803.0, 101.0)])
+                self.assertEqual(list(gen_nav.SIZE), want)
+
+    def test_a_drop_landing_in_a_tile_read_before_its_ledge_counts(self):
+        # The ledge's tile (48, 30) sorts after the landing's tile (47, 30), which is read first.
+        lower = [(0, [(-8270.0, 800.0, 60.0), (-8260.0, 800.0, 60.0), (-8260.0, 810.0, 60.0)], False, False)]
+        upper = [(0, [(-8800.0, 800.0, 100.0), (-8790.0, 800.0, 100.0), (-8790.0, 810.0, 100.0)], False, False)]
+        drop = ((-8792.0, 802.0, 100.0), (-8262.0, 802.0, 60.0))
+        tiles = {(47, 30): (lower, []), (48, 30): (upper, [drop])}
+        self.assertEqual(self.components([(-8792.0, 802.0, 101.0)], tiles=tiles), [1, 1])
 
     def test_tiles_without_a_fixed_place_are_refused(self):
         with self.assertRaises(SystemExit):
