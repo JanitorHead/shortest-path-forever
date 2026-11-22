@@ -1750,8 +1750,10 @@ local function sight(st, P, a, b, water, road, limit, budget, roadFactor)
 						-- A pulled segment that leaves the road is charged the off-road preference too: a straight cut
 						-- across a field must not beat the road bend the walk took just because its own time is shorter
 						-- (#891).
-						local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, nk, nn))) or 1
-						spent = pace(swim, spent, (next2 - at) * span, grid(st, nk)[nn + 1] == 2, budget, ratio)
+						-- The stretch up to this crossing lies in the cell being left, so it is charged as that node.
+						local lk, ln = fk[i], fn[i]
+						local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, lk, ln))) or 1
+						spent = pace(swim, spent, (next2 - at) * span, grid(st, lk)[ln + 1] == 2, budget, ratio)
 					end
 					if spent then
 						reached = admit(gk, gn, gs, reached, nk, nn, spent)
@@ -1857,14 +1859,17 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 				reached = 1
 			end
 			local landed, kept = false, 0
+			-- The stretch up to this crossing lies in the cell being left, so it is charged as that cell.
+			local leftWet = value(st, x, y) == 2
 			if not closed then
 				for i = 1, count do
-					for j = 1, neighbours(st, fk[i], fn[i], x, y, mx, my, water, bk, bn) do
+					local lk, ln = fk[i], fn[i]
+					for j = 1, neighbours(st, lk, ln, x, y, mx, my, water, bk, bn) do
 						landed = true
 						local nk, nn = bk[j], bn[j]
 						if not factor or factor(nk, nn) <= limit then
-							local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, nk, nn))) or 1
-							local wet = grid(st, nk)[nn + 1] == 2
+							local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, lk, ln))) or 1
+							local wet = grid(st, lk)[ln + 1] == 2
 							local paced = pace(swim, fs[i], (reached - at) * span, wet, budget, ratio)
 							if paced then
 								kept = admit(gk, gn, gs, kept, nk, nn, paced)
@@ -1886,7 +1891,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 			end
 			x, y = x + mx, y + my
 			if not landed then
-				local paced = pace(swim, closed, (reached - at) * span, value(st, x, y) == 2, budget, roadFactor or 1)
+				local paced = pace(swim, closed, (reached - at) * span, leftWet, budget, roadFactor or 1)
 				if not paced then
 					return nil, false
 				end
@@ -1964,10 +1969,31 @@ end
 ---@return number[] keep -- the entries kept
 ---@return boolean startVia -- the line runs from the start through its end entry's centre, not straight from the point
 ---@return boolean goalVia -- the same at the goal
+---@return number[] drops -- drops[i]: how many of the walk's first i entries are reached by a fall off a ledge
 local function smooth(st, P, ends)
 	local PX, PY, PW, PR, PT = P.x, P.y, P.w, P.r, P.t
 	local factor = P.factor
 	local n = #PX
+	-- A step the walk can only take by a drop link falls off a ledge: the player walks level to its edge and falls, so
+	-- the line keeps the ledge and the landing, and no pulled segment crosses one (a chord over it would be drawn as a
+	-- slope the walk never stands on). D[i]: the drops among the walk's first i entries.
+	local D, PK, PN = { 0 }, P.k, P.n
+	local dk, dn, dc = {}, {}, {}
+	for i = 2, n do
+		local ak, an, bk, bn = PK[i - 1], PN[i - 1], PK[i], PN[i]
+		local gx, gy = PX[i - 1], PY[i - 1]
+		local fell, walked = false, false
+		for j = 1, neighbours(st, ak, an, gx, gy, PX[i] - gx, PY[i] - gy, true, dk, dn, dc) do
+			if dk[j] == bk and dn[j] == bn then
+				if dc[j] > 0 then
+					fell = true
+				else
+					walked = true
+				end
+			end
+		end
+		D[i] = D[i - 1] + ((fell and not walked) and 1 or 0)
+	end
 	local keep = { 1 }
 	for i = 2, n - 1 do
 		if
@@ -1975,6 +2001,8 @@ local function smooth(st, P, ends)
 			or PY[i + 1] - PY[i] ~= PY[i] - PY[i - 1]
 			or PW[i + 1] ~= PW[i]
 			or (PR and PR[i + 1] - PR[i] ~= PR[i] - PR[i - 1])
+			or D[i + 1] ~= D[i]
+			or D[i] ~= D[i - 1]
 		then
 			keep[#keep + 1] = i
 		end
@@ -2004,6 +2032,10 @@ local function smooth(st, P, ends)
 	local function clear(a, b)
 		slice() -- a long walk measures many segments; each is one sight, and a sight may already slice to decode
 		local p, q = at[a] or 1, at[b] or n
+		-- only the drop's own step joins its ledge to its landing
+		if D[q] - D[p] > (q == p + 1 and 1 or 0) then
+			return false
+		end
 		-- A segment from or to an end point is the one drawn from the point itself, so the end's own check is the whole
 		-- check; between entries the line runs centre to centre.
 		if not at[a] and not at[b] then
@@ -2121,7 +2153,7 @@ local function smooth(st, P, ends)
 	if n > 1 then
 		append(n)
 	end
-	return out, startVia, goalVia
+	return out, startVia, goalVia, D
 end
 
 -- The clusters around the player that Floor.lua follows the player's floor on, by map. Idle keeps them decoded; the
