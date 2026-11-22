@@ -157,8 +157,6 @@ L["Not discovered"] = "발견하지 않음"
 L["On board to %s"] = "%s행 탑승 중"
 L["On the world map and in Nearby services."] = "세계 지도와 주변 편의시설에서 적용됩니다."
 L["On the world map."] = "세계 지도에 표시합니다."
-L["One line in chat the first time you log in after an update."] =
-	"업데이트 후 처음 접속할 때 대화창에 한 줄 표시합니다."
 L["Only my professions"] = "내 직업만"
 L["Only use the Hearthstone when it saves at least this much time."] =
 	"최소 이만큼 시간을 절약할 때만 귀환석을 사용합니다."
@@ -341,7 +339,6 @@ L["Local travel journal — approx. %d yd walked; %d journeys; %d transports; %d
 	"로컬 이동 일지 — 약 %d야드 이동, 여정 %d회, 교통수단 %d회, 비행 %d회, 차원문 구간 %d회."
 L["Record travel stats"] = "이동 통계 기록"
 L["Time left"] = "남은 시간" -- mt
-L["Travel milestone reached: %s"] = "이동 이정표 달성: %s"
 L["Travel stats are not ready yet."] = "이동 통계가 아직 준비되지 않았습니다."
 L["Party member"] = "파티원" -- mt
 L["That player is not on a map you can see."] = "그 플레이어는 볼 수 있는 지도에 없습니다." -- mt
@@ -638,3 +635,14 @@ L["Remove all saved road and wall marks from the map and report."] =
 L["Road and wall report"] = "길 및 벽 보고서" -- mt
 L["Journey start: %s"] = "여정 출발지: %s" -- mt
 L["Journey goal: %s"] = "여정 목적지: %s" -- mt
+L["Shows a notice the first time you log in after an update."] =
+	"업데이트 후 처음 로그인할 때 알림을 표시합니다." -- mt
+L["You've walked %s yards."] = "%s미터를 걸었습니다." -- mt
+L["You've completed %s journeys."] = "여정 %s개를 완료했습니다." -- mt
+L["You've completed your first journey."] = "첫 여정을 완료했습니다." -- mt
+L["You've taken %s transport rides."] = "이동 수단을 %s번 이용했습니다." -- mt
+L["You've taken your first transport ride."] = "이동 수단을 처음 이용했습니다." -- mt
+L["You've taken %s flights."] = "비행편을 %s번 이용했습니다." -- mt
+L["You've taken your first flight."] = "비행편을 처음 이용했습니다." -- mt
+L["You've used %s portals or passages."] = "차원문이나 통로를 %s번 이용했습니다." -- mt
+L["You've used your first portal or passage."] = "차원문이나 통로를 처음 이용했습니다." -- mt
