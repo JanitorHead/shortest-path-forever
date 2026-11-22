@@ -102,7 +102,8 @@ end
 -- which of their two costs applies. They were searched without hazards, so options.hazards weights one by the hazards
 -- on the straight way between its ends, as the walking search would weight the yards it walks inside them.
 -- Each map's baked walks indexed by both ends, built once per table: joining the two keys for every pair of places
--- made strings by the thousand on each cold topology.
+-- made strings by the thousand on each cold topology. A baked table is immutable, as the topology cache already
+-- assumes of every table in CACHE_KEYS: new walks come as a new table (Data/Walks.lua is generated), never an edit.
 local byEnds = setmetatable({}, { __mode = "k" })
 local function BakedPairs(baked)
 	local index = byEnds[baked]
