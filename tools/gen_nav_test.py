@@ -188,7 +188,7 @@ class DiagonalTest(unittest.TestCase):
             patch.object(gen_nav, "rasterize_layers", lambda polys, adj, portal, bounds: layers),
             patch.object(gen_nav, "read_tile", lambda rc: ([], [], [], [])),
         ):
-            _, _, _, _, links, own, _ = gen_nav.rasterize_tile((0, 0))
+            _, _, _, _, links, own, _, _ = gen_nav.rasterize_tile((0, 0))
         free = [(i, 20.0, j, 10.0, "free"), (j, 10.0, i, 20.0, "free")]
         self.assertEqual(sorted(links), sorted(free), "the walk climbs back up, which no bit can say (#1101)")
         self.assertNotIn(i * 4 + 2, own, "a bit would read the climb with the downhill-only rule")
@@ -242,7 +242,7 @@ class SteepStepTest(unittest.TestCase):
             patch.object(gen_nav, "rasterize_layers", lambda polys, adj, portal, bounds: layers),
             patch.object(gen_nav, "read_tile", lambda rc: ([], [], [], [])),
         ):
-            _, _, _, _, links, own, _ = gen_nav.rasterize_tile((0, 0))
+            _, _, _, _, links, own, _, _ = gen_nav.rasterize_tile((0, 0))
         return links, own
 
     def face(self, x0, x1, z0, z1, steep):
@@ -339,7 +339,7 @@ class SteepStepTest(unittest.TestCase):
             patch.object(gen_nav, "rasterize_layers", lambda polys, adj, portal, bounds: layers),
             patch.object(gen_nav, "read_tile", lambda rc: ([], [], [], [])),
         ):
-            _, _, _, _, links, own, _ = gen_nav.rasterize_tile((0, 0))
+            _, _, _, _, links, own, _, _ = gen_nav.rasterize_tile((0, 0))
         free = [(i, 20.0, j, 10.0, "free"), (j, 10.0, i, 20.0, "free")]
         self.assertEqual(sorted(links), sorted(free), "both walked directions survive the downhill-only rule")
         self.assertIn(i * 4, own, "the bit is cut: the records carry the pair")
@@ -741,6 +741,30 @@ class ReachableTest(unittest.TestCase):
             self.components([(0.0, 0.0, 0.0)])
 
 
+class TrappedTest(unittest.TestCase):
+    """A pocket a drop alone reaches is kept only where the grid walks out of it, as the router would."""
+
+    def trapped(self, ground, pocket, links=()):
+        heights = dict.fromkeys(ground, (1, 0.0))
+        with GraphLegalityTest.world(self, heights, links=links) as (grid, _):
+            return gen_nav.trapped(grid, set(), pocket)
+
+    def test_a_pocket_with_no_step_out_is_trapped_and_one_a_step_leaves_is_not(self):
+        # Kept ground at cells 0 and 1; pocket 7 (cell 1 + GH) steps onto it, pocket 8 (cell 10) has no neighbour.
+        gh = gen_nav.CELLS
+        drops = [(0, 10, 5.0), (1, 1 + gh, 5.0)]
+        self.assertEqual(self.trapped([0, 1, 1 + gh, 10], {1 + gh: 7, 10: 8}, drops), {8})
+
+    def test_a_pocket_left_through_another_pocket_is_not_trapped(self):
+        # Pocket 8 at cell 10 drops into pocket 7 at cell 20, which steps out onto kept ground at cell 21.
+        drops = [(0, 10, 5.0), (10, 20, 5.0)]
+        self.assertEqual(self.trapped([0, 10, 20, 21], {10: 8, 20: 7}, drops), set())
+
+    def test_a_pocket_whose_only_way_out_is_up_a_drop_is_trapped(self):
+        # VALLEY: the drop in is one way, so standing in the pit holds no step back to the ledge.
+        self.assertEqual(self.trapped([0, 10, 11], {10: 7, 11: 7}, [(0, 10, 5.0)]), {7})
+
+
 class EmitDeltaTest(unittest.TestCase):
     """A sorted cell or node delta, as a format 3 cluster's floor list and record list write it."""
 
@@ -895,7 +919,7 @@ class LinkedPortalBoxTest(unittest.TestCase):
             patch.object(gen_nav, "rasterize_layers", lambda polys, adj, portal, bounds: layers),
             patch.object(gen_nav, "read_tile", lambda rc: ([], [], [], [])),
         ):
-            _, _, _, _, links, own, _ = gen_nav.rasterize_tile((0, 0))
+            _, _, _, _, links, own, _, _ = gen_nav.rasterize_tile((0, 0))
         self.assertIn(i * 4, own, "the ordinary two-way step is cut")
         uphill = [link for link in links if link[:4] == (i, 0.0, j, 8.0)]
         self.assertEqual(uphill, [], "no uphill link borrows the remote portal height")
@@ -926,7 +950,7 @@ class LinkedPortalBoxTest(unittest.TestCase):
             patch.object(gen_nav, "rasterize_layers", lambda polys, adj, portal, bounds: layers),
             patch.object(gen_nav, "read_tile", lambda rc: ([], [], [], [])),
         ):
-            _, _, _, _, links, own, _ = gen_nav.rasterize_tile((0, 0))
+            _, _, _, _, links, own, _, _ = gen_nav.rasterize_tile((0, 0))
         self.assertEqual(links, [], "no step is written across the doorway")
         self.assertIn(i * 4 + 1, own, "the +y step between the facing cells is cut")
 

@@ -7,11 +7,13 @@ Reads our own bake of the local client (TrinityCore mmtile layout <mm>/MMMM_RR_C
 per ADT) from NAV_MM. The tile bounding box comes from the .mmtile files present (optionally cut to --rows/--cols).
 Every tile with walkable data becomes a cluster. Poly components a player cannot reach are dropped over the whole
 map: those holding none of the map's fixed places (tools/baker/places.lua: flight masters, docks and lift ends, portal
-ends, teleport landings) nor reached by a one-way drop from kept ground, such as the sealed terrain under Stormwind, and
-those a place stands on with under MIN_COMPONENT polys (rooftops, treetops, props).
+ends, teleport landings) nor reached by a one-way drop from kept ground, such as the sealed terrain under Stormwind,
+those a place stands on with under MIN_COMPONENT polys (rooftops, treetops, props), and ground a drop reaches that
+no walk on the rasterized grid leaves again.
 
 Streamed so a continent fits in memory: pass 1 finds the poly components over the whole map with a compact
-union-find; pass 2 rasterizes each tile from the 3x3 tiles around it (in parallel); pass 3 builds the HPA graph over
+union-find; pass 2 rasterizes each tile from the 3x3 tiles around it (in parallel), then drops the pockets no walk
+leaves and rasterizes the tiles around them again; pass 3 builds the HPA graph over
 the assembled grid. All iteration is in a canonical (tile, poly) order, so the output is deterministic and a tile's
 cells do not depend on which window computed them.
 
@@ -19,6 +21,7 @@ Detour stores vertices as (worldY, worldZ, worldX). Output is in UnitPosition's 
 y grows west (world Y).
 """
 
+import bisect
 import glob
 import heapq
 import json
@@ -103,6 +106,7 @@ ORD = {}  # (rr, cc) -> canonical tile ordinal (rows outer, cols inner)
 BASE = {}  # (rr, cc) -> first dense poly id of the tile
 HOPS = []  # ((x, y, z) trigger, radius, (x, y, z) landing): Data/Portals.lua ns.Hops on this map
 SIZE = array("i")  # dense poly id -> poly count of its navmesh component, 0 where the component is not kept
+POCKET = {}  # dense poly id -> its component's root, for a kept component that only a drop reaches
 # Nodes are cells (the base surface, ids below GW * GH) and floors (GW * GH + floor index), filled by assemble_floors().
 FLOOR_CELL, FLOOR_VAL, FLOOR_Z, FLOOR_LAYER = array("i"), bytearray(), array("f"), bytearray()  # layer: 1 = lowest
 BASE_Z = array("f")  # cell -> height of its base surface
@@ -428,6 +432,10 @@ def components(spots, joins=()):
             kept.add(r)
             todo.append(r)
     SIZE = array("i", (size[r] if r in kept else 0 for r in map(find, range(len(parent)))))
+    # Whether a pocket can be left is the grid's question, asked once it is rasterized (trapped()): the navmesh's own
+    # links miss the seams the grid steps across, so a city ledge reads as sealed when the walk leaves it.
+    POCKET.clear()
+    POCKET.update((x, r) for x, r in enumerate(map(find, range(len(parent)))) if r in kept and r not in reached)
     big = sorted((size[r] for r in kept), reverse=True)
     print(
         f"tiles {len(TILES)}, polys {len(parent)}, components {len(size)}, reached {len(reached)}, kept {len(big)} "
@@ -450,6 +458,7 @@ def load_window(tiles):
             nv = len(pts)
             c = tuple(sum(p[a] for p in pts) / nv for a in range(3))
             polys[gid(rc, i)] = dict(
+                pocket=POCKET.get(base + n),  # the pocket's root, for ground only a drop reaches
                 c=c,
                 water=water,
                 steep=steep,
@@ -885,13 +894,22 @@ def rasterize_tile(rc):
         (i, la), (j, lb) = source, landing
         links.append((i, layers[i][la][0], j, layers[j][lb][0], math.hypot(x1 - x0, y1 - y0)))
     vals = bytes(g(gx, gy) for gx in range(tx0, tx1 + 1) for gy in range(ty0, ty1 + 1))
+    # The surfaces of ground only a drop reaches, as (cell, height, component root), for trapped().
+    pockets = [
+        (i, z, polys[pa]["pocket"])
+        for gx in range(tx0, tx1 + 1)
+        for gy in range(ty0, ty1 + 1)
+        for i in (gx * GH + gy,)
+        for z, _, (pa, _) in layers.get(i, ())
+        if polys[pa].get("pocket") is not None
+    ]
     zs = [
         layers[gx * GH + gy][0][0] if gx * GH + gy in layers else None
         for gx in range(tx0, tx1 + 1)
         for gy in range(ty0, ty1 + 1)
     ]
     terrain = sample_cluster(MAPS, MAP, rr, cc, CELLS, ZQ) if MAPS else None
-    return rc, vals, zs, floors, links, sorted(own), terrain
+    return rc, vals, zs, floors, links, sorted(own), terrain, pockets
 
 
 def step_ok(grid, cuts, ux, uy, vx, vy):
@@ -1009,6 +1027,37 @@ def moves(g, grid, cuts, u, box, swim=SWIM):
             else:
                 length = math.sqrt(2) if vx != ux and vy != uy else 1.0
                 yield v, length * CS * (swim if value_of(grid, v) == 2 else 1)
+
+
+def trapped(grid, cuts, pocket):
+    """The pockets of ground no walk leaves: of the components only a drop reaches (pocket maps each of their nodes to
+    its component), those none of whose nodes steps out of the pockets, by the moves the runtime decodes. Asked of
+    the grid, not the navmesh: its links miss the seams the grid steps across, and a ledge in a city that drops onto
+    a roof is left by a step off the roof's edge (#1211). A pocket another pocket drops into is left through it."""
+    g = lambda gx, gy: grid[gx * GH + gy]  # noqa: E731
+    box = (0, GW - 1, 0, GH - 1)
+    into, out = defaultdict(list), []
+    for u in pocket:
+        for v, _ in moves(g, grid, cuts, u, box):
+            if v not in pocket:
+                out.append(u)
+                break
+            into[v].append(u)
+    left = set(out)
+    while out:
+        for u in into[out.pop()]:
+            if u not in left:
+                left.add(u)
+                out.append(u)
+    return set(pocket.values()) - {pocket[u] for u in left}
+
+
+def reset_floors():
+    """Empty what assemble_floors fills, so the grid can be assembled again after a tile is rasterized afresh."""
+    for a in (FLOOR_CELL, FLOOR_VAL, FLOOR_Z, FLOOR_LAYER):
+        del a[:]
+    for d in (LINKS, FREE, FLOORS_OF, LINKED_OF, FLOORS_AT):
+        d.clear()
 
 
 def cluster_box(k):
@@ -1867,33 +1916,70 @@ def main():
     components(places(map_id), HOPS)
     phases["components"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
-    grid, cuts = bytearray(GW * GH), set()
+    grid = bytearray(GW * GH)
     BASE_Z.frombytes(bytes(4 * GW * GH))
-    floors, links = [], RawLinks()
     order = sorted(TILES, key=ORD.__getitem__)
-    with multiprocessing.get_context("fork").Pool(jobs) as pool:  # workers inherit the pass-1 globals
-        for n, (rc, vals, zs, tf, tl, own, terrain) in enumerate(pool.imap(rasterize_tile, order, chunksize=2)):
-            kx, ky = divmod(cluster_of_tile(*rc), NY)
-            for i in range(CELLS):
-                row = (kx * CELLS + i) * GH + ky * CELLS
-                grid[row : row + CELLS] = vals[i * CELLS : (i + 1) * CELLS]
-                for j in range(CELLS):
-                    if zs[i * CELLS + j] is not None:
-                        BASE_Z[row + j] = zs[i * CELLS + j]
-            if terrain is not None:
-                TERRAIN[cluster_of_tile(*rc)] = terrain
-            floors += tf
-            links.extend(tl)
-            cuts.update(own)
-            if (n + 1) % 100 == 0:
-                print(f"  rasterized {n + 1}/{len(order)} tiles", flush=True)
+    tiles = {}  # rc -> (floors, links, own cuts, pocket surfaces), as rasterize_tile returned them
+    tile_of = sorted((base, rc) for rc, base in BASE.items())
+
+    def raster(todo):
+        with multiprocessing.get_context("fork").Pool(jobs) as pool:  # workers inherit the pass-1 globals
+            for n, (rc, vals, zs, tf, tl, own, terrain, pockets) in enumerate(
+                pool.imap(rasterize_tile, todo, chunksize=2)
+            ):
+                kx, ky = divmod(cluster_of_tile(*rc), NY)
+                for i in range(CELLS):
+                    row = (kx * CELLS + i) * GH + ky * CELLS
+                    grid[row : row + CELLS] = vals[i * CELLS : (i + 1) * CELLS]
+                    for j in range(CELLS):
+                        z = zs[i * CELLS + j]
+                        BASE_Z[row + j] = 0.0 if z is None else z
+                if terrain is not None:
+                    TERRAIN[cluster_of_tile(*rc)] = terrain
+                links = RawLinks()
+                links.extend(tl)
+                tiles[rc] = (tf, links, own, pockets)
+                if (n + 1) % 100 == 0:
+                    print(f"  rasterized {n + 1}/{len(todo)} tiles", flush=True)
+
+    def assemble():
+        reset_floors()
+        assemble_floors([f for t in tiles.values() for f in t[0]], (x for t in tiles.values() for x in t[1]))
+        return {c for t in tiles.values() for c in t[2]}
+
+    raster(order)
+    while True:
+        cuts = assemble()
+        pocket = {}
+        for t in tiles.values():
+            for c, z, root in t[3]:
+                node = surface_node(c, z)
+                if node is not None:
+                    pocket[node] = root
+        gone = trapped(grid, cuts, pocket)
+        print(f"pockets: {len(set(pocket.values()))} on the grid, {len(gone)} that no walk leaves", flush=True)
+        if not gone:
+            break
+        # A pocket no walk leaves is ground only a fall reaches, a trap for the route: drop it like a speck, and
+        # rasterize again every tile whose window held it.
+        touched = set()
+        for x, root in list(POCKET.items()):
+            if root in gone:
+                SIZE[x] = 0
+                del POCKET[x]
+                touched.add(tile_of[bisect.bisect_right(tile_of, (x, (math.inf, math.inf))) - 1][1])
+        redo = sorted(
+            {(r + dr, c + dc) for r, c in touched for dr in (-1, 0, 1) for dc in (-1, 0, 1)} & TILES.keys(),
+            key=ORD.__getitem__,
+        )
+        print(f"  rasterizing {len(redo)} tiles again", flush=True)
+        del pocket
+        reset_floors()  # the workers fork from this process: none of them needs the assembled grid
+        raster(redo)
+    tiles.clear()  # matched into FLOORS_AT and LINKS; the raw lists are not needed again
     print(f"grid {GW}x{GH}: ground {grid.count(1)}, water {grid.count(2)}, cut steps {len(cuts)}", flush=True)
     phases["raster"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
-    assemble_floors(floors, links)
-    # matched into FLOORS_AT and LINKS; the raw lists, the last tile's included, are not needed again
-    del floors, links, tf, tl
-    phases["floors"] = time.perf_counter() - checkpoint
     checkpoint = time.perf_counter()
     # The graph is built from the very links and cuts the grid is emitted with, so the two cannot disagree.
     nodes, edges = grid_hpa(grid, cuts, jobs)
