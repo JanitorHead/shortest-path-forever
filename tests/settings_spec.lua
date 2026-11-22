@@ -416,6 +416,7 @@ local groups = {
 		"journey",
 		"journeyKey",
 		"journeyHint",
+		"minimapHint",
 		"focusedQuest",
 		"destinationPin",
 		"destinationPinSize",
@@ -477,7 +478,7 @@ local order = {
 }
 
 assert(#buttons == #order, "one index button per group")
-assert(#rows == 76, #rows)
+assert(#rows == 77, #rows)
 local cursor = 0
 for index, name in ipairs(order) do
 	local button = buttons[index].initializer

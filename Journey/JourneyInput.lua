@@ -56,6 +56,17 @@ function ns.JourneyClickHint()
 	return string.format(L["%s-click to plan a journey here"], ns.JourneyKeyName())
 end
 
+-- The minimap carries the same line, but it is the tooltip over every node, herb and NPC the player hovers, so it
+-- has its own switch (#1241): off, the map and flight-point hints stay and the minimap's goes. On, it follows
+-- journeyHint with everything else.
+---@return string?
+function ns.MinimapClickHint()
+	if ns.db and ns.db.minimapHint == false then
+		return nil
+	end
+	return ns.JourneyClickHint()
+end
+
 ---@param tooltip GameTooltip
 function ns.AddJourneyClickHint(tooltip)
 	local hint = ns.JourneyClickHint()
@@ -843,11 +854,14 @@ ns.Init(function()
 				tooltip ~= GameTooltip
 				or tooltip:IsForbidden()
 				or tooltip:NumLines() == 0
-				or not ns.JourneyClickHint()
+				or not ns.MinimapClickHint()
 			then
 				return
 			end
-			ns.AddJourneyClickHint(tooltip)
+			local hint = ns.MinimapClickHint()
+			if hint then
+				GameTooltip_AddInstructionLine(tooltip, hint)
+			end
 			tooltip:Show()
 		end)
 	end
