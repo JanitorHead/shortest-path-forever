@@ -64,7 +64,7 @@ local function walk(from, to, check, spacing)
 			local t = j / steps
 			local x, y = a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)
 			local z = a.z and b.z and a.z + t * (b.z - a.z) or b.z or a.z
-			falling = b.drop or false
+			falling = b.jump or false
 			Floor.Sample(0, x, y)
 			drain()
 			Floor.Sample(0, x, y)
@@ -120,7 +120,7 @@ do
 	local drops = 0
 	for i = 2, #points do
 		local a, b = points[i - 1], points[i]
-		if b.drop then
+		if b.jump then
 			drops = drops + 1
 			local step = math.max(math.abs(b.x - a.x), math.abs(b.y - a.y)) / st.cs
 			assert(step <= 1 + 1e-6, ("the ledge and its landing are one step apart: %.2f cells"):format(step))

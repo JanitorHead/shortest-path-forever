@@ -1546,8 +1546,8 @@ local function neighbours(st, k, node, gx, gy, dx, dy, water, outK, outN, outC)
 	local count = 0
 	local C = st.C
 	local tk, tlc = floor(tx / C) * st.ny + floor(ty / C), (tx % C) * C + ty % C
-	-- A zero-offset move can only be an explicit drop between layers, never an ordinary base step.
-	if node < C * C and (dx ~= 0 or dy ~= 0) then
+	-- An ordinary base step moves one cell: a zero offset, or one of more than a cell, can only be a link.
+	if node < C * C and (dx ~= 0 or dy ~= 0) and abs(dx) <= 1 and abs(dy) <= 1 then
 		local open
 		local val = tk == k and grid(st, k)
 		-- Most string-pulling steps stay on one base grid. Its decoded moves already check the
@@ -1860,7 +1860,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 			end
 			local landed, kept = false, 0
 			-- The stretch up to this crossing lies in the cell being left, so it is charged as that cell.
-			local leftWet = value(st, x, y) == 2
+			local stretch = (reached - at) * span
 			if not closed then
 				for i = 1, count do
 					local lk, ln = fk[i], fn[i]
@@ -1870,7 +1870,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 						if not factor or factor(nk, nn) <= limit then
 							local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, lk, ln))) or 1
 							local wet = grid(st, lk)[ln + 1] == 2
-							local paced = pace(swim, fs[i], (reached - at) * span, wet, budget, ratio)
+							local paced = pace(swim, fs[i], stretch, wet, budget, ratio)
 							if paced then
 								kept = admit(gk, gn, gs, kept, nk, nn, paced)
 							end
@@ -1883,19 +1883,26 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 				if landed then
 					fk, fn, fs, gk, gn, gs, count = gk, gn, gs, fk, fn, fs, kept
 				else
-					closed = fs[1]
-					for i = 2, count do
-						closed = min(closed, fs[i])
+					-- No surface steps on: the line leaves the frontier's own surfaces, each charged as itself.
+					for i = 1, count do
+						local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, fk[i], fn[i]))) or 1
+						local paced = pace(swim, fs[i], stretch, grid(st, fk[i])[fn[i] + 1] == 2, budget, ratio)
+						if paced and (not closed or paced < closed) then
+							closed = paced
+						end
 					end
+					if not closed then
+						return nil, false
+					end
+				end
+			else -- a cell with no surface, walked as dry ground off any road
+				closed = pace(swim, closed, stretch, false, budget, roadFactor or 1)
+				if not closed then
+					return nil, false
 				end
 			end
 			x, y = x + mx, y + my
 			if not landed then
-				local paced = pace(swim, closed, (reached - at) * span, leftWet, budget, roadFactor or 1)
-				if not paced then
-					return nil, false
-				end
-				closed = paced
 				if not bare(st, x, y) then
 					return nil, false
 				end
@@ -1969,14 +1976,15 @@ end
 ---@return number[] keep -- the entries kept
 ---@return boolean startVia -- the line runs from the start through its end entry's centre, not straight from the point
 ---@return boolean goalVia -- the same at the goal
----@return number[] drops -- drops[i]: how many of the walk's first i entries are reached by a fall off a ledge
+---@return number[] links -- links[i]: how many of the walk's first i entries are reached by a link alone
 local function smooth(st, P, ends)
 	local PX, PY, PW, PR, PT = P.x, P.y, P.w, P.r, P.t
 	local factor = P.factor
 	local n = #PX
-	-- A step the walk can only take by a drop link falls off a ledge: the player walks level to its edge and falls, so
-	-- the line keeps the ledge and the landing, and no pulled segment crosses one (a chord over it would be drawn as a
-	-- slope the walk never stands on). D[i]: the drops among the walk's first i entries.
+	-- A step the walk can only take by a link (a fall off a ledge, or a teleport) changes height with no ground between:
+	-- the player walks level to the ledge or trigger and is then at the landing. So the line keeps both ends and no
+	-- pulled segment crosses one (a chord over it would be drawn as a slope the walk never stands on). D[i]: the links
+	-- among the walk's first i steps.
 	local D, PK, PN = { 0 }, P.k, P.n
 	local dk, dn, dc = {}, {}, {}
 	for i = 2, n do
@@ -2032,8 +2040,8 @@ local function smooth(st, P, ends)
 	local function clear(a, b)
 		slice() -- a long walk measures many segments; each is one sight, and a sight may already slice to decode
 		local p, q = at[a] or 1, at[b] or n
-		-- only the drop's own step joins its ledge to its landing
-		if D[q] - D[p] > (q == p + 1 and 1 or 0) then
+		-- No pulled segment spans a drop; the drop's own step joins its consecutive ledge and landing unchecked.
+		if D[q] > D[p] then
 			return false
 		end
 		-- A segment from or to an end point is the one drawn from the point itself, so the end's own check is the whole
