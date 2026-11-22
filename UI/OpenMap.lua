@@ -63,6 +63,12 @@ function OpenMap.CursorMapPoint(map)
 		end
 		return nil
 	end
+	-- Without OpenMap's cursor the clamp still applies: past the host map's edge, where another addon has scrolled the
+	-- view beyond it, the cursor reads as a spot on that edge. The canvas frame is the host map's rectangle, so a
+	-- cursor off it is on no map this addon can read.
+	if not map:GetCanvas():IsMouseOver() then
+		return nil
+	end
 	local x, y = map:GetNormalizedCursorPosition()
 	return map:GetMapID(), x, y
 end

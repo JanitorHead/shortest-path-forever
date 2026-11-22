@@ -324,6 +324,14 @@ local map = {
 	GetNormalizedCursorPosition = function()
 		return 0.5 - target.y / 50000, 0.5 - target.x / 50000
 	end,
+	-- Every click here lands on the map, so the canvas (the map's rectangle) is under the cursor.
+	GetCanvas = function()
+		return {
+			IsMouseOver = function()
+				return true
+			end,
+		}
+	end,
 }
 ns.DockTitle = function()
 	return "Dock"
