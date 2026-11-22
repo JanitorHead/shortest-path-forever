@@ -89,7 +89,7 @@ local function WalkCost(options, a, b, index)
 	return Gap(a, b), true
 end
 
-local NO_SHARES, NO_EDGES = {}, {}
+local NO_SHARES = {}
 
 -- A fixed place's key in the baked walk table (Data/Walks.lua); nil for where you stand and where you are going.
 local function PlaceKey(node)
@@ -579,87 +579,10 @@ local function Solve(options, cache, check, weigh)
 	-- A fourth copy of the nodes marks the one unknown flight point this route walked up to and learned in person.
 	-- Only that departure may then fly: every landing and connecting point still comes from the known set.
 	local FLIGHT, WALKED, LEARNED = count, count * 2, count * 3
-	-- Ignoring arrival modes and revisits gives an admissible remaining-time bound. It keeps the extra
-	-- labels needed for correctness from exploring unrelated routes before reaching the destination.
-	local lower, done = { [goal] = 0 }, {}
 	---@type table<number, SPFAnchor>?
 	local anchors = options.anchors
-	-- Each node's incoming edges: the topology's own fixed edges once per topology, this plan's walks from where you
-	-- stand and to where you are going afresh. Durations are read when relaxed, so a speed change needs no rebuild.
-	local backward = topology.backward
-	if not backward then
-		backward = {}
-		for from, adjacent in ipairs(edges) do
-			check()
-			for i = 1, topology.counts[from] do
-				local edge = adjacent[i]
-				local list = backward[edge.to] or {}
-				backward[edge.to] = list
-				list[#list + 1], list[#list + 2] = from, edge
-			end
-		end
-		topology.backward = backward
-	end
-	local added = {}
-	for from, adjacent in ipairs(edges) do
-		for i = topology.counts[from] + 1, #adjacent do
-			local edge = adjacent[i]
-			local list = added[edge.to] or {}
-			added[edge.to] = list
-			list[#list + 1], list[#list + 2] = from, edge
-		end
-	end
-	-- Dijkstra on a binary heap of nodes keyed by their bound, each node in it once (`seat` is where): a bound that
-	-- drops moves its node up in place. Scanning every bound for the next node made this quadratic in places.
-	local nearest, seat = { goal }, { [goal] = 1 }
-	while #nearest > 0 do
-		check()
-		local current = nearest[1]
-		local best = lower[current]
-		local n = #nearest
-		local last = nearest[n]
-		nearest[n], seat[current] = nil, nil
-		n = n - 1
-		if n > 0 then
-			local i, key = 1, lower[last]
-			while i * 2 <= n do
-				local child = i * 2
-				if child < n and lower[nearest[child + 1]] < lower[nearest[child]] then
-					child = child + 1
-				end
-				if key <= lower[nearest[child]] then
-					break
-				end
-				nearest[i] = nearest[child]
-				seat[nearest[i]], i = i, child
-			end
-			nearest[i], seat[last] = last, i
-		end
-		done[current] = true
-		for list = 1, 2 do
-			local adjacent = (list == 1 and backward or added)[current] or NO_EDGES
-			for i = 1, #adjacent, 2 do
-				local node, edge = adjacent[i], adjacent[i + 1]
-				local cost = best + edge.duration
-				if edge.route and not edge.aboard and not (anchors and anchors[edge.route]) then
-					cost = cost + options.routes[edge.route].period / 2
-				end
-				if not done[node] and (not lower[node] or cost < lower[node]) then
-					lower[node] = cost
-					local j = seat[node] or #nearest + 1
-					while j > 1 do
-						local parent = math.floor(j / 2)
-						if lower[nearest[parent]] <= cost then
-							break
-						end
-						nearest[j] = nearest[parent]
-						seat[nearest[j]], j = j, parent
-					end
-					nearest[j], seat[node] = node, j
-				end
-			end
-		end
-	end
+	-- Ignoring arrival modes and revisits gives an admissible remaining-time bound (Routing/PlanBounds.lua).
+	local lower = ns.PlanBounds.Lower(topology, edges, goal, options, check)
 	local function NewLabels()
 		return {
 			node = {},
