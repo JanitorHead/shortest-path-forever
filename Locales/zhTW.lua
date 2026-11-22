@@ -151,7 +151,6 @@ L["Not discovered"] = "未發現"
 L["On board to %s"] = "搭乘前往%s"
 L["On the world map and in Nearby services."] = "在世界地圖和附近服務中生效。"
 L["On the world map."] = "顯示在世界地圖上。"
-L["One line in chat the first time you log in after an update."] = "更新後首次登入時在聊天中顯示一行。"
 L["Only my professions"] = "僅我的職業"
 L["Only use the Hearthstone when it saves at least this much time."] =
 	"只在爐石至少節省這麼多時間時使用。"
@@ -329,7 +328,6 @@ L["Local travel journal — approx. %d yd walked; %d journeys; %d transports; %d
 	"本地旅行日誌 — 步行約%d碼；%d次旅程；%d次交通；%d次飛行；%d段傳送門。"
 L["Record travel stats"] = "記錄旅行統計"
 L["Time left"] = "剩餘時間" -- mt
-L["Travel milestone reached: %s"] = "達成旅行里程碑：%s"
 L["Travel stats are not ready yet."] = "旅行統計尚未準備好。"
 L["Party member"] = "隊友" -- mt
 L["That player is not on a map you can see."] = "該玩家不在你能看到的地圖上。" -- mt
@@ -615,3 +613,13 @@ L["Remove all saved road and wall marks from the map and report."] =
 L["Road and wall report"] = "道路與牆壁回報" -- mt
 L["Journey start: %s"] = "旅程起點：%s" -- mt
 L["Journey goal: %s"] = "旅程目的地：%s" -- mt
+L["Shows a notice the first time you log in after an update."] = "更新後首次登入時顯示提示。" -- mt
+L["You've walked %s yards."] = "你已步行 %s 碼。" -- mt
+L["You've completed %s journeys."] = "你已完成 %s 段旅程。" -- mt
+L["You've completed your first journey."] = "你已完成第一段旅程。" -- mt
+L["You've taken %s transport rides."] = "你已搭乘交通工具 %s 次。" -- mt
+L["You've taken your first transport ride."] = "你已首次搭乘交通工具。" -- mt
+L["You've taken %s flights."] = "你已搭乘飛行路線 %s 次。" -- mt
+L["You've taken your first flight."] = "你已首次搭乘飛行路線。" -- mt
+L["You've used %s portals or passages."] = "你已使用傳送門或通道 %s 次。" -- mt
+L["You've used your first portal or passage."] = "你已首次使用傳送門或通道。" -- mt

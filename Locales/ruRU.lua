@@ -160,8 +160,6 @@ L["Not discovered"] = "Не открыто"
 L["On board to %s"] = "На борту: %s"
 L["On the world map and in Nearby services."] = "На карте мира и в услугах поблизости."
 L["On the world map."] = "На карте мира."
-L["One line in chat the first time you log in after an update."] =
-	"Одна строка в чате при первом входе после обновления."
 L["Only my professions"] = "Только мои профессии"
 L["Only use the Hearthstone when it saves at least this much time."] =
 	"Использовать камень возвращения, только если он экономит не меньше этого времени."
@@ -352,7 +350,6 @@ L["Local travel journal — approx. %d yd walked; %d journeys; %d transports; %d
 	"Дневник путешествий — около %d ярдов пешком; %d маршрутов; %d поездок на транспорте; %d полетов; %d переходов через портал."
 L["Record travel stats"] = "Записывать статистику путешествий"
 L["Time left"] = "Оставшееся время" -- mt
-L["Travel milestone reached: %s"] = "Достигнут рубеж путешествий: %s"
 L["Travel stats are not ready yet."] = "Статистика путешествий еще не готова."
 L["Party member"] = "Участник группы" -- mt
 L["That player is not on a map you can see."] =
@@ -663,3 +660,17 @@ L["Remove all saved road and wall marks from the map and report."] =
 L["Road and wall report"] = "Отчёт о дорогах и стенах" -- mt
 L["Journey start: %s"] = "Начало путешествия: %s" -- mt
 L["Journey goal: %s"] = "Цель путешествия: %s" -- mt
+L["Shows a notice the first time you log in after an update."] =
+	"Показывает уведомление при первом входе после обновления." -- mt
+L["You've walked %s yards."] = "Вы прошли пешком %s м." -- mt
+L["You've completed %s journeys."] = "Вы завершили %s путешествий." -- mt
+L["You've completed your first journey."] = "Вы завершили своё первое путешествие." -- mt
+L["You've taken %s transport rides."] = "Вы воспользовались транспортом %s раз." -- mt
+L["You've taken your first transport ride."] =
+	"Вы впервые воспользовались транспортом." -- mt
+L["You've taken %s flights."] = "Вы совершили %s перелётов." -- mt
+L["You've taken your first flight."] = "Вы совершили свой первый перелёт." -- mt
+L["You've used %s portals or passages."] =
+	"Вы воспользовались порталами или переходами %s раз." -- mt
+L["You've used your first portal or passage."] =
+	"Вы впервые воспользовались порталом или переходом." -- mt

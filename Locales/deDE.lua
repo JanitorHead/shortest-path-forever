@@ -151,8 +151,6 @@ L["Not discovered"] = "Nicht entdeckt"
 L["On board to %s"] = "An Bord nach %s"
 L["On the world map and in Nearby services."] = "Auf der Weltkarte und in den Diensten in der Nähe."
 L["On the world map."] = "Auf der Weltkarte."
-L["One line in chat the first time you log in after an update."] =
-	"Eine Zeile im Chat beim ersten Einloggen nach einem Update."
 L["Only my professions"] = "Nur meine Berufe"
 L["Only use the Hearthstone when it saves at least this much time."] =
 	"Den Ruhestein nur nutzen, wenn er mindestens so viel Zeit spart."
@@ -333,7 +331,6 @@ L["Local travel journal — approx. %d yd walked; %d journeys; %d transports; %d
 	"Lokales Reisetagebuch — ca. %d Yards zu Fuß; %d Reisen; %d Transporte; %d Flüge; %d Portalstrecken."
 L["Record travel stats"] = "Reisestatistik aufzeichnen"
 L["Time left"] = "Restzeit" -- mt
-L["Travel milestone reached: %s"] = "Reisemeilenstein erreicht: %s"
 L["Travel stats are not ready yet."] = "Die Reisestatistik ist noch nicht bereit."
 L["Party member"] = "Gruppenmitglied" -- mt
 L["That player is not on a map you can see."] = "Dieser Spieler ist nicht auf einer Karte, die Ihr sehen könnt." -- mt
@@ -628,3 +625,14 @@ L["Remove all saved road and wall marks from the map and report."] =
 L["Road and wall report"] = "Bericht zu Wegen und Wänden" -- mt
 L["Journey start: %s"] = "Reisebeginn: %s" -- mt
 L["Journey goal: %s"] = "Reiseziel: %s" -- mt
+L["Shows a notice the first time you log in after an update."] =
+	"Zeigt bei der ersten Anmeldung nach einem Update eine Meldung an." -- mt
+L["You've walked %s yards."] = "Du bist %s Meter zu Fuß gegangen." -- mt
+L["You've completed %s journeys."] = "Du hast %s Reisen abgeschlossen." -- mt
+L["You've completed your first journey."] = "Du hast deine erste Reise abgeschlossen." -- mt
+L["You've taken %s transport rides."] = "Du hast %s Fahrten unternommen." -- mt
+L["You've taken your first transport ride."] = "Du hast deine erste Fahrt unternommen." -- mt
+L["You've taken %s flights."] = "Du hast %s Flüge unternommen." -- mt
+L["You've taken your first flight."] = "Du hast deinen ersten Flug unternommen." -- mt
+L["You've used %s portals or passages."] = "Du hast %s Portale oder Durchgänge benutzt." -- mt
+L["You've used your first portal or passage."] = "Du hast zum ersten Mal ein Portal oder einen Durchgang benutzt." -- mt
