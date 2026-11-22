@@ -1,6 +1,6 @@
-Shortest Path Forever plans a journey when you shift-click the world map or minimap, or choose a quest. It gives directions in the objective tracker and on both maps.
+Shortest Path Forever plans journeys from a shift-click on either map or a quest you choose, then guides you on both maps and in the objective tracker.
 
-Everything it needs comes inside the download.
+All dependencies are included.
 
 Free, with nothing locked behind it. If it saves you time, you can [sponsor me on GitHub](https://github.com/sponsors/cjber), which takes no fees, or [buy me a coffee on Ko-fi](https://ko-fi.com/cjber). For help and each day's release notes, [join me on Discord](https://discord.gg/FpHugGxRJY).
 
@@ -8,6 +8,7 @@ Free, with nothing locked behind it. If it saves you time, you can [sponsor me o
 
 **Known limitations**
 
+- Flight times with Frequent Flier are estimated until players confirm them.
 - Walking maps are built ahead of time, so patched terrain can route wrongly until an update.
 - The game names your bind point but not where it is, so the Hearthstone counts once you bind or hearth with the addon on.
 - A boat, lift or tram shows "no sighting yet" until you have ridden that route once, because the game holds no timetables.
@@ -16,15 +17,15 @@ Free, with nothing locked behind it. If it saves you time, you can [sponsor me o
 
 ![A route settling, the departure countdown and compass](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/demo.gif)
 
-The route settles, the next boat counts down and the compass turns with you.
+The route settles, the boat countdown starts and the compass turns with you.
 
 ![Journey steps with time and distance remaining](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/tracker.png)
 
-The tracker shows the trip one step at a time.
+The tracker shows each step in order.
 
 ![Route and waypoint on the minimap](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/minimap.png)
 
-Walking breadcrumbs and the native waypoint lead to the next step.
+Walking breadcrumbs and the native waypoint guide each step.
 
 ![The Nearby services tab in the world map's quest log](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/services.png)
 
@@ -39,9 +40,9 @@ These images are generated previews of the Shortest Path UI.
 ## Features
 
 - **Plan the trip.** Combine walking, known flights, boats, zeppelins, lifts, the tram, portals and teleports. Walks go around walls, hills and water, and replan as you move. A spot inside a dungeon or raid leads to its entrance.
-- **Find anything nearby.** The Nearby services tab in the world map's quest log lists vendors by what they sell, your class trainer, profession trainers, battlemasters, portal trainers for mages, inns, banks, auction houses, flight masters, stables and repairs, and every dungeon and raid door on your continent. Each row shows the nearest one and the time to get there, and orders dungeon and raid doors by that time. Search for an item or instance, then click a row to go there; a dungeon row takes you to the door and the journey ends when you go in. Arrows mark that NPC's nameplate when you arrive. Pick a level under *Town services* in the map's filter menu and zone and city maps show the same services where they stand, each kind in its own map icon, with a market stall where kinds share a spot; click one to go there, or hide any one kind from that menu. The minimap shows ticked kinds too. Uses installed QuestieDB.
-- **Follow your guide.** RestedXP and Guidelime journeys are on by default, with no TomTom or bridge addon; without TomTom, other guides' waypoints work. Turn on *Follow Dugi guides* in Guidance to follow Dugi too, with its own arrow still visible. Adventure Guide takes over when its RestedXP display is on.
-- **Choose what you see.** Hide Journey steps or the direction arrow while keeping the map route. With OpenMap on, the route crosses its stitched map into the neighbouring zones. Move and scale the arrow, choose whether its label shows the distance, the time left or both, and add the time left under the compass.
+- **Find anything nearby.** The Nearby services tab in the world map's quest log lists vendors by what they sell, your class trainer, profession trainers, battlemasters, portal trainers for mages, inns, banks, auction houses, flight masters, stables and repairs, and every dungeon and raid door on your continent. Each row shows the nearest one and the time to get there, and orders dungeon and raid doors by that time. Search for an item or instance, then click a row to go there; a dungeon row takes you to the door and the journey ends when you go in. Arrows mark that NPC's nameplate when you arrive. Pick a level under *Town services* in the map's filter menu and zone and city maps show the same services where they stand, each kind in its own map icon, with a market stall where kinds share a spot; click one to go there, or hide any one kind from that menu. Uses installed QuestieDB.
+- **Follow your guide.** RestedXP and Guidelime journeys are on by default, with no TomTom or bridge addon; without TomTom, other guides' waypoints work. Turn on *Follow Dugi guides* in Guidance to follow Dugi too, with its own arrow still visible. RestedXP keeps its own arrow. Adventure Guide takes over when its RestedXP display is on.
+- **Choose what you see.** Hide Journey steps, the arrow, or all map marks (*Show Shortest Path marks*). With OpenMap on, the route crosses its stitched map into the neighbouring zones. Move and scale the arrow, choose whether its label shows the distance, the time left or both, and add the time left under the compass.
 - **Complete a step.** Click the current journey step and choose *Complete this step*. Skipping a Hearthstone leaves it out for that journey; other steps return if you still need them.
 - **See departures.** Dock and flight master tooltips show destinations and times.
 - **Travel prompts.** Hearthstone and teleport steps show what to cast. A sound and taskbar flash warn before a boat arrives, and an optional ping marks your arrival. A red corpse route guides ghosts back to their bodies.

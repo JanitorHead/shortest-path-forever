@@ -16,6 +16,7 @@ Need a vendor, a trainer or an inn? The **Nearby services** tab on the world map
 
 ## Known limitations
 
+- Flight times with Frequent Flier are estimated until players confirm them.
 - Walking maps are built ahead of time, so patched terrain can route wrongly until an update.
 - The game names your bind point but not where it is, so the Hearthstone counts once you bind or hearth with the addon on.
 - A boat, lift or tram shows "no sighting yet" until you have ridden that route once, because the game holds no timetables.
@@ -35,7 +36,7 @@ with you.
 
 - **Keep a private travel journal.** `/path stats` reports this character's approximate walking distance, completed journeys and transport use.
 
-- **Plan a journey.** Click the world map or minimap with your journey key held, or choose *Plan journey* on a quest. *Key to plan a journey* in Guidance chooses Shift or Alt so a key another addon wants can be left to it. Routes combine walking, flights, boats, zeppelins, lifts, the tram, portals and teleports, and replan as you move. A spot inside a dungeon or raid leads to its entrance. Walks go round zones whose lowest level is 4 or more above yours and round the other faction's towns, and say so in the tracker when they can't. Your own journey starts again after a `/reload` or a relog, until it ends or you clear it.
+- **Plan a journey.** Click the world map or minimap with your journey key held, or choose *Plan journey* on a quest. *Key to plan a journey* in Guidance chooses Shift or Alt so a key another addon wants can be left to it. Routes combine walking, flights, boats, zeppelins, lifts, the tram, portals and teleports, and replan as you move. A spot inside a dungeon or raid leads to its entrance. Walks go round zones whose lowest level is 5 or more above yours, more firmly the higher the zone, and round the other faction's towns, and say so in the tracker when they can't. Your own journey starts again after a `/reload` or a relog, until it ends or you clear it.
   ![Journey steps from Auberdine to Silithus](docs/screenshots/tracker.png)
   The tracker shows each step, with time and distance remaining. Hover the destination's pin on the world map for the same steps, and, with the other faction's routes hidden, whether their boats would be at least two minutes faster.
 - **Follow your guide.** Journeys follow RestedXP's or Guidelime's current step by default, without TomTom or a bridge addon; *Resume guide* returns to it after another journey, unless Adventure Guide's RestedXP display leads instead. With Dugi Guides installed, *Follow Dugi guides* in Guidance follows its current step too, leaving Dugi's own arrow in place. With TomTom absent, other guides' TomTom waypoints start journeys here.
@@ -73,7 +74,7 @@ the WoW: Forever client's `Interface/AddOns/` folder (`_forever_` on the live cl
 
 Alt-click a Questie icon on the world map to choose its spot as the destination. Shift-click works on empty map space and Shortest Path icons, and Alt-click elsewhere is left to other addons, such as OpenMap's marker delete. Choose Alt as *Key to plan a journey* in Guidance, and that one key works everywhere, Questie icons included. With the gamepad interface on, Shortest Path never opens or turns the world map, or opens a menu, itself; it asks you to.
 
-The settings have five pages. **Guidance** holds journey behaviour: the tracker (*Show the journey tracker*, *Show boat, lift and tram departures in the tracker*), *Key to plan a journey*, *Show the journey key hint in tooltips*, *Route to the focused quest*, *Arrival distance*, the guide addons, and route choices such as *Use Hearthstone* and *Use class teleports*. **Map marks** holds the icons on the world map and minimap (including *Town service icons* and *Show the Nearby services tab*), their sizes from 25% to 200%, the route lines, and the other faction's boats and zeppelins (off by default). **Party mage portals** lists the capitals a mage in your group can open. **Alerts** covers the boat warning and the arrival sound. **Interface** shows or hides the arrow and compass, sizes them, and labels distances in metres. [docs/features.md](docs/features.md) has the detail.
+The settings have five pages. **Guidance** holds journey behaviour: the tracker (*Show the journey tracker*, *Show boat, lift and tram departures in the tracker*), *Key to plan a journey*, *Show the journey key hint in tooltips*, *Route to the focused quest*, *Arrival distance*, the guide addons, and route choices such as *Use Hearthstone* and *Use class teleports*. **Map marks** includes *Show Shortest Path marks*, also in the world map filter, to hide the addon's pins and route lines on the world map. The page holds the icons on the world map and minimap (including *Town service icons* and *Show the Nearby services tab*), their sizes from 25% to 200%, the route lines, and the other faction's boats and zeppelins (off by default). **Party mage portals** lists the capitals a mage in your group can open. **Alerts** covers the boat warning and the arrival sound. **Interface** shows or hides the arrow and compass, sizes them, and labels distances in metres. [docs/features.md](docs/features.md) has the detail.
 
 Right-click a flight master icon to mark its flight path as known if a flight map missed it. Open a flight master's map once after installing to sync the flight points you know.
 
@@ -102,7 +103,7 @@ Moving it moves only the Forever sections; the game's quest tracker keeps its ow
 Other addons can plan and guide journeys through `ShortestPathForever.API`, ask for travel times, and subscribe
 to journey changes. [docs/api.md](docs/api.md) has the calls and what they return.
 
-With *Follow RestedXP guides* on (the default), leave RestedXP's TomTom option off so only one addon follows the guide.
+With *Follow RestedXP guides* on (the default), Shortest Path plans each step and RestedXP keeps its own arrow. Leave RestedXP's TomTom option off.
 
 Your journey key plans a journey on the world map even with TomTom installed. TomTom keeps its modified right-click waypoint gesture.
 

@@ -270,14 +270,17 @@ end
 -- The node on local cell lc for a link layer (0 the base surface, i the ith floor up, -1 the surface nearest
 -- height h), with its height gap for -1. The cluster must be decoded.
 local function surface(st, k, lc, layer, h, values, heights, floors)
-	local val, z, at = values or st.val[k], heights or st.z[k], floors or st.at[k]
-	local first = at[-(lc + 1)]
+	local val = values or st.val[k]
 	if layer == 0 then
 		return val[lc + 1] ~= 0 and lc or nil
-	elseif layer > 0 then
+	end
+	local at = floors or st.at[k]
+	local first = at[-(lc + 1)]
+	if layer > 0 then
 		local node = first and first + layer - 1
 		return node and at[node + 1] == lc and node or nil
 	end
+	local z = heights or st.z[k]
 	local best, gap
 	if val[lc + 1] ~= 0 then
 		best, gap = lc, abs(z[lc + 1] - h)
@@ -1797,6 +1800,20 @@ local function bare(st, gx, gy)
 	return not at or at[-((gx % C) * C + gy % C + 1)] == nil
 end
 
+-- A single dry surface in a cluster the search or floor follower already decoded.
+local function dryCell(st, x, y)
+	if x < 0 or x >= st.GX or y < 0 or y >= st.GY then
+		return nil
+	end
+	local C = st.C
+	local k, node = floor(x / C) * st.ny + floor(y / C), (x % C) * C + y % C
+	local val = st.val[k]
+	if val and val[node + 1] == 1 and not st.at[k][-node - 1] then
+		return k, node
+	end
+end
+local sightCosts = {}
+
 -- A drawn line's end segments run off cell centres: from an endpoint itself, or to one. Walk the cells such a
 -- segment really crosses, from node of cluster k at the fractional global cell position (fx, fy) to (tx, ty),
 -- following the surface as sight does and, with a limit, refusing a cell a hazard profile charges more than the walk
@@ -1813,8 +1830,9 @@ end
 ---@param real boolean? -- measure real travel time without road preference
 ---@param wk number? -- the cluster and node wanted in the end's cell
 ---@param wn number?
+---@param sightOnly? boolean -- test only decoded single-surface ground, without slicing
 ---@return number|nil, number|boolean, number? -- reached surface or bare status, and complete connector time
-local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real, wk, wn)
+local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real, wk, wn, sightOnly)
 	local factor = limit and P.factor
 	local roadFactor = not real and budget and P.roadFactor
 	local swim = P.swim or st.swim
@@ -1829,6 +1847,7 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 	local span, at = sqrt(dx * dx + dy * dy) * st.cs, 0.0
 	local f = frontier(P)
 	local fk, fn, fs, gk, gn, gs, bk, bn = f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8]
+	local costs = sightOnly and sightCosts or nil
 	fk[1], fn[1], fs[1] = k, node, 0.0
 	local count = 1
 	-- Once every surface's step is closed, the time of the line running on over cells with none.
@@ -1837,7 +1856,9 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 		if x == ex and y == ey then
 			break
 		end
-		tick()
+		if not sightOnly then
+			tick()
+		end
 		local mx, my = 0, 0
 		local reached = nextX < nextY and nextX or nextY -- equal through a corner
 		if abs(nextX - nextY) < 1e-9 then -- through a corner
@@ -1855,6 +1876,16 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 			my = 0
 		end
 		if mx ~= 0 or my ~= 0 then
+			-- neighbours can read both side cells of a diagonal. Prove all its inputs are already decoded.
+			if
+				sightOnly
+				and (
+					not dryCell(st, x + mx, y + my)
+					or mx ~= 0 and my ~= 0 and (not dryCell(st, x + mx, y) or not dryCell(st, x, y + my))
+				)
+			then
+				return nil, false
+			end
 			if reached > 1 then
 				reached = 1
 			end
@@ -1864,10 +1895,10 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 			if not closed then
 				for i = 1, count do
 					local lk, ln = fk[i], fn[i]
-					for j = 1, neighbours(st, lk, ln, x, y, mx, my, water, bk, bn) do
+					for j = 1, neighbours(st, lk, ln, x, y, mx, my, water, bk, bn, costs) do
 						landed = true
 						local nk, nn = bk[j], bn[j]
-						if not factor or factor(nk, nn) <= limit then
+						if (not costs or costs[j] == 0) and (not factor or factor(nk, nn) <= limit) then
 							local ratio = roadFactor and (1 + (roadFactor - 1) * (1 - roadNode(st, lk, ln))) or 1
 							local wet = grid(st, lk)[ln + 1] == 2
 							local paced = pace(swim, fs[i], stretch, wet, budget, ratio)
@@ -1878,6 +1909,9 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 					end
 				end
 				if landed and kept == 0 then
+					return nil, false
+				end
+				if sightOnly and not landed then
 					return nil, false
 				end
 				if landed then
@@ -1943,6 +1977,35 @@ local function toward(st, P, k, node, fx, fy, tx, ty, water, limit, budget, real
 		return nil, false
 	end
 	return fk[best], fn[best], bestTime
+end
+
+-- A guidance read spends at most sixteen cell crossings per line, even when a smoothed segment spans a zone.
+local SIGHT_CROSSINGS = 16
+local sightPoints = {}
+---@param map number
+---@param x number
+---@param y number
+---@param height number
+---@param point SPFPoint
+---@return boolean
+local function clearSight(map, x, y, height, point)
+	local st = states[map]
+	if not st or point.map ~= map or point.z ~= height then
+		return false
+	end
+	local fx, fy = (x - st.x0) / st.cs, (y - st.y0) / st.cs
+	local tx, ty = (point.x - st.x0) / st.cs, (point.y - st.y0) / st.cs
+	local ax, ay, bx, by = floor(fx), floor(fy), floor(tx), floor(ty)
+	if abs(bx - ax) + abs(by - ay) > SIGHT_CROSSINGS then
+		return false
+	end
+	local k, node = dryCell(st, ax, ay)
+	local tk, tn = dryCell(st, bx, by)
+	if not (k and node and tk and tn and st.z[k][node + 1] == height and st.z[tk][tn + 1] == height) then
+		return false
+	end
+	local reached, surfaceNode = toward(st, sightPoints, k, node, fx, fy, tx, ty, false, nil, nil, true, tk, tn, true)
+	return reached == tk and surfaceNode == tn
 end
 
 -- The largest factor a hazard profile charges over path entries first..last, keeping the highest limit already seen:
@@ -2408,6 +2471,7 @@ ns.PathGrid = {
 	roadEdges = roadEdges,
 	roadEdgesIn = roadEdgesIn,
 	smooth = smooth,
+	Sight = clearSight,
 	climbNodes = climbNodes,
 	peak = peak,
 	toward = toward,

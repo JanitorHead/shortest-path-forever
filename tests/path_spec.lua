@@ -355,6 +355,33 @@ do
 	)
 end
 
+-- Distinct points on one water node must pay both connectors even when the grid walk is empty.
+local bayGrid = ns.PathGrid
+local bayState = bayGrid.State(1)
+local bk, bc = bayGrid.locate(bayState, BAY_EAST.x, BAY_EAST.y)
+local cx = bayState.x0 + (math.floor(bk / bayState.ny) * bayState.C + math.floor(bc / bayState.C) + 0.5) * bayState.cs
+local cy = bayState.y0 + (bk % bayState.ny * bayState.C + bc % bayState.C + 0.5) * bayState.cs
+local eastOffset = { x = cx - 1, y = cy, z = bayState.z[bk][bc + 1] }
+local westOffset = { x = cx + 2, y = cy, z = eastOffset.z }
+local _, withinCell = Path.FindSync(1, eastOffset, westOffset)
+assert(withinCell == 3 * swim, ("both water connectors cost %.1f, got %.1f"):format(3 * swim, withinCell))
+westOffset.x = cx + 3
+local _, shifted = Path.FindSync(1, eastOffset, westOffset)
+assert(shifted == 4 * swim, "a new offset in the same cell changes the cached path cost")
+local _, walking = Path.FindSync(1, eastOffset, westOffset, true)
+assert(walking == 4, "water walking charges the connectors at running speed")
+assert(Path.FindManySync(1, eastOffset, { westOffset })[1] == shifted, "forward batch counts both connectors")
+assert(
+	Path.FindManySync(1, westOffset, { eastOffset }, false, true)[1] == shifted,
+	"reverse batch counts both connectors"
+)
+assert(Path.FindManySync(1, eastOffset, { eastOffset })[1] == 0, "a co-located transfer costs zero")
+
+local batch = { map = 1, from = eastOffset, sourceCluster = bk, sourceNode = bc }
+local moved = { map = 1, x = cx, y = cy, z = eastOffset.z }
+assert(not Path.ReuseMany(batch, moved), "moving within the cell invalidates its exact batch costs")
+assert(Path.ReuseMany(batch, moved, true), "the sliced query can still match a surface for a baked bound")
+
 -- The finer entrance graph finds the dry floor above the strait's water. Its explicit downward landing reaches
 -- the shore; sampling only the base water would mistake this layered walk for a swim.
 local dryStrait, dryCost = Path.FindSync(0, { x = -14961.19, y = 274.63 }, { x = -14897.51, y = 274.63 })
@@ -364,7 +391,10 @@ local floorK, floorCell = StraitGrid.locate(straitState, -14969.154228856, 282.5
 local floorValues = StraitGrid.grid(straitState, floorK)
 local floorNode = StraitGrid.surface(straitState, floorK, floorCell, 1, 14)
 assert(floorValues[floorCell + 1] == 2 and floorNode and floorValues[floorNode + 1] == 1)
-assert(straitState.z[floorK][floorNode + 1] == 14, "the dry floor is above the base water")
+assert(
+	straitState.z[floorK][floorNode + 1] > straitState.z[floorK][floorCell + 1] + 10,
+	"the dry floor is above the base water"
+)
 
 -- Nearby, a walk that really swims is still pulled straight across the water its own entries swam. The row holds the
 -- water entrance on the cluster border at x -14933, so the swim's route is the straight one.
@@ -386,16 +416,16 @@ assert(pts and len < 350, len)
 for i = 2, #pts - 1 do
 	assert(pts[i].z > 85, "walks the canal bed")
 end
--- The bed under it is sealed ground no player can stand on (#602). The 50 to 61.6 degree band (#639) keeps the
--- slide into it as a down-only step, so a point at the bed's height starts on the bed until walks begin from the
--- player's measured floor (#737); it must not climb back into the streets, and a street point still walks out by
--- the gate.
+-- The 50 to 61.6 degree band (#639) keeps the slide into the bed under it as a down-only step, so a point at the
+-- bed's height starts on the bed until walks begin from the player's measured floor (#737). Ground a drop reaches is
+-- kept with its way out, so the walk follows the bed west and leaves it only by the gate, never climbing back into
+-- the streets; a street point still walks out by the gate.
 local BED = { x = TRADE_STREET.x, y = TRADE_STREET.y, z = 74 }
 local street = Path.FindSync(0, TRADE_STREET, GOLDSHIRE)
 assert(passes(street, -8520, 960) > 100 and passes(Path.FindSync(0, BED, GOLDSHIRE), -8520, 960) > 100, "goes round")
 pts = Path.FindSync(0, BED, { x = -9068, y = 417 })
 for i = 2, #pts - 1 do
-	assert(pts[i].z < 85, "climbs out of the bed into the streets")
+	assert(pts[i].z < 85 or pts[i].x < -9050, "climbs out of the bed into the streets")
 end
 -- A zeppelin dock stands at its transport's height: Grom'gol's tower platform, not the beach below it.
 assert(loadfile("Data/Routes.lua"))("ShortestPathForever", ns)

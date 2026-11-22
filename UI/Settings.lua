@@ -347,7 +347,14 @@ ns.Init(function()
 		"journeyHint",
 		L["Show the journey key hint in tooltips"],
 		-- luacheck: push ignore 631
-		L["Adds a line naming your journey key to tooltips on the world map, flight points and the minimap. Off, the key still plans journeys."]
+		L["Adds a line naming your journey key to tooltips on the world map and flight points. Off, the key still plans journeys."]
+		-- luacheck: pop
+	)
+	Checkbox(
+		"minimapHint",
+		L["Show the journey key hint on the minimap"],
+		-- luacheck: push ignore 631
+		L["Adds the journey key line to the minimap's tooltip over what it tracks. Off, the world map and flight point tooltips keep theirs, and the key still plans journeys."]
 		-- luacheck: pop
 	)
 	Checkbox(
@@ -403,29 +410,38 @@ ns.Init(function()
 			.. L["It returns to the arrow when you leave the area or the stop changes."],
 		ns.ArrivalPinChanged
 	)
-	local arrivalDistance = Settings.RegisterAddOnSetting(
-		page,
-		"ShortestPathForever_arrivalDistance",
-		"arrivalDistance",
-		ns.db,
-		Settings.VarType.Number,
-		L["Arrival distance"],
-		ns.Defaults.arrivalDistance
-	)
-	settings.arrivalDistance = arrivalDistance
-	local arrivalOptions = Secure(Settings.CreateSliderOptions)(5, 50, 5)
-	Label(arrivalOptions, function(value)
-		return ns.FormatDistance(value)
-	end)
-	Settings.RegisterInitializer(
-		page,
-		Secure(Settings.CreateSliderInitializer)(
-			arrivalDistance,
-			arrivalOptions,
-			L["How close you must get to a journey's destination for it to count as reached."]
-				.. " "
-				.. L["Stops before the last on a multi-stop route keep 15 yards."]
+	local function DistanceSlider(key, name, tooltip, minimum, maximum)
+		local setting = Settings.RegisterAddOnSetting(
+			page,
+			"ShortestPathForever_" .. key,
+			key,
+			ns.db,
+			Settings.VarType.Number,
+			name,
+			ns.Defaults[key]
 		)
+		settings[key] = setting
+		local options = Secure(Settings.CreateSliderOptions)(minimum, maximum, 5)
+		Label(options, function(value)
+			return ns.FormatDistance(value)
+		end)
+		Settings.RegisterInitializer(page, Secure(Settings.CreateSliderInitializer)(setting, options, tooltip))
+	end
+	DistanceSlider(
+		"arrivalDistance",
+		L["Arrival distance"],
+		L["How close you must get to a journey's destination for it to count as reached."]
+			.. " "
+			.. L["Stops before the last on a multi-stop route keep 15 yards."],
+		5,
+		50
+	)
+	DistanceSlider(
+		"offPathTolerance",
+		L["Off-path tolerance"],
+		L["How far you can stray from a walking path before a new one is searched."],
+		15,
+		100
 	)
 	Checkbox(
 		"npcArrows",
@@ -457,7 +473,7 @@ ns.Init(function()
 	Checkbox(
 		"restedxp",
 		L["Follow RestedXP guides"],
-		L["Plan journeys to RestedXP guide targets and hide its arrow. No TomTom needed."],
+		L["Plan journeys to RestedXP guide targets. RestedXP keeps its own arrow."],
 		function()
 			ns.RefreshRestedXP()
 		end
@@ -465,9 +481,7 @@ ns.Init(function()
 	Checkbox(
 		"restedxpHideArrow",
 		L["Hide RestedXP's arrow"],
-		L["Shortest Path's own arrow replaces the guide's while a guide target is followed."]
-			.. " "
-			.. L["Turning this off leaves RestedXP's arrow visible."],
+		L["Applies when Adventure Guide displays RestedXP steps and Shortest Path provides the directions."],
 		function()
 			ns.RefreshRestedXP()
 		end
@@ -486,6 +500,14 @@ ns.Init(function()
 		L["Plan journeys to Dugi's current guide step. Dugi keeps its own arrow."],
 		function()
 			ns.RefreshDugi()
+		end
+	)
+	Checkbox(
+		"zygor",
+		L["Follow Zygor guides"],
+		L["Plan journeys to Zygor's current guide step, with no TomTom or bridge addon needed. Zygor keeps its own arrow."],
+		function()
+			ns.RefreshZygor()
 		end
 	)
 	Settings.RegisterInitializer(
@@ -511,7 +533,9 @@ ns.Init(function()
 	Checkbox(
 		"avoidHighZones",
 		L["Avoid zones far above my level"],
-		L["Walk less in zones with a minimum level 4 or more above yours, even at your destination."],
+		-- luacheck: push ignore 631
+		L["Walk less in zones with a minimum level 5 or more above yours, and less still the higher it is, even at your destination."],
+		-- luacheck: pop
 		ns.TravelPolicyChanged
 	)
 	Checkbox(
@@ -550,6 +574,17 @@ ns.Init(function()
 		L["Use Water Walking and Levitate"],
 		L["Use Water Walking or Levitate when available. When off, routes use swimming times and may still cross water."],
 		ns.TravelPolicyChanged
+	)
+	-- Plain strings and a plain click, as the client's button initializer takes them; /path report lists the entries.
+	Settings.RegisterInitializer(
+		page,
+		Secure(CreateSettingsButtonInitializer)(
+			L["Avoided transport"],
+			L["Clear avoided transport"],
+			ns.ClearAvoidedTransport,
+			L["Clear this character's avoided transport so the planner can use it again."],
+			false
+		)
 	)
 	Checkbox(
 		"useHearthstone",

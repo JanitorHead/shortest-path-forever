@@ -6,7 +6,7 @@ The detail behind each feature in the [README](../README.md).
 
 Alt-click the world map to place a destination directly over a Questie icon. Shift-click remains available on the map, minimap and Shortest Path icons. **Key to plan a journey** in Guidance chooses Shift or Alt: with Alt, that one key works everywhere, Questie icons included, and Shift no longer plans a journey.
 
-In **Map marks**, scale transport, flight master and minimap icons separately from 25% to 200%. Right-click a flight master icon to mark its path as known or unknown; opening a flight master's map also syncs paths reported by the client. **Show the Nearby services tab** takes the tab out of the world map's quest log when another addon needs that space; `/spfnear` and the tracking menu still open the services.
+Turn off **Show Shortest Path marks** in **Map marks** or in the world map filter to hide the addon's world map pins and route lines. Journeys continue, including minimap guidance. In **Map marks**, scale transport, flight master and minimap icons separately from 25% to 200%. Right-click a flight master icon to mark its path as known or unknown; opening a flight master's map also syncs paths reported by the client. **Show the Nearby services tab** takes the tab out of the world map's quest log when another addon needs that space; `/spfnear` and the tracking menu still open the services.
 
 In **Guidance**, turn **Show the journey tracker** off to leave the arrow, pin, map line and minimap route without a journey block in the tracker; **Interface**'s **Show direction arrow** turns the arrow off too. Choose yards or metres, resize the tracker and compass, and give the compass a background. Turn off **Attach to quest tracker** in Guidance, or in the right-click menu of the tracker's "Journey to …" line (out of combat), to drag the Forever column by its heading.
 
@@ -26,7 +26,7 @@ With the game's gamepad interface on, Shortest Path never opens or turns the wor
 
 Click the current journey step and choose **Complete this step** to advance it. Skipping a Hearthstone leaves it out of plans for that journey. Other steps may return if your actual position still requires them.
 
-With RestedXP, Guidelime or Dugi Guides installed, **Resume guide** in Guidance or the Journey header menu resumes that guide's current target after another journey. Dugi Guides is off by default: turn on *Follow Dugi guides* in Guidance to follow it, and Dugi's own arrow stays in place. Adventure Guide owns this action when its RestedXP display is enabled; update both addons to use the integrated resume control.
+With RestedXP, Guidelime or Dugi Guides installed, **Resume guide** in Guidance or the Journey header menu resumes that guide's current target after another journey. Dugi Guides is off by default: turn on *Follow Dugi guides* in Guidance to follow it, and Dugi's own arrow stays in place. RestedXP keeps its own arrow when Shortest Path follows it directly. Adventure Guide owns the resume action when its RestedXP display is enabled; update both addons to use the integrated resume control.
 
 ## Routes and map marks
 
@@ -42,8 +42,8 @@ With RestedXP, Guidelime or Dugi Guides installed, **Resume guide** in Guidance 
   end* off in `/path`, by the game's own waypoint marker moving along the route turn by turn. It hands your tracked
   quest back when you finish. To head for a quest, pick **Plan journey** from its right-click menu in the objective
   tracker or quest log, or click its marker on the map with your journey key held; a finished quest routes to its turn-in.
-  Walks keep away from danger. A zone whose lowest level is 4 or more above yours costs four times as much to
-  walk through and the other faction's towns and capitals six times as much, so a walk goes round them when there
+  Walks keep away from danger. A zone whose lowest level is 5 or more above yours costs more to walk through the
+  higher it is, up to six times as much at 10 levels above, and the other faction's towns and capitals six times as much, so a walk goes round them when there
   is a way, and is planned again when you level up. The zones and towns you start and end in are never avoided.
   Under the walk's step, grey lines say what it did: *Avoids Duskwood (level 18-30)*, *Crosses Wetlands (level 20-30)*
   where there is no way round, and *Hostile town: Crossroads*. Zone levels are the original game's published
@@ -105,9 +105,8 @@ With RestedXP, Guidelime or Dugi Guides installed, **Resume guide** in Guidance 
   walking geometry, and drawn paths stay visible during refreshes, and clearing a journey releases its search caches. Walking
   maps load in small parts as the search reaches them, and a fixed walk on another continent keeps its measured cost
   and waits to draw its detailed line until you arrive there. Your position's costs refresh when you leave
-  the path or once a minute. Repeating a destination reuses its costs; standing still or moving within the same
-  walking-map cell by at most three yards also reuses your position's costs. Walk steps name the dock, pier, lift
-  or flight master you are heading for.
+  the path or once a minute. Repeating a destination reuses its costs, and standing still also reuses your
+  position's costs. Walk steps name the dock, pier, lift or flight master you are heading for.
   ![A walking route around the terrain south of Auberdine](screenshots/darkshore.png)
 
   Walking legs follow the terrain instead of a straight line to the destination.

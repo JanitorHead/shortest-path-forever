@@ -165,7 +165,8 @@ function Planner.Places(options)
 			add("taxi", id, node)
 		end
 	end
-	for id, portal in ipairs(options.portals or {}) do
+	for _, id in ipairs(Keys(options.portals or {})) do
+		local portal = options.portals[id]
 		if not portal.requires and Eligible(portal, options) then
 			-- Named from the portal itself: an end inside an instance such as the Deeprun Tram has no zone to fall
 			-- back on.
@@ -228,8 +229,7 @@ local function Subset(labels, first, second, target)
 	return true
 end
 
--- Only callers with immutable data tables opt in; replacing data rebuilds topology.
--- Taxi discovery is read each plan because the client mutates its known-node set in place.
+-- Replacing immutable transport data rebuilds topology. Taxi discovery is read each plan.
 local CACHE_KEYS = {
 	"docks",
 	"routes",
@@ -249,18 +249,21 @@ local CACHE_KEYS = {
 	"hazards",
 }
 
--- A plan from its caller's own frame runs to its answer there and never yields: another addon's estimate inside a
--- secure hook can ask for one, and Lua 5.1 cannot yield across that C call (#717). A plan given its path job runs
--- there instead, pausing at the shared frame budget and going on next frame; every caller of this addon's own does
--- that. A sliced plan holds options.cache while it is paused, and any other plan meanwhile builds its own graph.
+-- Synchronous plans never yield across a secure hook's C call (#717). Path jobs can pause at the frame budget.
+-- A sliced plan holds options.cache while paused, and a concurrent plan builds its own graph.
 ---@param options SPFPlanOptions
 ---@param cache table?
 ---@param check fun() reads the budget every CHECK_EVERY calls
 ---@param weigh fun() reads the budget on every call, before work that can ask the client
 ---@return SPFPlan?
--- Bounded label search shares topology and heap locals; splitting adds hot-path upvalues
 local function Solve(options, cache, check, weigh)
-	local topology = cache and cache.topology
+	local flightSpeed = 1
+	if options.taxiPaths and #options.taxiPaths > 0 then
+		weigh()
+		flightSpeed = Model.FlightSpeed()
+	end
+	local cached = cache and cache.topology
+	local topology = cached and cached.flightSpeed == flightSpeed and cached or nil
 	if topology then
 		for _, key in ipairs(CACHE_KEYS) do
 			local was, now = topology.options[key], options[key]
@@ -353,24 +356,24 @@ local function Solve(options, cache, check, weigh)
 				portals[place.id] = index
 			end
 		end
-		for id, portal in ipairs(options.portals or {}) do
+		for id, portal in pairs(options.portals or {}) do
 			local from, to = portals[id * 2 - 1], portals[id * 2]
 			if from and to then
-				Edge(from, to, { mode = portal.kind, duration = portal.seconds * 1000 })
+				Edge(from, to, { mode = portal.kind, duration = portal.seconds * 1000, portal = id })
 			end
 		end
 		for _, path in ipairs(options.taxiPaths or {}) do
 			check()
 			if taxis[path.from] and taxis[path.to] then
-				-- A ride this character has flown overrides the shipped estimate for that directed path.
 				local measured = options.taxiTimes and options.taxiTimes[path.from .. ":" .. path.to]
+				local seconds, estimated = Model.FlightTime(path, measured, flightSpeed)
 				Edge(taxis[path.from], taxis[path.to], {
 					mode = "flight",
 					path = path,
 					-- A class flight master flies you by gossip, straight to its landing whether you know it or not.
 					gossip = options.taxiNodes[path.from].class ~= nil or nil,
-					duration = (measured or path.seconds) * 1000,
-					estimated = not measured and path.estimated,
+					duration = seconds * 1000,
+					estimated = estimated,
 				})
 			end
 		end
@@ -450,6 +453,7 @@ local function Solve(options, cache, check, weigh)
 			saved[key] = options[key]
 		end
 		topology = {
+			flightSpeed = flightSpeed,
 			nodes = nodes,
 			edges = edges,
 			masses = masses,
@@ -870,6 +874,7 @@ local function Solve(options, cache, check, weigh)
 				wait = labels.wait[current],
 				estimated = labels.estimated[current],
 				route = edge.route,
+				portal = edge.portal,
 				aboard = edge.aboard,
 				boarding = edge.stop,
 				alighting = edge.alighting,
