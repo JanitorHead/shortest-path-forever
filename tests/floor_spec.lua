@@ -53,8 +53,8 @@ local LIFT_TOP = { x = 1596.15, y = 291.8, z = 55.718 } -- Data/Transports.lua d
 local UNDER_HALL = { x = 1604, y = 219 }
 
 -- Walk the drawn line from a to b, sampling every five yards (or spacing) as the journey's frame would; check is
--- called at each sample with the point, the line's height there and the tracked height. A segment to a point the walk
--- reaches by a drop falls off a ledge: the client shows the fall while you are in the air.
+-- called at each sample with the point, the line's height there and the tracked height.
+-- A segment that starts with a jump falls off a ledge: the client shows the fall while you are in the air.
 local function walk(from, to, check, spacing)
 	local points = assert(Path.FindSync(0, from, to))
 	for i = 2, #points do
@@ -64,7 +64,7 @@ local function walk(from, to, check, spacing)
 			local t = j / steps
 			local x, y = a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)
 			local z = a.z and b.z and a.z + t * (b.z - a.z) or b.z or a.z
-			falling = b.jump or false
+			falling = a.jump or false
 			Floor.Sample(0, x, y)
 			drain()
 			Floor.Sample(0, x, y)
@@ -120,7 +120,7 @@ do
 	local drops = 0
 	for i = 2, #points do
 		local a, b = points[i - 1], points[i]
-		if b.jump then
+		if a.jump then
 			drops = drops + 1
 			local step = math.max(math.abs(b.x - a.x), math.abs(b.y - a.y)) / st.cs
 			assert(step <= 1 + 1e-6, ("the ledge and its landing are one step apart: %.2f cells"):format(step))

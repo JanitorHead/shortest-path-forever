@@ -640,19 +640,20 @@ format1Floor.floor =
 fixture.install(58, format1Floor)
 assert(Path.FindSync(58, point(5, 11, 20), point(5, 10, 40)), "a format 1 floor carries no steep rule")
 
--- A drawn line keeps a drop's ledge and landing as consecutive points and marks the landing, even when the drop is
+-- A drawn line keeps a drop's ledge and landing as consecutive points and marks the ledge, even when the drop is
 -- the whole walk: a chord from the ledge to the landing would be drawn as a slope the walk never stands on.
 do
 	local pts = assert(Path.FindSync(42, point(40, 40, 20 + FALL), point(41, 40, 20)))
 	local jumps = 0
-	for i = 2, #pts do
+	for i = 1, #pts - 1 do
 		if pts[i].jump then
 			jumps = jumps + 1
-			assert(pts[i].z == 20 and pts[i - 1].z == 20 + FALL, "the jump runs from the ledge to the landing")
-			assert(math.floor(pts[i - 1].x / CS) == 40 and math.floor(pts[i].x / CS) == 41, "one cell apart")
+			assert(pts[i].z == 20 + FALL and pts[i + 1].z == 20, "the jump runs from the ledge to the landing")
+			assert(math.floor(pts[i].x / CS) == 40 and math.floor(pts[i + 1].x / CS) == 41, "one cell apart")
 		end
 	end
-	assert(jumps == 1, "the landing is marked: " .. jumps)
+	assert(jumps == 1, "the ledge is marked: " .. jumps)
+	assert(not pts[#pts].jump, "the landing does not start a jump")
 end
 
 -- A drop of more than a cell is a link only: the base step that moves one cell says nothing about a landing two

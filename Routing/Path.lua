@@ -1160,10 +1160,10 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 	points[#points + 1] = snappedGoal
 			and { map = map, x = x0 + (P.x[n] + 0.5) * cs, y = y0 + (P.y[n] + 0.5) * cs, z = P.z[n] }
 		or { map = map, x = to.x, y = to.y, z = to.z }
-	-- A point reached by a link off the walk, a fall off the ledge the point before stands on or a teleport, where the
-	-- height changes with no slope between. The pull keeps both ends of a link, so only consecutive points span one.
+	-- A jump marks the departure of a drop or teleport so line readers skip that segment.
+	-- The pull keeps both ends of a link, so only consecutive points span one.
 	for i = 2, #drawn do
-		points[i].jump = links[drawn[i]] > links[drawn[i - 1]] or nil
+		points[i - 1].jump = links[drawn[i]] > links[drawn[i - 1]] and 1 or nil
 	end
 	local wetYards = 0
 	for i = 2, #points do
