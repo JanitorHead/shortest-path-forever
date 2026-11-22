@@ -710,43 +710,31 @@ class ReachableTest(unittest.TestCase):
         self.assertEqual(self.components([(-8795.0, 805.0, 58.0)], drops=[drop]), [0, 1])
 
     def test_a_drop_keeps_a_speck_only_a_place_would_lose(self):
-        # Under a minimum of 2 polys the one-poly pit is a speck: no place keeps it, a drop from kept ground does.
+        # Under a minimum of 2 polys the one-poly pit is a speck: no place keeps it, a drop from kept ground does, and
+        # whether the walk leaves it is then the grid's question, even with a place on it.
         def half(n, z, upper):
             corner = (-8790.0, 800.0, z) if upper else (-8800.0, 810.0, z)
             return (n, [(-8800.0, 800.0, z), corner, (-8790.0, 810.0, z)], False, False)
 
         polys = [half(0, 100.0, True), half(1, 100.0, False), half(2, 60.0, True)]
         drop = ((-8792.0, 802.0, 100.0), (-8792.0, 802.0, 60.0))
-        for drops, want in (([], [2, 2, 0]), ([drop], [2, 2, 1])):
+        street, pit = (-8795.0, 803.0, 101.0), (-8792.0, 802.0, 61.0)
+        for drops, spots, want in (
+            ([], [street], [2, 2, 0]),
+            ([drop], [street], [2, 2, 1]),
+            ([drop], [street, pit], [2, 2, 1]),
+        ):
             with (
                 patch.object(gen_nav, "TILES", {(48, 30): "tile"}),
                 patch.object(gen_nav, "BASE", {}),
                 patch.object(gen_nav, "SIZE", array("i")),
+                patch.object(gen_nav, "POCKET", {}),
                 patch.object(gen_nav, "MIN_COMPONENT", 2),
                 patch.object(gen_nav, "read_tile", lambda rc, d=drops: (polys, [(0, 1, None, None)], [], d)),
             ):
-                gen_nav.components([(-8795.0, 803.0, 101.0)])
+                gen_nav.components(spots)
                 self.assertEqual(list(gen_nav.SIZE), want)
-
-    def test_a_speck_a_place_stands_on_and_a_drop_keeps_is_a_pocket(self):
-        # The place on the pit does not keep it, so the drop does, and whether the walk leaves it is the grid's question.
-        def half(n, z, upper):
-            corner = (-8790.0, 800.0, z) if upper else (-8800.0, 810.0, z)
-            return (n, [(-8800.0, 800.0, z), corner, (-8790.0, 810.0, z)], False, False)
-
-        polys = [half(0, 100.0, True), half(1, 100.0, False), half(2, 60.0, True)]
-        drop = ((-8792.0, 802.0, 100.0), (-8792.0, 802.0, 60.0))
-        with (
-            patch.object(gen_nav, "TILES", {(48, 30): "tile"}),
-            patch.object(gen_nav, "BASE", {}),
-            patch.object(gen_nav, "SIZE", array("i")),
-            patch.object(gen_nav, "POCKET", {}),
-            patch.object(gen_nav, "MIN_COMPONENT", 2),
-            patch.object(gen_nav, "read_tile", lambda rc: (polys, [(0, 1, None, None)], [], [drop])),
-        ):
-            gen_nav.components([(-8795.0, 803.0, 101.0), (-8792.0, 802.0, 61.0)])
-            self.assertEqual(list(gen_nav.SIZE), [2, 2, 1])
-            self.assertEqual(list(gen_nav.POCKET), [2])
+                self.assertEqual(list(gen_nav.POCKET), [2] if drops else [])
 
     def test_a_drop_landing_in_a_tile_read_before_its_ledge_counts(self):
         # The ledge's tile (48, 30) sorts after the landing's tile (47, 30), which is read first.
