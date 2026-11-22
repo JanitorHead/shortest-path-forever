@@ -453,7 +453,7 @@ local Layer = {}
 function Layer:RemoveAllData()
 	linePins:ReleaseAll()
 	goalPins:ReleaseAll()
-	self.stopsKey, self.stopMarks = nil, nil
+	self.stopsKey, self.stopMarks, self.mirroredWaypoint = nil, nil, false
 	-- Reconcile the game's quest pins with the stops drawn now (#472).
 	ns.RefreshQuestPins()
 end
@@ -513,14 +513,15 @@ function Layer:RefreshStops()
 		or ns.OpenMapAddon.ShowsFollowedPin()
 	then
 		goalPins:ReleaseAll()
-		self.stopsKey, self.stopMarks = nil, nil
+		self.stopsKey, self.stopMarks, self.mirroredWaypoint = nil, nil, false
 		return
 	end
 	local first, marks = stopIndex or 1, {}
+	self.mirroredWaypoint = ns.CompanionMaps.OpenWaypointMarksStop(stops and stops[first] or goal)
 	for index = first, stops and #stops or 1 do
 		local point = stops and stops[index] or goal
 		local x, y = MapPosition(point, mapID)
-		if OnMap(x, y) then
+		if OnMap(x, y) and (index ~= first or not self.mirroredWaypoint) then
 			marks[#marks + 1] = {
 				x = x,
 				y = y,
@@ -900,9 +901,7 @@ function ns.SetJourneyRoute(destination, route)
 	end
 end
 
--- Guide starts, stops, pauses or yields: the goal pin's gold/bronze state changes with it, on the map, the minimap
--- and the on-screen destination pin. Keeping this here means the journey module only asks for it, without reaching
--- into the painters. A change while the state stays the same costs one comparison.
+-- Guide changes can recolour the goal pin on all surfaces, or replace it with OpenMap's waypoint on the world map.
 local journeyPinActive
 function ns.RefreshJourneyPin()
 	if not goal then
@@ -910,7 +909,8 @@ function ns.RefreshJourneyPin()
 		return
 	end
 	local active = ns.GoalPinActive()
-	if journeyPinActive == active then
+	local mirrored = ns.CompanionMaps.OpenWaypointMarksStop(stops and stops[stopIndex or 1] or goal)
+	if journeyPinActive == active and Layer.mirroredWaypoint == mirrored then
 		return
 	end
 	journeyPinActive = active

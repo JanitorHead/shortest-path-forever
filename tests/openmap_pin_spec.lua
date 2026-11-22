@@ -86,7 +86,45 @@ assert(TomTom:AddWaypoint(mapID, x, y, { title = title, from = "OpenMap" }))
 cursorX, cursorY = x, y
 assert(clickHandlers[1](WorldMapFrame, "LeftButton"))
 settle()
-checkGoalPin("An SPF map click")
+assert(waypoint and supertracked, "Guide places the native waypoint OpenMap mirrors")
+local addonLoaded = C_AddOns.IsAddOnLoaded
+function C_AddOns.IsAddOnLoaded(name)
+	return name == "OpenMap" or addonLoaded(name)
+end
+-- OpenMap draws the followed waypoint in its tracked look on a child of the map's view.
+function canvas:GetChildren()
+	return unpack(self.children)
+end
+local mirror = CreateFrame("Button", nil, canvas)
+mirror.u, mirror.v, mirror.look = x, y, { atlas = "Waypoint-MapPin-Tracked" }
+local function scanMap()
+	T = T + 0.25
+	mapTick()
+end
+scanMap()
+assert(goals:GetNumActive() == 0, "OpenMap's mirrored waypoint is the only marker at the guided stop")
+stitched = false
+mapTick()
+checkGoalPin("An SPF map click on the regular map")
+stitched = true
+scanMap()
+assert(goals:GetNumActive() == 0, "Returning to the stitched map removes the duplicate")
+-- A hidden OpenMap saved pin can consume OpenMap's representation of the native waypoint.
+-- The waypoint still projects onto the map, but OpenMap supplies no visible marker for it.
+mirror:Hide()
+scanMap()
+checkGoalPin("A waypoint with no visible OpenMap marker")
+mirror:Show()
+scanMap()
+assert(goals:GetNumActive() == 0, "Showing the mirror removes the duplicate")
+local goal = ns.JourneyGoal()
+local bend = { map = goal.map, x = goal.x - 50, y = goal.y }
+ns.db.guideStops = false
+ns.JourneyGuide.To(bend, { bend }, goal)
+checkGoalPin("An OpenMap waypoint on a bend")
+mirror:Hide()
+
+
 
 assert(TomTom:AddWaypoint(mapID, x, y, { title = title, from = "OpenMap" }))
 ns.db.tomtom = false
