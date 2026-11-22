@@ -158,6 +158,20 @@ class RasterizeLayersTest(unittest.TestCase):
         self.assertEqual(sorted(z for z, _, _ in layers[0]), [10.0, 30.0])
         self.assertEqual(layers[0][0][0], 10.0)  # the centre's surface stays the base
 
+    def test_a_tunnel_under_water_stays_a_floor(self):
+        # The ruins' water lies far above the Apothecarium ramp with solid ground between: the patch leaves the ramp
+        # ground, so it stays a layer under the water rather than being dropped as a lake bed (#1015).
+        water = dict(self.surface(0.0, 8.0, 33.0), water=True)
+        layers = self.layers({0: water, 1: self.surface(0.0, 8.0, -77.0)}, {}, {})
+        self.assertEqual(sorted(z for z, _, _ in layers[0]), [-77.0, 33.0])
+
+    def test_ground_wins_over_a_steep_face_within_a_step(self):
+        # A steep sliver two yards above a ledge is not the cell's surface: as the base it left the ledge's ground no
+        # way out, since steep ground is only walked down (#1015, Lord Melenas).
+        polys = {0: self.surface(0.0, 8.0, 10.0), 1: self.surface(0.0, 8.0, 12.0, steep=True)}
+        layers = self.layers(polys, {}, {})
+        self.assertEqual([(z, v) for z, v, _ in layers[0]], [(10.0, 1)])
+
     def test_steep_ground_is_never_the_same_layer_as_the_ground_it_leads_to(self):
         # A face from 50 to 61.6 degrees is walked down and never across, so joining it to the flat ground beside it
         # inside one cell must not lose the level it leads up to.

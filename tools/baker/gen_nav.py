@@ -489,8 +489,8 @@ def rasterize_layers(polys, adj, portal, bounds):
     one of them becomes a layer: a slope that spans more than CLIMB across one cell used to arrive several times, as
     its own floors, and each of those cost a node and its links. Surfaces that only meet elsewhere (a bridge over a
     road, a tunnel under ground) stay floors, and so does steep ground, which the player walks down and never across.
-    Prefer the largest component, then the highest surface, so roofs cannot displace the city below; keep the other
-    pieces at least CLIMB apart as floors; omit lake beds under water. Narrow passages anchor on a point of the
+    Prefer the largest component, then ground over steep ground, then the highest surface, so roofs cannot displace
+    the city below; keep the other pieces at least CLIMB apart as floors. Narrow passages anchor on a point of the
     passage at the poly's height there, because their cells may have no centre inside the mesh.
     """
     ax0, ax1, ay0, ay1 = bounds
@@ -585,13 +585,16 @@ def rasterize_layers(polys, adj, portal, bounds):
     layers = {}  # cell -> [(height, value, (poly, point))], base first, then floors by height
     for i, ss in surf.items():
         piece = pieces(ss, i)
-        base = max((n for n, s in enumerate(ss) if not s[5]), key=lambda n: (ss[n][0], ss[n][1]))
+        # Ground both ways beats a steep face within a step of it: the face is walked only downhill, so as the base
+        # it shut in the ledge Lord Melenas stands on, two yards under a steep sliver of its rock (#1015).
+        rank = [(s[0], not polys[s[3]]["steep"], s[1]) for s in ss]
+        base = max((n for n, s in enumerate(ss) if not s[5]), key=rank.__getitem__)
         chosen, taken = [base], {piece[base]}
-        # Ground under the top water surface is a lake or sea bed, never walked; the water itself stays (a river
-        # under a bridge is still swum).
-        water = max((s[1] for s in ss if s[2] == 2), default=-1e9)
-        for n in sorted(range(len(ss)), key=lambda n: (ss[n][0], ss[n][1]), reverse=True):
-            if piece[n] in taken or ss[n][1] < water:
+        # Lake and sea beds never reach here: the TrinityCore patch bakes ground the water reaches as area 7, which
+        # walkable() refuses. Ground further down, behind solid ground, is a tunnel or a cellar and stays: the
+        # Apothecarium ramp runs a hundred yards under the water of the ruins above it (#1015).
+        for n in sorted(range(len(ss)), key=rank.__getitem__, reverse=True):
+            if piece[n] in taken:
                 continue
             if all(abs(ss[n][1] - ss[c][1]) >= CLIMB for c in chosen):
                 chosen.append(n)
