@@ -728,6 +728,26 @@ class ReachableTest(unittest.TestCase):
                 gen_nav.components([(-8795.0, 803.0, 101.0)])
                 self.assertEqual(list(gen_nav.SIZE), want)
 
+    def test_a_speck_a_place_stands_on_and_a_drop_keeps_is_a_pocket(self):
+        # The place on the pit does not keep it, so the drop does, and whether the walk leaves it is the grid's question.
+        def half(n, z, upper):
+            corner = (-8790.0, 800.0, z) if upper else (-8800.0, 810.0, z)
+            return (n, [(-8800.0, 800.0, z), corner, (-8790.0, 810.0, z)], False, False)
+
+        polys = [half(0, 100.0, True), half(1, 100.0, False), half(2, 60.0, True)]
+        drop = ((-8792.0, 802.0, 100.0), (-8792.0, 802.0, 60.0))
+        with (
+            patch.object(gen_nav, "TILES", {(48, 30): "tile"}),
+            patch.object(gen_nav, "BASE", {}),
+            patch.object(gen_nav, "SIZE", array("i")),
+            patch.object(gen_nav, "POCKET", {}),
+            patch.object(gen_nav, "MIN_COMPONENT", 2),
+            patch.object(gen_nav, "read_tile", lambda rc: (polys, [(0, 1, None, None)], [], [drop])),
+        ):
+            gen_nav.components([(-8795.0, 803.0, 101.0), (-8792.0, 802.0, 61.0)])
+            self.assertEqual(list(gen_nav.SIZE), [2, 2, 1])
+            self.assertEqual(list(gen_nav.POCKET), [2])
+
     def test_a_drop_landing_in_a_tile_read_before_its_ledge_counts(self):
         # The ledge's tile (48, 30) sorts after the landing's tile (47, 30), which is read first.
         lower = [(0, [(-8270.0, 800.0, 60.0), (-8260.0, 800.0, 60.0), (-8260.0, 810.0, 60.0)], False, False)]

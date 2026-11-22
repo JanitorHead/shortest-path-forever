@@ -421,7 +421,8 @@ def components(spots, joins=()):
         sys.exit(f"no fixed place of map {MAP} stands on the selected tiles, so none of their ground is reachable")
     # A place keeps its component unless that is a speck; ground a drop reaches from kept ground is walked to, however
     # small, and drops are followed one way only, so a ledge or roof that drops onto the ground is not kept by it.
-    kept = {r for r in reached if size[r] >= MIN_COMPONENT}
+    placed = {r for r in reached if size[r] >= MIN_COMPONENT}
+    kept = set(placed)
     down = defaultdict(set)
     for a, b in arcs:
         if a >= 0 and b >= 0:
@@ -435,11 +436,11 @@ def components(spots, joins=()):
     # Whether a pocket can be left is the grid's question, asked once it is rasterized (trapped()): the navmesh's own
     # links miss the seams the grid steps across, so a city ledge reads as sealed when the walk leaves it.
     POCKET.clear()
-    POCKET.update((x, r) for x, r in enumerate(map(find, range(len(parent)))) if r in kept and r not in reached)
+    POCKET.update((x, r) for x, r in enumerate(map(find, range(len(parent)))) if r in kept and r not in placed)
     big = sorted((size[r] for r in kept), reverse=True)
     print(
         f"tiles {len(TILES)}, polys {len(parent)}, components {len(size)}, reached {len(reached)}, kept {len(big)} "
-        f"({sum(big)} polys, {len(kept - reached)} by a drop): {big[:12]}{' ...' if len(big) > 12 else ''}",
+        f"({sum(big)} polys, {len(kept - placed)} by a drop): {big[:12]}{' ...' if len(big) > 12 else ''}",
         flush=True,
     )
 
