@@ -1048,7 +1048,7 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 			P.t[n] - P.t[j] + goalTime
 		)
 	end
-	local keep, startDetour, goalDetour = smooth(st, P, {
+	local keep, startDetour, goalDetour, drops = smooth(st, P, {
 		sx = sx,
 		sy = sy,
 		gx = gx,
@@ -1083,6 +1083,8 @@ local function run(map, from, to, waterWalking, costOnly, hz, job)
 			x = x0 + (P.x[j] + 0.5) * cs,
 			y = y0 + (P.y[j] + 0.5) * cs,
 			z = P.z[j],
+			-- reached by falling off the ledge the point before stands on
+			drop = j > 1 and drops[j] > drops[j - 1] or nil,
 		}
 	end
 	-- A steering caller needs a walkable end even when the requested point has no clear final segment.
