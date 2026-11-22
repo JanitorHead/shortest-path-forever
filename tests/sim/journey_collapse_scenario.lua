@@ -18,8 +18,13 @@ scenario("Journey stays collapsed when the last quest is untracked", { addons = 
 		end
 	end
 	assert(ns, "SPF loaded")
+	-- The sim names no zones, so each goal carries its own label: the title then tells the two journeys apart.
+	local function labelled(dockID, label)
+		local point = ns.DockPoint(dockID)
+		return { map = point.map, x = point.x, y = point.y, z = point.z, label = label }
+	end
 	sim:input(function()
-		ns.StartJourney(ns.DockPoint(5))
+		ns.StartJourney(labelled(5, "Menethil Harbor"))
 	end)
 	sim:advance(1)
 	assert(ns.JourneyGoal(), "the journey started")
@@ -59,7 +64,7 @@ scenario("Journey stays collapsed when the last quest is untracked", { addons = 
 
 	local previousTitle = journey.blocks[1].title
 	sim:input(function()
-		ns.StartJourney(ns.DockPoint(6))
+		ns.StartJourney(labelled(6, "Theramore Isle"))
 	end)
 	sim:advance(1)
 	assert(journey.blocks[1].title ~= previousTitle, "SPF produced a different journey while the tracker was hidden")
