@@ -1,6 +1,6 @@
-Shortest Path Forever plans a journey when you shift-click the world map or minimap, or choose a quest. It gives directions in the objective tracker and on both maps.
+Shortest Path Forever plans journeys from a shift-click on either map or a quest you choose, then guides you on both maps and in the objective tracker.
 
-Everything it needs comes inside the download.
+All dependencies are included.
 
 Free, with nothing locked behind it. If it saves you time, you can [sponsor me on GitHub](https://github.com/sponsors/cjber), which takes no fees, or [buy me a coffee on Ko-fi](https://ko-fi.com/cjber). For help and each day's release notes, [join me on Discord](https://discord.gg/FpHugGxRJY).
 
@@ -8,6 +8,7 @@ Free, with nothing locked behind it. If it saves you time, you can [sponsor me o
 
 **Known limitations**
 
+- Flight times with Frequent Flier are estimated until players confirm them.
 - Walking maps are built ahead of time, so patched terrain can route wrongly until an update.
 - The game names your bind point but not where it is, so the Hearthstone counts once you bind or hearth with the addon on.
 - A boat, lift or tram shows "no sighting yet" until you have ridden that route once, because the game holds no timetables.
@@ -16,15 +17,15 @@ Free, with nothing locked behind it. If it saves you time, you can [sponsor me o
 
 ![A route settling, the departure countdown and compass](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/demo.gif)
 
-The route settles, the next boat counts down and the compass turns with you.
+The route settles, the boat countdown starts and the compass turns with you.
 
 ![Journey steps with time and distance remaining](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/tracker.png)
 
-The tracker shows the trip one step at a time.
+The tracker shows each step in order.
 
 ![Route and waypoint on the minimap](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/minimap.png)
 
-Walking breadcrumbs and the native waypoint lead to the next step.
+Walking breadcrumbs and the native waypoint guide each step.
 
 ![The Nearby services tab in the world map's quest log](https://raw.githubusercontent.com/cjber/shortest-path-forever/main/docs/screenshots/services.png)
 
