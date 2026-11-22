@@ -326,6 +326,7 @@
 ---@field transit? boolean
 ---@field portals? boolean
 ---@field minimapPins? boolean
+---@field worldMapMarks? boolean
 ---@field mapFlightMasters? boolean
 ---@field nearbyTab? boolean the Nearby services tab in the quest log column; false hides it
 ---@field mapRoutes? boolean
@@ -360,7 +361,7 @@
 ---@field compassTime? boolean -- the whole journey's time left under the compass distance (Compass.lua)
 ---@field arrivalSound? boolean -- the map ping when a journey the player planned reaches its goal (Alert.lua)
 ---@field restedxp? boolean -- follow RestedXP guide targets
----@field restedxpHideArrow? boolean -- Shortest Path's arrow replaces the guide's while a guide target is followed (RestedXP.lua)
+---@field restedxpHideArrow? boolean -- hide the guide arrow during Adventure Guide integration
 ---@field guidelime? boolean -- follow Guidelime's current guide step (Guidelime.lua)
 ---@field dugi? boolean -- follow Dugi Guides' current guide step (Dugi.lua)
 ---@field zygor? boolean -- follow Zygor's current guide step without a TomTom bridge (Zygor.lua)
@@ -667,6 +668,8 @@ ShortestPathForeverPathData = nil
 ---@field waterWalking? boolean
 ---@field hazards? SPFHazards
 ---@field reverse? boolean
+---@field draw? boolean prioritizes geometry and surface prefetch over cost searches
+---@field coarse? boolean sketches geometry without decoding walking grids
 ---@field costOnly? boolean
 ---@field snapGoal? boolean
 ---@field decode? number[] -- clusters a Path.Decode job decodes for Floor.lua; it searches nothing
