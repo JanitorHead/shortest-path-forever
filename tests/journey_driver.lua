@@ -324,15 +324,22 @@ local map = {
 	GetNormalizedCursorPosition = function()
 		return 0.5 - target.y / 50000, 0.5 - target.x / 50000
 	end,
-	-- Every click here lands on the map, so the canvas (the map's rectangle) is under the cursor.
+	-- The canvas is the map's rectangle, 1000 square at the screen's origin; the cursor is over the clicked spot.
 	GetCanvas = function()
 		return {
-			IsMouseOver = function()
-				return true
+			GetRect = function()
+				return 0, 0, 1000, 1000
+			end,
+			GetEffectiveScale = function()
+				return 1
 			end,
 		}
 	end,
 }
+env.GetCursorPosition = function()
+	local x, y = map.GetNormalizedCursorPosition()
+	return x * 1000, (1 - y) * 1000
+end
 ns.DockTitle = function()
 	return "Dock"
 end

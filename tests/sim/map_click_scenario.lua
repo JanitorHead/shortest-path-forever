@@ -115,8 +115,8 @@ scenario("a journey-key click with journeys off says so on screen and leaves the
 end)
 
 -- A map addon that draws the zones around the shown map lets the view scroll past that map's edge: it widens the
--- scroll extents, which Blizzard keeps inside the map (CalculateScrollExtentsAtScale). It plans a Shift-click there
--- itself, as OpenMap's own handler does through ShortestPathForever.API.Navigate.
+-- scroll extents, which Blizzard keeps inside the map (CalculateScrollExtentsAtScale), and scrolls there. It plans a
+-- Shift-click there itself, as OpenMap's own handler does through ShortestPathForever.API.Navigate.
 local ATLAS = [[
 hooksecurefunc(WorldMapFrame.ScrollContainer, "CalculateScrollExtents", function(self)
 	self.scrollXExtentsMin, self.scrollXExtentsMax = -1, 2
@@ -132,6 +132,17 @@ WorldMapFrame:AddCanvasClickHandler(function(_, button)
 end, 1000)
 function AtlasStandInShiftClicks()
 	return taken
+end
+-- Moves the view's centre east by a share of the map's width, at once: the simulator's GetTickTime is 0, so
+-- Blizzard's eased pan (SetPanTarget, then FrameDeltaLerp each frame) never moves.
+function AtlasStandInScrollEast(share)
+	local sc = WorldMapFrame.ScrollContainer
+	sc:InstantPanAndZoom(
+		sc:GetCanvasScale(),
+		sc:GetNormalizedHorizontalScroll() + share,
+		sc:GetNormalizedVerticalScroll(),
+		true
+	)
 end
 ]]
 
@@ -156,9 +167,10 @@ scenario("a shift-click past the map's edge is left to the map addon that scroll
 	sim:runAs("Atlas", ATLAS)
 	local map = sim:openWorldMap(1429)
 	sim:advance(0.5)
-	-- The view's centre moves three quarters of the map's width east, so its right half shows past the map's edge.
-	sim:panMap(0.75, 0)
-	sim:advance(1)
+	-- The view's centre moves a quarter of the map's width east, so the view's right side shows past the map's edge.
+	sim:runAs("Atlas", "AtlasStandInScrollEast(0.25)")
+	sim:advance(0.5)
+	assert(map.ScrollContainer:GetNormalizedHorizontalScroll() > 0.7, "the stand-in scrolled the view east")
 	local planned
 	local plan = ns.JourneyToMapPoint
 	ns.JourneyToMapPoint = function(mapID, x, y)

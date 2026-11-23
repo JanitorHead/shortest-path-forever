@@ -72,9 +72,13 @@ end
 function canvas.GetEffectiveScale()
 	return uiScale * (0.5 + zoom * 1.5)
 end
--- The canvas is the map's rectangle: under the cursor while the cursor's map fractions are on the map.
-function canvas.IsMouseOver()
-	return cursorX >= 0 and cursorX <= 1 and cursorY >= 0 and cursorY <= 1
+-- The canvas is the map's rectangle, its left edge at the screen's; the cursor is where its map fractions place it.
+function canvas:GetRect()
+	return 0, self:GetBottom(), self.width, self.height
+end
+function GetCursorPosition()
+	local scale = canvas:GetEffectiveScale()
+	return cursorX * canvas.width * scale, (canvas:GetBottom() + (1 - cursorY) * canvas.height) * scale
 end
 -- What of the map the view shows, in map fractions: the whole map until a check drags the view.
 local viewRect = { left = 0, right = 1, top = 0, bottom = 1 }
